@@ -1,9 +1,10 @@
 (ns mcmap.core
-  (:import [java.nio.ByteBuffer]))
+  (:import java.nio.ByteBuffer
+           java.util.zip.Deflater))
 
-(def *region-side* (* 16 32))
-(def *chunk-side* 16)
-(def *chunk-height* 128)
+(def +region-side+ (* 16 32))
+(def +chunk-side+ 16)
+(def +chunk-height+ 128)
 
 (defn mc-block
   "Returns the specified block in mcmap's internal data format"
@@ -14,9 +15,11 @@
 (defn gen-mcmap-zone
   "Takes x and z dimensions, and a function of x y and z returning a
 block, and returns a zone of the specified size"
+  ;; Probably want to make this a single vector later, in a structure
+  ;; with coordinates.
   ([x-size z-size f]
      (vec (for [x (range x-size)]
-            (vec (for [y (range *chunk-height*)]
+            (vec (for [y (range +chunk-height+)]
                    (vec (for [z (range z-size)]
                           (f x y z)))))))))
 
@@ -24,11 +27,15 @@ block, and returns a zone of the specified size"
   ([zone]
      (count ( (zone 0) 0 ))))
 
+(defn zone-y-size
+  ([zone]
+     (count (zone 0))))
+
 (defn zone-x-size
   ([zone]
      (count zone)))
 
-(defn array-lookup-3d
+(defn zone-lookup
   ([a x y z]
      ( ( (a x) y) z )))
 
@@ -36,10 +43,10 @@ block, and returns a zone of the specified size"
   "Returns true if and only if the given region and chunk coordinates
 include any part of the given zone"
   ([zone region-x region-z chunk-x chunk-z]
-     (let [chunk-x0 (+ (* *region-side* region-x)
-                       (* *chunk-side*  chunk-x))
-           chunk-z0 (+ (* *region-side* region-z)
-                       (* *chunk-side*  chunk-z))]
+     (let [chunk-x0 (+ (* +region-side+ region-x)
+                       (* +chunk-side+  chunk-x))
+           chunk-z0 (+ (* +region-side+ region-z)
+                       (* +chunk-side+  chunk-z))]
        (and (pos? chunk-x0)
             (pos? chunk-z0)
             (< chunk-x0 (zone-x-size zone))
@@ -51,7 +58,7 @@ include any part of the given zone"
      (vec (for [x (range x0 x1)]
             (vec (for [y (range y0 y1)]
                    (vec (for [z (range z0 z1)]
-                          (array-lookup-3d zone x y z)))))))))
+                          (zone-lookup zone x y z)))))))))
 
 (defn block-id
   "Returns the byte block ID for the given zone element"
@@ -65,10 +72,10 @@ include any part of the given zone"
   "Returns a seq of bytes with block IDs for the given zone; assumes zone
 contains at least one block"
   ([zone]
-     (for [x (range (count zone))
-           y (range (count (zone 0)))
-           z (range (count ( (zone 0) 0 )))]
-       (block-id (array-lookup-3d zone x y z)))))
+     (for [x (range (zone-x-size zone))
+           y (range (zone-y-size zone))
+           z (range (zone-z-size zone))]
+       (block-id (zone-lookup zone x y z)))))
 
 (defn byte-buffer
   "Given a seq of bytes (or ints between -128 and 255; values over 127
@@ -85,13 +92,17 @@ will be folded), returns a byte buffer"
   "Takes any number of byte buffers and concatenates them into a
 single byte buffer"
   ([& byte-buffers]
-     ;; TODO
-     ))
+     (byte-buffer (mapcat #(.array %)
+                          byte-buffers))))
+
+(defn utf8-bytes
+  ([s]
+     (.getbytes s "UTF-8")))
 
 (defn str-to-byte-buffer
+  "Encodes the given string using UTF-8"
   ([s]
-     ;; TODO
-     ))
+     (byte-buffer (utf8-bytes s))))
 
 (defn tag-end
   "Returns a binary-formatted TAG_End"
@@ -100,6 +111,7 @@ single byte buffer"
 
 (defn tag-string
   "Returns a binary-formatted TAG_String"
+  ;; The long form doesn't appear to be necessary.
   ([tag-name s]
      (concat-bytes (byte-buffer [8])
                    (tag-string tag-name)
@@ -157,6 +169,17 @@ single byte buffer"
                    (bit-and 255 (bit-shift-right 8 n))
                    (bit-and 255 n)])))
 
+(defn tag-long
+  "Returns a binary-formatted TAG_Long"
+  ([tag-name n]
+     (concat-bytes (byte-buffer [4])
+                   (tag-string tag-name)
+                   (tag-long n)))
+  ([n]
+     (concat-bytes (tag-int (bit-shift-right 32 n))
+                   (tag-int (bit-and (dec (bit-shift-left 32 1))
+                                     n)))))
+
 (defn tag-byte-array
   "Returns a binary-formatted TAG_Byte_Array"
   ;; This does not appear as part of the payload of any other type, so
@@ -211,40 +234,54 @@ precomputed with compute-block-light, for the given zone"
   ([zone]
      []))
 
+(defn zlib-compress
+  "Returns a byte buffer containing a zlib compressed version of the
+data in the given byte buffer"
+  ([buf]
+     (let [bs (.array buf)
+           out (bytes (count bs))
+           c (doto (Deflater.)
+               (.setInput bs)
+               (.finish))
+           c-len (.deflate c out)]
+       (byte-buffer (take c-len out)))))
+
 (defn extract-chunk
   "Returns a binary chunk {:x <chunk-x> :z <chunk-z> :data
 <byte-buffer>} at the given coordinates within the given zone"
   ([zone region-x region-z chunk-x chunk-z]
-     (let [x0 (+ (* *region-side* region-x)
-                 (* *chunk-side* chunk-x))
-           z0 (+ (* *region-side* region-z)
-                 (* *chunk-side* chunk-z))
+     (let [x0 (+ (* +region-side+ region-x)
+                 (* +chunk-side+ chunk-x))
+           z0 (+ (* +region-side+ region-z)
+                 (* +chunk-side+ chunk-z))
            blocks (sub-zone zone
-                            x0 (+ x0 *chunk-side*)
-                            0 *chunk-height*
-                            z0 (+ z0 *chunk-side*))]
-       {:x (/ x0 *chunk-side*)
-        :z (/ z0 *chunk-side*)
-        :data (tag-compound ""
-                (tag-compound "Level"
-                  (tag-byte-array "Blocks"
-                                  (block-ids blocks))
-                  (tag-byte-array "Data"
-                                  (block-data blocks))
-                  (tag-byte-array "SkyLight"
-                                  (sky-light blocks))
-                  (tag-byte-array "BlockLight"
-                                  (block-light blocks))
-                  (tag-byte-array "HeightMap"
-                                  (height-map blocks))
-                  (tag-list "Entities" 10 [])
-                  (tag-list "TileEntities" 10
-                            (tile-entities blocks))
-                  (tag-list "TileTicks" 10 [])
-                  (tag-long "LastUpdate" 1)
-                  (tag-int "xPos" (/ x0 *chunk-side*))
-                  (tag-int "zpos" (/ z0 *chunk-side*))
-                  (tag-byte "TerrainPopulated" 1)))})))
+                            x0 (+ x0 +chunk-side+)
+                            0 +chunk-height+
+                            z0 (+ z0 +chunk-side+))
+           data (tag-compound ""
+                  (tag-compound "Level"
+                    (tag-byte-array "Blocks"
+                                    (block-ids blocks))
+                    (tag-byte-array "Data"
+                                    (block-data blocks))
+                    (tag-byte-array "SkyLight"
+                                    (sky-light blocks))
+                    (tag-byte-array "BlockLight"
+                                    (block-light blocks))
+                    (tag-byte-array "HeightMap"
+                                    (height-map blocks))
+                    (tag-list "Entities" 10 [])
+                    (tag-list "TileEntities" 10
+                              (tile-entities blocks))
+                    (tag-list "TileTicks" 10 [])
+                    (tag-long "LastUpdate" 1)
+                    (tag-int "xPos" (/ x0 +chunk-side+))
+                    (tag-int "zpos" (/ z0 +chunk-side+))
+                    (tag-byte "TerrainPopulated" 1)))]
+       {:x (/ x0 +chunk-side+)
+        :z (/ z0 +chunk-side+)
+        :data data
+        :compressed-data (zlib-compress data)})))
 
 (defn zone-to-chunks
   "Returns a seq of chunks for the given zone and region coordinates,
@@ -265,7 +302,7 @@ chunks"
   "Returns a 4096-byte block of mcr chunk file locations for the given
 seq of locations"
   ([locs]
-
+     ;; TODO
      ))
 
 (defn timestamps
@@ -276,7 +313,7 @@ number of chunks in the given seq of chunks"
      ))
 
 (defn place-chunks
-  "Given a seq of chunks and locations, returns the chunks for an mcr
+  "Given seqs of chunks and locations, returns the chunks for an mcr
 file"
   ([chunks locs]
      ;; TODO
@@ -307,7 +344,7 @@ filename"
                        (if (zero? (mod y 4))
                          (mc-block :glowstone)
                          (mc-block :air)))
-           region (gen-mcmap-zone *region-side* *region-side*
+           region (gen-mcmap-zone +region-side+ +region-side+
                                   generator)]
        (zone-to-region region 0 0)))
   ([filename]
