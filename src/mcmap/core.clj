@@ -18,8 +18,10 @@ block, and returns a zone of the specified size"
   ;; Probably want to make this a single vector later, in a structure
   ;; with coordinates.
   ([x-size z-size f]
+     (gen-mcmap-zone x-size +chunk-height+ z-size f))
+  ([x-size y-size z-size f]
      (vec (for [x (range x-size)]
-            (vec (for [y (range +chunk-height+)]
+            (vec (for [y (range y-size)]
                    (vec (for [z (range z-size)]
                           (f x y z)))))))))
 
@@ -36,8 +38,8 @@ block, and returns a zone of the specified size"
      (count zone)))
 
 (defn zone-lookup
-  ([a x y z]
-     ( ( (a x) y) z )))
+  ([zone x y z]
+     ( ( (zone x) y) z )))
 
 (defn chunk-in-zone?
   "Returns true if and only if the given region and chunk coordinates
@@ -47,25 +49,28 @@ include any part of the given zone"
                        (* +chunk-side+  chunk-x))
            chunk-z0 (+ (* +region-side+ region-z)
                        (* +chunk-side+  chunk-z))]
-       (and (pos? chunk-x0)
-            (pos? chunk-z0)
+       (and (not (neg? chunk-x0))
+            (not (neg? chunk-z0))
             (< chunk-x0 (zone-x-size zone))
             (< chunk-z0 (zone-z-size zone))))))
 
 (defn sub-zone
   "Returns a zone within the given zone, for the given coordinate ranges"
   ([zone x0 x1 y0 y1 z0 z1]
-     (vec (for [x (range x0 x1)]
-            (vec (for [y (range y0 y1)]
-                   (vec (for [z (range z0 z1)]
-                          (zone-lookup zone x y z)))))))))
+     (gen-mcmap-zone (- x1 x0)
+                     (- y1 y0)
+                     (- z1 z0)
+                     #(zone-lookup zone
+                                   (+ %1 x0)
+                                   (+ %2 y0)
+                                   (+ %3 z0)))))
 
 (defn block-id
   "Returns the byte block ID for the given zone element"
-  ;; XXX just supporting air and lightstone for right now
+  ;; XXX just supporting air and glowstone for right now
   ([ze]
      ( {:air           0,
-        :lightstone    89}
+        :glowstone     89}
        ze )))
 
 (defn block-ids
@@ -97,7 +102,7 @@ single byte buffer"
 
 (defn utf8-bytes
   ([s]
-     (.getbytes s "UTF-8")))
+     (.getBytes s "UTF-8")))
 
 (defn str-to-byte-buffer
   "Encodes the given string using UTF-8"
