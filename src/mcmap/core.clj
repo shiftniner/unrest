@@ -244,7 +244,7 @@ precomputed with compute-block-light, for the given zone"
 data in the given byte buffer"
   ([buf]
      (let [bs (.array buf)
-           out (bytes (count bs))
+           out (byte-array (count bs))
            c (doto (Deflater.)
                (.setInput bs)
                (.finish))
@@ -283,8 +283,8 @@ data in the given byte buffer"
                     (tag-int "xPos" (/ x0 +chunk-side+))
                     (tag-int "zpos" (/ z0 +chunk-side+))
                     (tag-byte "TerrainPopulated" 1)))]
-       {:x (/ x0 +chunk-side+)
-        :z (/ z0 +chunk-side+)
+       {:x chunk-x
+        :z chunk-z
         :data data
         :compressed-data (zlib-compress data)})))
 
@@ -296,26 +296,70 @@ where each chunk is {:x <chunk-x> :z <chunk-z> :data <byte-buffer>"
            :when (chunk-in-zone? zone x z chunk-x chunk-z)]
        (extract-chunk zone x z chunk-x chunk-z))))
 
+(defn byte-buffer-size
+  "Returns the length in bytes of the given byte buffer"
+  ([b]
+     (count (seq (.array b)))))
+
 (defn locations
-  "Returns a seq of chunk file locations that will fit the given
-chunks"
+  "Returns a seq of chunk file locations and sector counts (in 4KiB
+sectors) that will fit the given chunks; a second arguments gives an
+offset (in sectors) at which to begin placing chunks"
   ([chunks]
-     ;; TODO     
-     ))
+     (location chunks 2))               ; Leave room for timestamps
+  ([chunks offset]
+     (when (seq chunks)
+       (let [chunk (first chunks)
+             chunk-compressed-size (byte-buffer-size
+                                    (:compressed-data chunk))
+             chunk-size-in-sectors (quot (+ chunk-compressed-size 4101)
+                                         4096)
+             room-to-leave (+ chunk-size-in-sectors 6)]
+         (if (> chunk-size-in-sectors 255)
+           (throw (RuntimeException. (str "Chunk too big ("
+                                          chunk-size-in-sectors
+                                          ") at x="
+                                          (:x chunk)
+                                          ", y="
+                                          (:y chunk)))))
+         (if (>= offset (bit-shift-right 1 24))
+           (throw (RuntimeException. (str "Offset " offset " too big"))))
+         (lazy-seq (cons {:x (:x chunk),
+                          :z (:z chunk),
+                          :offset offset,
+                          :count chunk-size-in-sectors}
+                         (locations (rest chunks)
+                                    (+ offset room-to-leave))))))))
 
 (defn locations-to-bytes
   "Returns a 4096-byte block of mcr chunk file locations for the given
 seq of locations"
   ([locs]
-     ;; TODO
-     ))
+     (let [pos-to-loc (apply hash-map
+                             (mapcat (fn [loc]
+                                       [ [ (:x loc)
+                                           (:z loc) ]
+                                         loc ])
+                                     locs))
+           locs-in-order (for [z (range 32)
+                               x (range 32)]
+                           (pos-to-loc [x z]))
+           loc-bytes (mapcat #(if %
+                                [(bit-shift-left (:offset % 16))
+                                 (and 255 (bit-shift-left (:offset % 8)))
+                                 (and 255 (:offset %))
+                                 (:count )]
+                                [0 0 0 0])
+                             locs-in-order)]
+       (byte-buffer loc-bytes))))
 
 (defn timestamps
   "Returns a 4096-byte block of timestamps sized appropriately for the
 number of chunks in the given seq of chunks"
   ([chunks]
-     ;; TODO
-     ))
+     ;; encoding scheme is not documented in the wiki; why do we even
+     ;; need chunk timestamps?  0 for everything should be safe
+     (byte-buffer (repeat 4096 0))))
 
 (defn place-chunks
   "Given seqs of chunks and locations, returns the chunks for an mcr
