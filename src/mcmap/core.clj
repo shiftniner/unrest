@@ -158,7 +158,7 @@ single byte buffer"
                    (tag-string tag-name)
                    (tag-short n)))
   ([n]
-     (byte-buffer [(bit-and 255 (bit-shift-right 8 n))
+     (byte-buffer [(bit-and 255 (bit-shift-right n 8))
                    (bit-and 255 n)])))
 
 (defn tag-int
@@ -170,9 +170,9 @@ single byte buffer"
                    (tag-string tag-name)
                    (tag-int n)))
   ([n]
-     (byte-buffer [(bit-shift-right 24 n)
-                   (bit-and 255 (bit-shift-right 16 n))
-                   (bit-and 255 (bit-shift-right 8 n))
+     (byte-buffer [(bit-shift-right n 24)
+                   (bit-and 255 (bit-shift-right n 16))
+                   (bit-and 255 (bit-shift-right n 8))
                    (bit-and 255 n)])))
 
 (defn tag-long
@@ -182,8 +182,8 @@ single byte buffer"
                    (tag-string tag-name)
                    (tag-long n)))
   ([n]
-     (concat-bytes (tag-int (bit-shift-right 32 n))
-                   (tag-int (bit-and (dec (bit-shift-left 32 1))
+     (concat-bytes (tag-int (bit-shift-right n 32))
+                   (tag-int (bit-and (dec (bit-shift-left 1 32))
                                      n)))))
 
 (defn tag-byte-array
@@ -346,8 +346,8 @@ seq of locations"
                                x (range 32)]
                            (pos-to-loc [x z]))
            loc-bytes (mapcat #(if %
-                                [(bit-shift-left (:offset %) 16)
-                                 (and 255 (bit-shift-left (:offset %) 8))
+                                [(bit-shift-right (:offset %) 16)
+                                 (and 255 (bit-shift-right (:offset %) 8))
                                  (and 255 (:offset %))
                                  (:count %)]
                                 [0 0 0 0])
@@ -382,6 +382,8 @@ buffer, returning a new byte buffer"
                                         ", pad-needed=" pad-needed))))
        (concat-bytes bb
                      (byte-buffer (repeat pad-needed 0))
+                     (tag-int (inc len))
+                     (tag-byte compression-type)
                      data))))
 
 (defn place-chunks
@@ -403,10 +405,14 @@ containing the chunks for an mcr file"
 extracted from that zone, in Minecraft beta .mcr format"
   ([zone x z]
      (let [chunks (zone-to-chunks zone x z)
-           locs (locations chunks)]
-       (concat-bytes (locations-to-bytes locs)
-                     (timestamps chunks)
-                     (place-chunks chunks locs)))))
+           locs (locations chunks)
+           region-unpadded (concat-bytes (locations-to-bytes locs)
+                                         (timestamps chunks)
+                                         (place-chunks chunks locs))
+           region-bytes (byte-buffer-size region-unpadded)
+           pad-needed (mod (- region-bytes) 4096)]
+       (concat-bytes region-unpadded
+                     (byte-buffer (repeat pad-needed 0))))))
 
 (defn write-file
   "Writes the given byte buffer to the given filename"
@@ -423,7 +429,7 @@ filename"
                        (if (zero? (mod y 4))
                          (mc-block :glowstone)
                          (mc-block :air)))
-           region (gen-mcmap-zone +region-side+ +region-side+
+           region (gen-mcmap-zone +chunk-side+ +chunk-side+
                                   generator)]
        (zone-to-region region 0 0)))
   ([filename]
