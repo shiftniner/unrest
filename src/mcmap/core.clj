@@ -1,6 +1,7 @@
 (ns mcmap.core
   (:import java.nio.ByteBuffer
-           java.util.zip.Deflater))
+           java.util.zip.Deflater
+           java.io.FileOutputStream))
 
 (def +region-side+ (* 16 32))
 (def +chunk-side+ 16)
@@ -303,10 +304,10 @@ where each chunk is {:x <chunk-x> :z <chunk-z> :data <byte-buffer>"
 
 (defn locations
   "Returns a seq of chunk file locations and sector counts (in 4KiB
-sectors) that will fit the given chunks; a second arguments gives an
-offset (in sectors) at which to begin placing chunks"
+sectors) that will fit the given chunks; an optional second argument
+gives an offset (in sectors) at which to begin placing chunks"
   ([chunks]
-     (location chunks 2))               ; Leave room for timestamps
+     (locations chunks 2))              ; Leave room for timestamps
   ([chunks offset]
      (when (seq chunks)
        (let [chunk (first chunks)
@@ -315,14 +316,14 @@ offset (in sectors) at which to begin placing chunks"
              chunk-size-in-sectors (quot (+ chunk-compressed-size 4101)
                                          4096)
              room-to-leave (+ chunk-size-in-sectors 6)]
-         (if (> chunk-size-in-sectors 255)
+         (when (> chunk-size-in-sectors 255)
            (throw (RuntimeException. (str "Chunk too big ("
                                           chunk-size-in-sectors
                                           ") at x="
                                           (:x chunk)
                                           ", y="
                                           (:y chunk)))))
-         (if (>= offset (bit-shift-right 1 24))
+         (when (>= offset (bit-shift-left 1 24))
            (throw (RuntimeException. (str "Offset " offset " too big"))))
          (lazy-seq (cons {:x (:x chunk),
                           :z (:z chunk),
@@ -345,10 +346,10 @@ seq of locations"
                                x (range 32)]
                            (pos-to-loc [x z]))
            loc-bytes (mapcat #(if %
-                                [(bit-shift-left (:offset % 16))
-                                 (and 255 (bit-shift-left (:offset % 8)))
+                                [(bit-shift-left (:offset %) 16)
+                                 (and 255 (bit-shift-left (:offset %) 8))
                                  (and 255 (:offset %))
-                                 (:count )]
+                                 (:count %)]
                                 [0 0 0 0])
                              locs-in-order)]
        (byte-buffer loc-bytes))))
@@ -361,12 +362,41 @@ number of chunks in the given seq of chunks"
      ;; need chunk timestamps?  0 for everything should be safe
      (byte-buffer (repeat 4096 0))))
 
+(defn place-chunk
+  "Adds the given chunk at the given location to the given byte
+buffer, returning a new byte buffer"
+  ([chunk loc bb]
+     (let [offset (:offset loc)
+           count (:count loc)
+           data (:compressed-data chunk)
+           len (byte-buffer-size data)
+           compression-type 2
+           pad-needed (- (* offset 4096)
+                         8192           ; locations and timestamps
+                         (byte-buffer-size bb))]
+       (when (neg? pad-needed)
+         (throw (RuntimeException. (str "place-chunk can only handle"
+                                        " appending chunks; offset="
+                                        offset ", byte-buffer-size="
+                                        (byte-buffer-size bb)
+                                        ", pad-needed=" pad-needed))))
+       (concat-bytes bb
+                     (byte-buffer (repeat pad-needed 0))
+                     data))))
+
 (defn place-chunks
-  "Given seqs of chunks and locations, returns the chunks for an mcr
-file"
+  "Given seqs of chunks and locations, returns a byte buffer
+containing the chunks for an mcr file"
   ([chunks locs]
-     ;; TODO
-     ))
+     (place-chunks chunks locs (byte-buffer [])))
+  ([chunks locs bb]
+     (if (seq chunks)
+       (recur (rest chunks)
+              (rest locs)
+              (place-chunk (first chunks)
+                           (first locs)
+                           bb))
+       bb)))
 
 (defn zone-to-region
   "Takes a zone and two region coordinates, and returns a region
@@ -381,8 +411,8 @@ extracted from that zone, in Minecraft beta .mcr format"
 (defn write-file
   "Writes the given byte buffer to the given filename"
   ([filename byte-buffer]
-     ;; TODO
-     ))
+     (with-open [out (FileOutputStream. filename)]
+       (.write out (.array byte-buffer)))))
 
 (defn map-exercise-1
   "Returns the .mcr binary data for a single region made up of
