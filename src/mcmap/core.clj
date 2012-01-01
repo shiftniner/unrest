@@ -71,6 +71,7 @@ include any part of the given zone"
   ;; XXX just supporting air and glowstone for right now
   ([ze]
      ( {:air           0,
+        :stone         1,
         :glowstone     89}
        ze )))
 
@@ -79,8 +80,8 @@ include any part of the given zone"
 contains at least one block"
   ([zone]
      (for [x (range (zone-x-size zone))
-           y (range (zone-y-size zone))
-           z (range (zone-z-size zone))]
+           z (range (zone-z-size zone))
+           y (range (zone-y-size zone))]
        (block-id (zone-lookup zone x y z)))))
 
 (defn byte-buffer
@@ -347,8 +348,10 @@ seq of locations"
                            (pos-to-loc [x z]))
            loc-bytes (mapcat #(if %
                                 [(bit-shift-right (:offset %) 16)
-                                 (and 255 (bit-shift-right (:offset %) 8))
-                                 (and 255 (:offset %))
+                                 (bit-and 255
+                                          (bit-shift-right (:offset %)
+                                                           8))
+                                 (bit-and 255 (:offset %))
                                  (:count %)]
                                 [0 0 0 0])
                              locs-in-order)]
@@ -424,15 +427,23 @@ extracted from that zone, in Minecraft beta .mcr format"
   "Returns the .mcr binary data for a single region made up of
 sandwiches of glowstone and air, or writes it to a file if given a
 filename"
-  ([]
+  ([x-chunks z-chunks]
      (let [generator (fn [x y z]
-                       (if (zero? (mod y 4))
-                         (mc-block :glowstone)
-                         (mc-block :air)))
-           region (gen-mcmap-zone +chunk-side+ +chunk-side+
+                       (if (and (zero? (mod z 4))
+                                (zero? (mod x 4)))
+                         (mc-block :stone)
+                         (if (zero? (mod y 4))
+                           (mc-block :glowstone)
+                           (mc-block :air))))
+           region (gen-mcmap-zone (* x-chunks +chunk-side+)
+                                  (* z-chunks +chunk-side+)
                                   generator)]
        (zone-to-region region 0 0)))
   ([filename]
-     (write-file filename (map-exercise-1))))
+     (write-file filename (map-exercise-1)))
+  ([]
+     (map-exercise-1 2 2))
+  ([filename x-chunks z-chunks]
+     (write-file filename (map-exercise-1 x-chunks z-chunks))))
 
 
