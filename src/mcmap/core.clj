@@ -11,7 +11,9 @@
   "Returns the specified block in mcmap's internal data format"
   ;; Just enough to get map-exercise-1 working, for now:
   ([type]
-     type))
+     type)
+  ([type & extra-data]
+     (vec (cons type extra-data))))
 
 (defn gen-mcmap-zone
   "Takes x and z dimensions, and a function of x y and z returning a
@@ -70,10 +72,14 @@ include any part of the given zone"
   "Returns the byte block ID for the given zone element"
   ;; XXX just supporting air and glowstone for right now
   ([ze]
-     ( {:air           0,
-        :stone         1,
-        :glowstone     89}
-       ze )))
+     (if (vector? ze)
+       (block-id (first ze))
+       ( {:air             0,
+          :stone           1,
+          :monster-spawner 52,
+          :glowstone       89,
+          }
+         ze ))))
 
 (defn block-ids
   "Returns a seq of bytes with block IDs for the given zone; assumes zone
@@ -133,13 +139,13 @@ single byte buffer"
 
 (defn tag-compound
   "Returns a binary-formatted TAG_Compound for any number of elements"
-  ;; This does not appear as part of the payload of any other type, so
-  ;; no short form is needed.
-  ([tag-name & payloads]
+  ([payloads]
      (apply concat-bytes
-            (byte-buffer [10])
-            (tag-string tag-name)
-            (concat payloads (list (tag-end))))))
+            (concat payloads (list (tag-end)))))
+  ([tag-name payloads]
+     (concat-bytes (byte-buffer [10])
+                   (tag-string tag-name)
+                   (tag-compound payloads))))
 
 (defn tag-byte
   "Returns a binary-formatted TAG_Byte"
@@ -235,11 +241,29 @@ precomputed with compute-block-light, for the given zone"
   ([zone]
      (repeat 256 (byte 127))))
 
+(defn tile-entity
+  ([ [ze x y z] ]
+     (when (vector? ze)
+       (let [t (ze 0)]
+         (case t
+               :monster-spawner
+               [ (tag-compound
+                    [ (tag-string "id" "MobSpawner")
+                      (tag-int "x" x)
+                      (tag-int "y" y)
+                      (tag-int "z" z)
+                      (tag-string "EntityId" (ze 1))
+                      (tag-short "Delay" (or (ze 2)
+                                             200))])])))))
+
 (defn tile-entities
   "Returns a seq of TAG_Compounds"
-  ;; XXX hardcoded as no tag compounds for now
-  ([zone]
-     []))
+  ([zone x0 z0]
+     (mapcat tile-entity
+             (for [x (range (zone-x-size zone))
+                   z (range (zone-z-size zone))
+                   y (range (zone-y-size zone))]
+               [ (zone-lookup zone x y z) (+ x0 x) y (+ z0 z) ]))))
 
 (defn zlib-compress
   "Returns a byte buffer containing a zlib compressed version of the
@@ -266,25 +290,25 @@ data in the given byte buffer"
                             0 +chunk-height+
                             z0 (+ z0 +chunk-side+))
            data (tag-compound ""
-                  (tag-compound "Level"
-                    (tag-byte-array "Blocks"
-                                    (block-ids blocks))
-                    (tag-byte-array "Data"
-                                    (block-data blocks))
-                    (tag-byte-array "SkyLight"
-                                    (sky-light blocks))
-                    (tag-byte-array "BlockLight"
-                                    (block-light blocks))
-                    (tag-byte-array "HeightMap"
-                                    (height-map blocks))
-                    (tag-list "Entities" 10 [])
-                    (tag-list "TileEntities" 10
-                              (tile-entities blocks))
-                    (tag-list "TileTicks" 10 [])
-                    (tag-long "LastUpdate" 1)
-                    (tag-int "xPos" (/ x0 +chunk-side+))
-                    (tag-int "zpos" (/ z0 +chunk-side+))
-                    (tag-byte "TerrainPopulated" 1)))]
+                  [ (tag-compound "Level"
+                      [ (tag-byte-array "Blocks"
+                                        (block-ids blocks))
+                        (tag-byte-array "Data"
+                                        (block-data blocks))
+                        (tag-byte-array "SkyLight"
+                                        (sky-light blocks))
+                        (tag-byte-array "BlockLight"
+                                        (block-light blocks))
+                        (tag-byte-array "HeightMap"
+                                        (height-map blocks))
+                        (tag-list "Entities" 10 [])
+                        (tag-list "TileEntities" 10
+                                  (tile-entities blocks x0 z0))
+                        (tag-list "TileTicks" 10 [])
+                        (tag-long "LastUpdate" 1)
+                        (tag-int "xPos" (/ x0 +chunk-side+))
+                        (tag-int "zpos" (/ z0 +chunk-side+))
+                        (tag-byte "TerrainPopulated" 1) ]) ])]
        {:x chunk-x
         :z chunk-z
         :data data
@@ -437,4 +461,29 @@ filename"
   ([filename x-chunks z-chunks]
      (write-file filename (map-exercise-1 x-chunks z-chunks))))
 
+
+(defn map-exercise-2
+  "Like map-exercise-1, but randomly scatters mob spawners"
+  ([x-chunks z-chunks]
+     (let [generator (fn [x y z]
+                       (cond (> 0.001 (rand))
+                               (mc-block :monster-spawner "Chicken" 0)
+                             (> 0.001 (rand))
+                               (mc-block :monster-spawner "Zombie" 200)
+                             (and (zero? (mod z 4))
+                                  (zero? (mod x 4)))
+                               (mc-block :stone)
+                             (zero? (mod y 4))
+                               (mc-block :glowstone)
+                             :else (mc-block :air)))
+           region (gen-mcmap-zone (* x-chunks +chunk-side+)
+                                  (* z-chunks +chunk-side+)
+                                  generator)]
+       (zone-to-region region 0 0)))
+  ([filename]
+     (write-file filename (map-exercise-2)))
+  ([]
+     (map-exercise-2 2 2))
+  ([filename x-chunks z-chunks]
+     (write-file filename (map-exercise-2 x-chunks z-chunks))))
 
