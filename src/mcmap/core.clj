@@ -365,57 +365,48 @@ number of chunks in the given seq of chunks"
      ;; need chunk timestamps?  0 for everything should be safe
      (byte-buffer (repeat 4096 0))))
 
-(defn place-chunk
-  "Adds the given chunk at the given location to the given byte
-buffer, returning a new byte buffer"
-  ([chunk loc bb]
+(defn pad-chunk
+  "Returns byte buffers containing pads and data for the given chunk"
+  ([chunk loc prev-loc]
      (let [offset (:offset loc)
            count (:count loc)
            data (:compressed-data chunk)
            len (byte-buffer-size data)
            compression-type 2
-           pad-needed (- (* offset 4096)
-                         8192           ; locations and timestamps
-                         (byte-buffer-size bb))]
+           pad-needed (* (- offset
+                            (+ (:offset prev-loc)
+                               (:count prev-loc)))
+                         4096)
+           post-pad-needed (mod (- (+ len 5))
+                                4096)]
        (when (neg? pad-needed)
          (throw (RuntimeException. (str "place-chunk can only handle"
-                                        " appending chunks; offset="
-                                        offset ", byte-buffer-size="
-                                        (byte-buffer-size bb)
+                                        " appending chunks; loc="
+                                        loc ", prev-loc=" prev-loc
                                         ", pad-needed=" pad-needed))))
-       (concat-bytes bb
-                     (byte-buffer (repeat pad-needed 0))
-                     (tag-int (inc len))
-                     (tag-byte compression-type)
-                     data))))
+       [(byte-buffer (repeat pad-needed 0))
+        (tag-int (inc len))
+        (tag-byte compression-type)
+        data
+        (byte-buffer (repeat post-pad-needed 0))])))
 
 (defn place-chunks
   "Given seqs of chunks and locations, returns a byte buffer
 containing the chunks for an mcr file"
   ([chunks locs]
-     (place-chunks chunks locs (byte-buffer [])))
-  ([chunks locs bb]
-     (if (seq chunks)
-       (recur (rest chunks)
-              (rest locs)
-              (place-chunk (first chunks)
-                           (first locs)
-                           bb))
-       bb)))
+     (let [shifted-locs (cons {:offset 0, :count 2} locs)
+           chunks-and-pads (mapcat pad-chunk chunks locs shifted-locs)]
+       (apply concat-bytes chunks-and-pads))))
 
 (defn zone-to-region
   "Takes a zone and two region coordinates, and returns a region
 extracted from that zone, in Minecraft beta .mcr format"
   ([zone x z]
      (let [chunks (zone-to-chunks zone x z)
-           locs (locations chunks)
-           region-unpadded (concat-bytes (locations-to-bytes locs)
-                                         (timestamps chunks)
-                                         (place-chunks chunks locs))
-           region-bytes (byte-buffer-size region-unpadded)
-           pad-needed (mod (- region-bytes) 4096)]
-       (concat-bytes region-unpadded
-                     (byte-buffer (repeat pad-needed 0))))))
+           locs (locations chunks)]
+       (concat-bytes (locations-to-bytes locs)
+                                (timestamps chunks)
+                                (place-chunks chunks locs)))))
 
 (defn write-file
   "Writes the given byte buffer to the given filename"
