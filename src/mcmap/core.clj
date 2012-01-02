@@ -9,9 +9,15 @@
 
 (defn mc-block
   "Returns the specified block in mcmap's internal data format"
-  ;; Just enough to get map-exercise-1 working, for now:
   ([type]
-     type)
+     (case type
+           :eternal-fire [:fire 0xF]
+           :fire         [:fire 0x0]
+           :blue-wool    [:wool 0xB]
+           :yellow-wool  [:wool 0x4]
+           :wool         [:wool 0x0]
+           ;; default:
+           type))
   ([type & extra-data]
      (vec (cons type extra-data))))
 
@@ -74,12 +80,16 @@ include any part of the given zone"
   ([ze]
      (if (vector? ze)
        (block-id (first ze))
-       ( {:air             0,
-          :stone           1,
-          :monster-spawner 52,
-          :glowstone       89,
-          }
-         ze ))))
+       (or ( {:air              0
+              :stone            1
+              :wool             35
+              :fire             51
+              :mob-spawner      52
+              :monster-spawner  52
+              :glowstone        89
+              }
+             ze )
+           (throw (RuntimeException. (str "Block ID unknown for " ze)))))))
 
 (defn block-ids
   "Returns a seq of bytes with block IDs for the given zone; assumes zone
@@ -216,11 +226,36 @@ tagged data"
             (tag-int (count s))
             s)))
 
+(defn merge-nybbles
+  ([ [a b] ]
+     (bit-or (bit-shift-left b 4)
+             a)))
+
+(defn nybbles-to-bytes
+  ([nybseq]
+     (map merge-nybbles
+          (partition 2 2 nybseq))))
+
+(defn block-datum
+  ([ze]
+     (if (vector? ze)
+       (let [t (ze 0)]
+         (case t
+               (:fire :wool)
+                 (or (ze 1) 0)
+               ;; default:
+               0))
+       0)))
+
 (defn block-data
   "Returns a seq of bytes with extra block data for the given zone"
-  ;; XXX hardcoded as 0 for every block for now
   ([zone]
-     (repeat 16384 (byte 0))))
+     (nybbles-to-bytes
+        (map block-datum
+             (for [x (range (zone-x-size zone))
+                   z (range (zone-z-size zone))
+                   y (range (zone-y-size zone))]
+               (zone-lookup zone x y z))))))
 
 (defn sky-light
   "Returns a seq of bytes with sky light data for the given zone"
@@ -246,15 +281,17 @@ precomputed with compute-block-light, for the given zone"
      (when (vector? ze)
        (let [t (ze 0)]
          (case t
-               :monster-spawner
-               [ (tag-compound
-                    [ (tag-string "id" "MobSpawner")
-                      (tag-int "x" x)
-                      (tag-int "y" y)
-                      (tag-int "z" z)
-                      (tag-string "EntityId" (ze 1))
-                      (tag-short "Delay" (or (ze 2)
-                                             200))])])))))
+               (:monster-spawner :mob-spawner)
+                 [ (tag-compound
+                      [ (tag-string "id" "MobSpawner")
+                        (tag-int "x" x)
+                        (tag-int "y" y)
+                        (tag-int "z" z)
+                        (tag-string "EntityId" (ze 1))
+                        (tag-short "Delay" (or (ze 2)
+                                               200))])]
+               ;; default:
+               nil)))))
 
 (defn tile-entities
   "Returns a seq of TAG_Compounds"
@@ -487,4 +524,35 @@ given two dimension arguments"
      (map-exercise-2 2 2))
   ([filename x-chunks z-chunks]
      (write-file filename (map-exercise-2 x-chunks z-chunks))))
+
+
+(defn map-exercise-3
+  "Like map-exercise-2, but adds some temporary and eternal fire on
+the glowstone"
+  ([x-chunks z-chunks]
+     (let [generator (fn [x y z]
+                       (cond (> 0.001 (rand))
+                               (mc-block :monster-spawner "Chicken" 0)
+                             (> 0.001 (rand))
+                               (mc-block :monster-spawner "Zombie" 200)
+                             (and (zero? (mod z 4))
+                                  (zero? (mod x 4)))
+                               (mc-block :stone)
+                             (zero? (mod y 4))
+                               (mc-block :glowstone)
+                             (= 1 (mod y 4))
+                               (cond (> 0.05 (rand)) (mc-block :fire)
+                                     (> 0.01 (rand)) (mc-block :eternal-fire)
+                                     :else           (mc-block :air))
+                             :else (mc-block :air)))
+           region (gen-mcmap-zone (* x-chunks +chunk-side+)
+                                  (* z-chunks +chunk-side+)
+                                  generator)]
+       (zone-to-region region 0 0)))
+  ([filename]
+     (write-file filename (map-exercise-3)))
+  ([]
+     (map-exercise-3 2 2))
+  ([filename x-chunks z-chunks]
+     (write-file filename (map-exercise-3 x-chunks z-chunks))))
 
