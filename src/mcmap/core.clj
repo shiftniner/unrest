@@ -307,7 +307,7 @@ data in the given byte buffer"
                         (tag-list "TileTicks" 10 [])
                         (tag-long "LastUpdate" 1)
                         (tag-int "xPos" (/ x0 +chunk-side+))
-                        (tag-int "zpos" (/ z0 +chunk-side+))
+                        (tag-int "zPos" (/ z0 +chunk-side+))
                         (tag-byte "TerrainPopulated" 1) ]) ])]
        {:x chunk-x
         :z chunk-z
@@ -429,8 +429,8 @@ extracted from that zone, in Minecraft beta .mcr format"
      (let [chunks (zone-to-chunks zone x z)
            locs (locations chunks)]
        (concat-bytes (locations-to-bytes locs)
-                                (timestamps chunks)
-                                (place-chunks chunks locs)))))
+                     (timestamps chunks)
+                     (place-chunks chunks locs)))))
 
 (defn write-file
   "Writes the given byte buffer to the given filename"
@@ -440,8 +440,9 @@ extracted from that zone, in Minecraft beta .mcr format"
 
 (defn map-exercise-1
   "Returns the .mcr binary data for a single region made up of
-sandwiches of glowstone and air, or writes it to a file if given a
-filename"
+sandwiches of glowstone and air with columns of stone, or writes it to
+a file if given a filename; generates two chunks by two chunks if not
+given two dimension arguments"
   ([x-chunks z-chunks]
      (let [generator (fn [x y z]
                        (if (and (zero? (mod z 4))
