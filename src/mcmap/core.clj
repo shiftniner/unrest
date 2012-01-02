@@ -11,8 +11,6 @@
   "Returns the specified block in mcmap's internal data format"
   ([type]
      (case type
-           :eternal-fire [:fire 0xF]
-           :fire         [:fire 0x0]
            :blue-wool    [:wool 0xB]
            :yellow-wool  [:wool 0x4]
            :wool         [:wool 0x0]
@@ -228,6 +226,11 @@ tagged data"
 
 (defn merge-nybbles
   ([ [a b] ]
+     (doseq [n [a b]]
+       (if (or (> n 15)
+               (< n 0)
+               (not= n (int n)))
+         (throw (RuntimeException. (str "Invalid value for nybble: " n)))))
      (bit-or (bit-shift-left b 4)
              a)))
 
@@ -241,7 +244,7 @@ tagged data"
      (if (vector? ze)
        (let [t (ze 0)]
          (case t
-               (:fire :wool)
+               (:wool)
                  (or (ze 1) 0)
                ;; default:
                0))
@@ -527,8 +530,8 @@ given two dimension arguments"
 
 
 (defn map-exercise-3
-  "Like map-exercise-2, but adds some temporary and eternal fire on
-the glowstone"
+  "Like map-exercise-2, but adds some blue and yellow wool on the
+glowstone"
   ([x-chunks z-chunks]
      (let [generator (fn [x y z]
                        (cond (> 0.001 (rand))
@@ -541,8 +544,8 @@ the glowstone"
                              (zero? (mod y 4))
                                (mc-block :glowstone)
                              (= 1 (mod y 4))
-                               (cond (> 0.05 (rand)) (mc-block :fire)
-                                     (> 0.01 (rand)) (mc-block :eternal-fire)
+                               (cond (> 0.05 (rand)) (mc-block :blue-wool)
+                                     (> 0.01 (rand)) (mc-block :yellow-wool)
                                      :else           (mc-block :air))
                              :else (mc-block :air)))
            region (gen-mcmap-zone (* x-chunks +chunk-side+)
