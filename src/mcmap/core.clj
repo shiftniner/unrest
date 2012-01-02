@@ -1,4 +1,5 @@
 (ns mcmap.core
+  (:use mcmap.blocks)
   (:import java.nio.ByteBuffer
            java.util.zip.Deflater
            java.io.FileOutputStream))
@@ -11,13 +12,15 @@
   "Returns the specified block in mcmap's internal data format"
   ([type]
      (case type
-           :blue-wool    [:wool 0xB]
-           :yellow-wool  [:wool 0x4]
-           :wool         [:wool 0x0]
+           :blue-wool    {:type :wool :datum 0xB}
+           :yellow-wool  {:type :wool :datum 0x4}
+           :wool         {:type :wool :datum 0x0}
+           #=(light-emitting-block-types)
+             {:type type :light (+light-levels+ type)}
            ;; default:
            type))
   ([type & extra-data]
-     (vec (cons type extra-data))))
+     (apply hash-map :type type extra-data)))
 
 (defn gen-mcmap-zone
   "Takes x and z dimensions, and a function of x y and z returning a
@@ -75,8 +78,8 @@ include any part of the given zone"
 (defn block-id
   "Returns the byte block ID for the given zone element"
   ([ze]
-     (if (vector? ze)
-       (block-id (first ze))
+     (if (map? ze)
+       (block-id (:type ze))
        (or ( {:air              0
               :stone            1
               :wool             35
@@ -240,13 +243,8 @@ tagged data"
 
 (defn block-datum
   ([ze]
-     (if (vector? ze)
-       (let [t (ze 0)]
-         (case t
-               (:wool)
-                 (or (ze 1) 0)
-               ;; default:
-               0))
+     (if (map? ze)
+       (or (:datum ze) 0)
        0)))
 
 (defn block-data
@@ -280,8 +278,8 @@ precomputed with compute-block-light, for the given zone"
 
 (defn tile-entity
   ([ [ze x y z] ]
-     (when (vector? ze)
-       (let [t (ze 0)]
+     (when (map? ze)
+       (let [t (:type ze)]
          (case t
                (:monster-spawner :mob-spawner)
                  [ (tag-compound
@@ -289,8 +287,8 @@ precomputed with compute-block-light, for the given zone"
                         (tag-int "x" x)
                         (tag-int "y" y)
                         (tag-int "z" z)
-                        (tag-string "EntityId" (ze 1))
-                        (tag-short "Delay" (or (ze 2)
+                        (tag-string "EntityId" (:mob ze))
+                        (tag-short "Delay" (or (:delay ze)
                                                200))])]
                ;; default:
                nil)))))
@@ -507,9 +505,11 @@ given two dimension arguments"
   ([x-chunks z-chunks]
      (let [generator (fn [x y z]
                        (cond (> 0.001 (rand))
-                               (mc-block :monster-spawner "Chicken" 0)
+                               (mc-block :mob-spawner
+                                         :mob "Chicken" :delay 0)
                              (> 0.001 (rand))
-                               (mc-block :monster-spawner "Zombie" 200)
+                               (mc-block :mob-spawner
+                                         :mob "Zombie" :delay 200)
                              (and (zero? (mod z 4))
                                   (zero? (mod x 4)))
                                (mc-block :stone)
@@ -534,9 +534,11 @@ glowstone"
   ([x-chunks z-chunks]
      (let [generator (fn [x y z]
                        (cond (> 0.001 (rand))
-                               (mc-block :monster-spawner "Chicken" 0)
+                               (mc-block :mob-spawner
+                                         :mob "Chicken" :delay 0)
                              (> 0.001 (rand))
-                               (mc-block :monster-spawner "Zombie" 200)
+                               (mc-block :mob-spawner
+                                         :mob "Zombie" :delay 200)
                              (and (zero? (mod z 4))
                                   (zero? (mod x 4)))
                                (mc-block :stone)

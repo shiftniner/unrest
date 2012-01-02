@@ -1,0 +1,196 @@
+00   Air    {:freq 1, :br 0, :props [:passable :transparent
+:cannot-collect]}
+26   Bed D I    {:freq 1, :br 1, :props [:strange], :data [1 2 3 4 5 6 9
+10 11 12 13 14]}
+07   Bedrock    {:freq 1, :br 18e6, :min-spacing 2, :props
+[:cannot-collect :indestrucible :annoying]}
+36   Block moved by Piston T    {:freq 1, :br 0, :props [:technical
+:strange]}
+57   Block of Diamond    {:freq 1/9, :br 30, :props [:buildable
+:craft-diamond-tools :collect-with-iron-tool]}
+41   Block of Gold    {:freq 1/9, :br 30, :props [:buildable
+:craft-gold-tools :collect-with-iron-tool]}
+42   Block of Iron    {:freq 1/9, :br 30, :props [:buildable
+:craft-iron-tools :collect-with-stone-tool]}
+47   Bookshelf    {:freq 1, :br 7.5, :props [:drops-item]}
+117   Brewing Stand D T I    {:freq 1, :br 2.5, :props [ ]}
+45   Brick Block    {:freq 1, :br 30, :props [:buildable]}
+108   Brick Stairs D    {:freq 1, :br 30, :props [:stairs
+:collect-with-wood-tool]}
+39   Brown Mushroom    {:freq 1, :br 0, :props [:food]}
+62   Burning Furnace D T    {:freq 1, :br 17.5, :props [:furnace
+:borks-right-click]}
+81   Cactus D    {:freq 1, :br 2, :props [:limited-placement :harmful]}
+92   Cake Block D I    {:freq 1, :br 2.5, :props [:food]}
+118   Cauldron D I    {:freq 1, :br 10, :props [:useless]}
+54   Chest D T    {:freq 1, :br 12.5, :props [:storage
+:limited-placement :borks-right-click]}
+82   Clay Block    {:freq 1, :br 3, :props [:buildable]}
+16   Coal Ore    {:freq 1, :br 15, :props [:drops-item :fuel
+:collect-with-wood-tool]}
+04   Cobblestone    {:freq 1, :br 30, :props [:buildable
+:craft-stone-tools :collect-with-wood-tool]}
+67   Cobblestone Stairs D    {:freq 1, :br 30, :props [:stairs
+:collect-with-wood-tool]}
+30   Cobweb    {:freq 1, :br 20, :props [:annoying :transparent :passable]}
+58   Crafting Table    {:freq 1, :br 12.5, :props [:placeable
+:borks-right-click]}
+37   Dandelion    {:freq 1, :br 0, :props [:transparent :passable
+:placeable]}
+32   Dead Bush    {:freq 1, :br 0, :props [:cannot-collect :transparent
+:passable]}
+28   Detector Rail D    {:freq 1, :br 3.5, :props [:redstone :rail
+:placeable :transparent :passable]}
+56   Diamond Ore    {:freq 1, :br 15, :props [:collect-with-iron-tool
+:craft-diamond-tools :drops-item]}
+03   Dirt    {:freq 1, :br 2.5, :props [:buildable :farmable]}
+23   Dispenser D T    {:freq 1, :br 17.5, :props [:placeable
+:borks-right-click]}
+43   Double Slabs D B    {:freq 1, :br 30, :props [:buildable
+:collect-with-wood-tool]}
+122   Dragon Egg    {:freq 1, :br 0, :props [:uncertain-br]}
+116   Enchantment Table T    {:freq 1, :br 6000, :props [ ]}
+120   End Portal Frame D    {:freq 1, :br 0, :props [:uncertain-br]}
+119   End Portal T    {:freq 1, :br 0, :props [:uncertain-br]}
+121   End Stone    {:freq 1, :br 45, :props [:collect-with-wood-tool
+:buildable]}
+60   Farmland D    {:freq 1, :br 3, :props [:farmable :buildable]}
+85   Fence    {:freq 1, :br 15, :props [:placeable :transparent]}
+107   Fence Gate D    {:freq 1, :br 15, :props [:placeable :transparent]}
+51   Fire D    {:freq 1, :br 0, :props [:harmful :passable :fire]}
+61   Furnace D T    {:freq 1, :br 17.5, :props [:furnace
+:borks-right-click]}
+20   Glass    {:freq 1, :br 1.5, :props [:cannot-collect
+:fully-transparent]}
+102   Glass Pane    {:freq 1, :br 1, :props [:uncertain-br
+:cannot-collect :fully-transparent]}
+74   Glowing Redstone Ore    {:freq 1, :br 15, :props [:redstone
+:placeable]}
+89   Glowstone    {:freq 1, :br 1.5, :props [:luminous :buildable]}
+14   Gold Ore    {:freq 1, :br 15, :props [:buildable
+:collect-with-iron-tool :craft-gold-tools]}
+02   Grass    {:freq 1, :br 3, :props [:buildable :spawns-good-mobs
+:farmable]}
+13   Gravel    {:freq 1, :br 3, :props [:pileable]}
+97   Hidden Silverfish D    {:freq 1, :br 0, :props [:uncertain-br
+:annoying :harmful]}
+99   Huge Brown Mushroom D    {:freq 1, :br 0, :props [:uncertain-br
+:food]}
+100   Huge Red Mushroom D    {:freq 1, :br 0, :props [:uncertain-br :food]}
+79   Ice    {:freq 1, :br 2.5, :props [:annoying]}
+101   Iron Bars    {:freq 1, :br 30, :props [:transparent :placeable
+:collect-with-wood-tool]}
+71   Iron Door D I    {:freq 1, :br 25, :props [:weird :door]}
+15   Iron Ore    {:freq 1, :br 15, :props [:buildable
+:collect-with-stone-tool :craft-iron-tools]}
+91   Jack-O-Lantern D    {:freq 1, :br 5, :props [:luminous :buildable]}
+84   Jukebox D T    {:freq 1, :br 30, :props [ ]}
+65   Ladders D    {:freq 1, :br 2, :props [:placeable :climbable]}
+22   Lapis Lazuli Block    {:freq 1, :br 15, :props [:buildable
+:collect-with-stone-tool]}
+21   Lapis Lazuli Ore    {:freq 1, :br 15, :props
+[:collect-with-stone-tool :drops-item :buildable]}
+10   Lava D    {:freq 0, :br 0, :props [:technical]}
+18   Leaves D B    {:freq 1, :br 1, :props [:decays
+:collect-with-iron-tool :buildable :drops-item]}
+69   Lever D    {:freq 1, :br 2.5, :props [:redstone]}
+111   Lily Pad    {:freq 1, :br 0, :props [:uncertain-br]}
+95   Locked Chest    {:freq 1, :br 0, :props [:decays :luminous]}
+103   Melon    {:freq 1, :br 5, :props [:drops-item :food]}
+105   Melon Stem D    {:freq 1, :br 0, :props [:weird]}
+52   Monster Spawner T    {:freq 1, :br 25, :props [:cannot-collect
+:harmful] :tile ["Enderman" "Zombie" "PigZombie" "Silverfish"]}
+52   Monster Spawner T    {:freq 1, :br 25, :props [:cannot-collect
+:deadly] :tile ["Spider" "Skeleton" "Giant" "Ghast" "CaveSpider"]}
+52   Monster Spawner T    {:freq 1, :br 25, :props [:cannot-collect
+:deadly :explosive] :tile ["Creeper"]}
+52   Monster Spawner T    {:freq 1, :br 25, :props [:cannot-collect
+:renewable-food] :tile ["Cow" "Chicken" "Pig"]}
+52   Monster Spawner T    {:freq 1, :br 25, :props [:cannot-collect]
+:tile ["Sheep" "Wolf"]}
+48   Moss Stone    {:freq 1, :br 30, :props [:buildable
+:collect-with-wood-tool]}
+110   Mycelium    {:freq 1, :br 2.5, :props [:buildable :farmable]}
+113   Nether Brick Fence    {:freq 1, :br 30, :props [:placeable
+:transparent]}
+112   Nether Brick    {:freq 1, :br 30, :props [:buildable
+:collect-with-wood-tool]}
+114   Nether Brick Stairs D    {:freq 1, :br 30, :props [:stairs
+:collect-with-wood-tool]}
+87   Netherrack    {:freq 1, :br 2, :props [:collect-with-wood-tool
+:buildable :burns-forever]}
+115   Nether Wart D I    {:freq 1, :br 0, :props [:transparent :passable
+:potions]}
+25   Note Block T    {:freq 1, :br 4, :props [:buildable]}
+49   Obsidian    {:freq 1, :br 6000, :props [:buildable :annoying
+:collect-with-diamond-tool :nether]}
+33   Piston D    {:freq 1, :br 2.5, :props [:buildable :machinery]}
+34   Piston Extension D    {:freq 1, :br 2.5, :props [:weird
+:part-transparent]}
+90   Portal    {:freq 0, :br 0, :props [:technical :annoying :weird]}
+27   Powered Rail D    {:freq 1, :br 3.5, :props [:rail :placeable
+:transparent :passable]}
+86   Pumpkin D    {:freq 1, :br 5, :props [:buildable]}
+104   Pumpkin Stem D    {:freq 1, :br 0, :props [:weird]}
+66   Rails D    {:freq 1, :br 3.5, :props [:rail :placeable :transparent
+:passable]}
+40   Red Mushroom    {:freq 1, :br 0, :props [:food]}
+73   Redstone Ore    {:freq 1, :br 15, :props [:craft-redstone-tools
+:redstone :placeable]}
+93   Redstone Repeater ("off" state) D I    {:freq 1, :br 0, :props
+[:redstone :placeable :part-transparent]}
+94   Redstone Repeater ("on" state) D I    {:freq 1, :br 0, :props
+[:redstone :placeable :part-transparent]}
+75   Redstone Torch ("off" state) D    {:freq 1, :br 0, :props
+[:redstone :placeable :transparent]}
+76   Redstone Torch ("on" state) D    {:freq 1, :br 0, :props [:redstone
+:placeable :transparent]}
+55   Redstone Wire D I    {:freq 1, :br 0, :props [:craft-redstone-tools
+:redstone :placeable :transparent]}
+38   Rose    {:freq 1, :br 0, :props [:transparent :limited-placement]}
+12   Sand    {:freq 1, :br 2.5, :props [:pileable]}
+24   Sandstone    {:freq 1, :br 4, :props [:buildable]}
+06   Sapling D B    {:freq 1, :br 0, :props [:wood]}
+59   Seeds D    {:freq 1, :br 0, :props [:food]}
+63   Sign Post D I T    {:freq 1, :br 5, :props [:passable :transparent]}
+44   Slabs D B    {:freq 1, :br 30, :props [:stops-spawning]}
+80   Snow Block    {:freq 1, :br 1, :props [:buildable
+:collect-with-wood-tool]}
+78   Snow D    {:freq 1, :br 0.5, :props [:buildable
+:collect-with-wood-tool :passable :part-transparent]}
+88   Soul Sand    {:freq 1, :br 2.5, :props [:annoying :buildable]}
+19   Sponge    {:freq 1, :br 3, :props [:buildable]}
+11   Stationary lava D    {:freq 1, :br 500, :props [:deadly :annoying
+:liquid :collect-with-iron-tool :fire]}
+09   Stationary water D    {:freq 1, :br 500, :props [:liquid
+:collect-with-iron-tool :annoying]}
+29   Sticky Piston D    {:freq 1, :br 2.5, :props [:buildable :machinery]}
+98   Stone Bricks D B    {:freq 1, :br 30, :props [:buildable
+:collect-with-wood-tool]}
+109   Stone Brick Stairs D    {:freq 1, :br 30, :props [:stairs
+:collect-with-wood-tool]}
+77   Stone Button D    {:freq 1, :br 2.5, :props [:redstone :placeable
+:transparent]}
+01   Stone    {:freq 5, :br 30, :props [:buildable :craft-stone-tools
+:collect-with-wood-tool]}
+70   Stone Pressure Plate D    {:freq 1, :br 2.5, :props [:redstone
+:transparent]}
+83   Sugar Cane D I    {:freq 1, :br 0, :props [:limited-placement
+:transparent :passable]}
+31   Tall Grass D    {:freq 1, :br 3, :props [:transparent :passable
+:drops-item]}
+46   TNT    {:freq 1, :br 0, :props [:explosive]}
+50   Torch D    {:freq 1, :br 0, :props [:luminous]}
+96   Trapdoor D    {:freq 1, :br 15, :props [:door]}
+106   Vines D    {:freq 1, :br 1, :props [:limited-placement
+:transparent :passable :]}
+68   Wall Sign D T    {:freq 1, :br 5, :props [:transparent :passable]}
+08   Water D    {:freq 0, :br 500, :props [:technical]}
+17   Wood D B    {:freq 1, :br 10, :props [:buildable :fuel
+:craft-wood-tools]}
+64   Wooden Door D I    {:freq 1, :br 15, :props [:weird :door]}
+05   Wooden Plank    {:freq 1, :br 15, :props [:given :craft-wood-tools]}
+72   Wooden Pressure Plate D    {:freq 1, :br 2.5, :props [:redstone
+:transparent]}
+53   Wooden Stairs D    {:freq 1, :br 15, :props [:stairs]}
+35   Wool D B    {:freq 1, :br 4, :props [:buildable]}
