@@ -74,7 +74,6 @@ include any part of the given zone"
 
 (defn block-id
   "Returns the byte block ID for the given zone element"
-  ;; XXX just supporting air and glowstone for right now
   ([ze]
      (if (vector? ze)
        (block-id (first ze))
