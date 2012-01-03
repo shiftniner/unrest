@@ -51,6 +51,17 @@ block, and returns a zone of the specified size"
   ([zone x y z]
      ( ( (zone x) y) z )))
 
+(defn maybe-zone-lookup
+  "Like zone-lookup, but returns nil if the coordinates are out of
+bounds instead of throwing an exception"
+  ([zone x y z]
+     (if (or (neg? x) (neg? y) (neg? z)
+             (>= x (zone-x-size zone))
+             (>= y (zone-y-size zone))
+             (>= z (zone-z-size zone)))
+       nil
+       (zone-lookup zone x y z))))
+
 (defn chunk-in-zone?
   "Returns true if and only if the given region and chunk coordinates
 include any part of the given zone"
@@ -263,14 +274,14 @@ tagged data"
   ([zone]
      (repeat 16384 (byte 0))))
 
-(defn block-light
+(defn block-light-bytes
   "Returns a seq of bytes with block light data, which must have been
 precomputed with compute-block-light, for the given zone"
   ;; XXX hardcoded as 15 for every block for now
   ([zone]
      (repeat 16384 (byte -1))))
 
-(defn height-map
+(defn height-map-bytes
   "Returns a seq of bytes of heightmap data for the given zone"
   ;; XXX hardcoded as 127 for everything for now
   ([zone]
@@ -335,9 +346,9 @@ data in the given byte buffer"
                         (tag-byte-array "SkyLight"
                                         (sky-light blocks))
                         (tag-byte-array "BlockLight"
-                                        (block-light blocks))
+                                        (block-light-bytes blocks))
                         (tag-byte-array "HeightMap"
-                                        (height-map blocks))
+                                        (height-map-bytes blocks))
                         (tag-list "Entities" 10 [])
                         (tag-list "TileEntities" 10
                                   (tile-entities blocks x0 z0))
@@ -462,22 +473,80 @@ containing the chunks for an mcr file"
 
 (defn block-opacity
   ([ze]
-     
-     ))
+     (if (map? ze)
+       (or (:opacity ze)
+           (block-opacity (:type ze)))
+       (or (+opacity+ ze)
+           0))))
+
+(defn opaque?
+  "Returns true if the given block is at all opaque to light (which
+includes water)"
+  ([ze]
+     (pos? (block-opacity ze))))
 
 (defn map-height
   ([zone x z]
-     (first (filter sun-opaque (map #(zone-lookup zone x % z)
+     (first (filter opaque? (map #(zone-lookup zone x % z)
                                     (range (dec +chunk-height+)
                                            -1 -1))))))
 
-(defn compute-block-light
+(defn block-light
+  ([ze]
+     (if (map? ze)
+       (or (if-let [l (:force-nospread-light ze)]
+             (- -256 l))
+           (if-let [l (:force-light ze)]
+             (- l))
+           (if-let [l (:light ze)]
+             l)
+           (block-light (:type ze)))
+       (or (+light-levels+ ze)
+           0))))
 
-  )
+(defn spread-light
+  ([cur-light opacity & neighbor-lights]
+     (if (neg? cur-light)
+       cur-light
+       (apply max
+              (map #(- % (inc opacity))
+                   (map #(if (neg? %)
+                           (- -1 %)
+                           %)
+                        (filter #(> % -256) neighbor-lights)))))))
+
+(defn iterate-light-zone
+  ([light-zone opacity-zone]
+     (gen-mcmap-zone (zone-x-size light-zone)
+                     (zone-y-size light-zone)
+                     (zone-z-size light-zone)
+           (fn [x y z]
+             (spread-light (zone-lookup light-zone x y z)
+                           (zone-lookup opacity-zone x y z)
+                           (maybe-zone-lookup light-zone (inc x) y z)
+                           (maybe-zone-lookup light-zone (dec x) y z)
+                           (maybe-zone-lookup light-zone x (inc y) z)
+                           (maybe-zone-lookup light-zone x (dec y) z)
+                           (maybe-zone-lookup light-zone x y (inc z))
+                           (maybe-zone-lookup light-zone x y (dec z)))))))
+
+(defn compute-block-light
+  ([block-zone opacity-zone]
+     (loop [light-zone (gen-mcmap-zone (zone-x-size block-zone)
+                                       (zone-y-size block-zone)
+                                       (zone-z-size block-zone)
+                             (fn [x y z]
+                               (block-light
+                                (zone-lookup block-zone x y z))))]
+       (let [new-light-zone (iterate-light-zone light-zone opacity-zone)]
+         (if (= new-light-zone light-zone)
+           light-zone
+           (recur new-light-zone))))))
 
 (defn compute-skylight
-
-  )
+  ([block-zone opacity-zone height-zone]
+     ;; XXX
+     ))
 
 (defn gen-mcmap
   "Given x and z sizes and a function of x y and z that returns a
@@ -491,8 +560,9 @@ block, returns an mcmap complete with computed light levels"
            height-zone (gen-mcmap-zone x-size 1 z-size
                          (fn [x _ z]
                            (map-height block-zone x z)))
-           light-zone (compute-block-light block-zone)
-           skylight-zone (compute-skylight block-zone height-zone)]
+           light-zone (compute-block-light block-zone opacity-zone)
+           skylight-zone (compute-skylight block-zone opacity-zone
+                                           height-zone)]
        {:block-zone block-zone
         :light-zone light-zone
         :skylight-zone skylight-zone
@@ -502,7 +572,7 @@ block, returns an mcmap complete with computed light levels"
   "Takes an mcmap and two region coordinates, and returns a region
 extracted from that zone, in Minecraft beta .mcr format"
   ([mcmap x z]
-     (let [chunks (mcmap-to-chunks zone x z)
+     (let [chunks (mcmap-to-chunks mcmap x z)
            locs (locations chunks)]
        (concat-bytes (locations-to-bytes locs)
                      (timestamps chunks)
