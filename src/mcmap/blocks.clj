@@ -21,3 +21,11 @@
 (defn light-emitting-block-types
   ([]
      (keys +light-levels+)))
+
+(def +opacity+
+     ;; XXX partial list for now
+     (apply hash-map
+            (concat (interleave [:stone
+                                 :wool
+                                 :glowstone]
+                                (repeat 255)))))
