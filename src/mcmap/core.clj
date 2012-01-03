@@ -316,13 +316,13 @@ data in the given byte buffer"
 
 (defn extract-chunk
   "Returns a binary chunk {:x <chunk-x> :z <chunk-z> :data
-<byte-buffer>} at the given coordinates within the given zone"
-  ([zone region-x region-z chunk-x chunk-z]
+<byte-buffer>} at the given coordinates within the given mcmap"
+  ([mcmap region-x region-z chunk-x chunk-z]
      (let [x0 (+ (* +region-side+ region-x)
                  (* +chunk-side+ chunk-x))
            z0 (+ (* +region-side+ region-z)
                  (* +chunk-side+ chunk-z))
-           blocks (sub-zone zone
+           blocks (sub-zone (:block-zone mcmap)
                             x0 (+ x0 +chunk-side+)
                             0 +chunk-height+
                             z0 (+ z0 +chunk-side+))
@@ -351,13 +351,14 @@ data in the given byte buffer"
         :data data
         :compressed-data (zlib-compress data)})))
 
-(defn zone-to-chunks
-  "Returns a seq of chunks for the given zone and region coordinates,
+(defn mcmap-to-chunks
+  "Returns a seq of chunks for the given mcmap and region coordinates,
 where each chunk is {:x <chunk-x> :z <chunk-z> :data <byte-buffer>"
-  ([zone x z]
-     (for [chunk-x (range 32) chunk-z (range 32)
-           :when (chunk-in-zone? zone x z chunk-x chunk-z)]
-       (extract-chunk zone x z chunk-x chunk-z))))
+  ([mcmap x z]
+     (let [block-zone (:block-zone mcmap)]
+       (for [chunk-x (range 32) chunk-z (range 32)
+             :when (chunk-in-zone? block-zone x z chunk-x chunk-z)]
+         (extract-chunk mcmap x z chunk-x chunk-z)))))
 
 (defn byte-buffer-size
   "Returns the length in bytes of the given byte buffer"
@@ -445,11 +446,11 @@ number of chunks in the given seq of chunks"
                                         " appending chunks; loc="
                                         loc ", prev-loc=" prev-loc
                                         ", pad-needed=" pad-needed))))
-       [(byte-buffer (repeat pad-needed 0))
-        (tag-int (inc len))
-        (tag-byte compression-type)
-        data
-        (byte-buffer (repeat post-pad-needed 0))])))
+       [ (byte-buffer (repeat pad-needed 0))
+         (tag-int (inc len))
+         (tag-byte compression-type)
+         data
+         (byte-buffer (repeat post-pad-needed 0)) ])))
 
 (defn place-chunks
   "Given seqs of chunks and locations, returns a byte buffer
@@ -459,11 +460,49 @@ containing the chunks for an mcr file"
            chunks-and-pads (mapcat pad-chunk chunks locs shifted-locs)]
        (apply concat-bytes chunks-and-pads))))
 
-(defn zone-to-region
-  "Takes a zone and two region coordinates, and returns a region
-extracted from that zone, in Minecraft beta .mcr format"
+(defn block-opacity
+  ([ze]
+     
+     ))
+
+(defn map-height
   ([zone x z]
-     (let [chunks (zone-to-chunks zone x z)
+     (first (filter sun-opaque (map #(zone-lookup zone x % z)
+                                    (range (dec +chunk-height+)
+                                           -1 -1))))))
+
+(defn compute-block-light
+
+  )
+
+(defn compute-skylight
+
+  )
+
+(defn gen-mcmap
+  "Given x and z sizes and a function of x y and z that returns a
+block, returns an mcmap complete with computed light levels"
+  ([x-size z-size f]
+     (let [block-zone (gen-mcmap-zone x-size z-size f)
+           opacity-zone (gen-mcmap-zone x-size z-size
+                          (fn [x y z]
+                            (block-opacity
+                               (zone-lookup block-zone x y z))))
+           height-zone (gen-mcmap-zone x-size 1 z-size
+                         (fn [x _ z]
+                           (map-height block-zone x z)))
+           light-zone (compute-block-light block-zone)
+           skylight-zone (compute-skylight block-zone height-zone)]
+       {:block-zone block-zone
+        :light-zone light-zone
+        :skylight-zone skylight-zone
+        :height-zone height-zone})))
+
+(defn mcmap-to-mcr-binary
+  "Takes an mcmap and two region coordinates, and returns a region
+extracted from that zone, in Minecraft beta .mcr format"
+  ([mcmap x z]
+     (let [chunks (mcmap-to-chunks zone x z)
            locs (locations chunks)]
        (concat-bytes (locations-to-bytes locs)
                      (timestamps chunks)
@@ -488,10 +527,10 @@ given two dimension arguments"
                          (if (zero? (mod y 4))
                            (mc-block :glowstone)
                            (mc-block :air))))
-           region (gen-mcmap-zone (* x-chunks +chunk-side+)
-                                  (* z-chunks +chunk-side+)
-                                  generator)]
-       (zone-to-region region 0 0)))
+           mcmap (gen-mcmap (* x-chunks +chunk-side+)
+                            (* z-chunks +chunk-side+)
+                            generator)]
+       (mcmap-to-mcr-binary mcmap 0 0)))
   ([filename]
      (write-file filename (map-exercise-1)))
   ([]
@@ -516,10 +555,10 @@ given two dimension arguments"
                              (zero? (mod y 4))
                                (mc-block :glowstone)
                              :else (mc-block :air)))
-           region (gen-mcmap-zone (* x-chunks +chunk-side+)
-                                  (* z-chunks +chunk-side+)
-                                  generator)]
-       (zone-to-region region 0 0)))
+           mcmap (gen-mcmap (* x-chunks +chunk-side+)
+                            (* z-chunks +chunk-side+)
+                            generator)]
+       (mcmap-to-mcr-binary mcmap 0 0)))
   ([filename]
      (write-file filename (map-exercise-2)))
   ([]
@@ -549,10 +588,10 @@ glowstone"
                                      (> 0.01 (rand)) (mc-block :yellow-wool)
                                      :else           (mc-block :air))
                              :else (mc-block :air)))
-           region (gen-mcmap-zone (* x-chunks +chunk-side+)
-                                  (* z-chunks +chunk-side+)
-                                  generator)]
-       (zone-to-region region 0 0)))
+           mcmap (gen-mcmap (* x-chunks +chunk-side+)
+                            (* z-chunks +chunk-side+)
+                            generator)]
+       (mcmap-to-mcr-binary mcmap 0 0)))
   ([filename]
      (write-file filename (map-exercise-3)))
   ([]
