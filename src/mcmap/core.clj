@@ -270,31 +270,28 @@ tagged data"
 
 (defn sky-light
   "Returns a seq of bytes with sky light data for the given mcmap"
-  ([mcmap]
-     (let [skylight-zone (:skylight-zone mcmap)]
-       (nybbles-to-bytes
-          (for [x (range (zone-x-size skylight-zone))
-                z (range (zone-z-size skylight-zone))
-                y (range (zone-y-size skylight-zone))]
-            (zone-lookup skylight-zone x y z))))))
+  ([skylight-zone]
+     (nybbles-to-bytes
+        (for [x (range (zone-x-size skylight-zone))
+              z (range (zone-z-size skylight-zone))
+              y (range (zone-y-size skylight-zone))]
+          (zone-lookup skylight-zone x y z)))))
 
 (defn block-light-bytes
   "Returns a seq of bytes with block light data for the given mcmap"
-  ([mcmap]
-     (let [light-zone (:light-zone mcmap)]
-       (nybbles-to-bytes
-          (for [x (range (zone-x-size light-zone))
-                z (range (zone-z-size light-zone))
-                y (range (zone-y-size light-zone))]
-            (zone-lookup light-zone x y z))))))
+  ([light-zone]
+     (nybbles-to-bytes
+        (for [x (range (zone-x-size light-zone))
+              z (range (zone-z-size light-zone))
+              y (range (zone-y-size light-zone))]
+          (zone-lookup light-zone x y z)))))
 
 (defn height-map-bytes
   "Returns a seq of bytes of heightmap data for the given mcmap"
-  ([mcmap]
-     (let [height-zone (:height-zone mcmap)]
-       (for [x (range (zone-x-size light-zone))
-             z (range (zone-z-size light-zone))]
-         (zone-lookup height-zone x 0 z)))))
+  ([height-zone]
+     (for [z (range (zone-z-size height-zone))
+           x (range (zone-x-size height-zone))]
+       (zone-lookup height-zone x 0 z))))
 
 (defn tile-entity
   ([ [ze x y z] ]
@@ -342,10 +339,16 @@ data in the given byte buffer"
                  (* +chunk-side+ chunk-x))
            z0 (+ (* +region-side+ region-z)
                  (* +chunk-side+ chunk-z))
-           blocks (sub-zone (:block-zone mcmap)
-                            x0 (+ x0 +chunk-side+)
-                            0 +chunk-height+
-                            z0 (+ z0 +chunk-side+))
+           [blocks skylight-subzone light-subzone]
+             (map #(sub-zone (% mcmap)
+                             x0 (+ x0 +chunk-side+)
+                             0 +chunk-height+
+                             z0 (+ z0 +chunk-side+))
+                  [:block-zone :skylight-zone :light-zone])
+           height-subzone (sub-zone (:height-zone mcmap)
+                                    x0 (+ x0 +chunk-side+)
+                                    0 1
+                                    z0 (+ z0 +chunk-side+))
            data (tag-compound ""
                   [ (tag-compound "Level"
                       [ (tag-byte-array "Blocks"
@@ -353,11 +356,11 @@ data in the given byte buffer"
                         (tag-byte-array "Data"
                                         (block-data blocks))
                         (tag-byte-array "SkyLight"
-                                        (sky-light mcmap))
+                                        (sky-light skylight-subzone))
                         (tag-byte-array "BlockLight"
-                                        (block-light-bytes mcmap))
+                                        (block-light-bytes light-subzone))
                         (tag-byte-array "HeightMap"
-                                        (height-map-bytes mcmap))
+                                        (height-map-bytes height-subzone))
                         (tag-list "Entities" 10 [])
                         (tag-list "TileEntities" 10
                                   (tile-entities blocks x0 z0))
@@ -500,9 +503,9 @@ includes water)"
 
 (defn map-height
   ([zone x z]
-     (first (filter opaque? (map #(zone-lookup zone x % z)
-                                    (range (dec +chunk-height+)
-                                           -1 -1))))))
+     (first (filter #(opaque? (zone-lookup zone x % z)) 
+                    (range (dec +chunk-height+)
+                           -1 -1)))))
 
 (defn block-light
   ([ze]
@@ -534,12 +537,13 @@ includes water)"
   ([cur-light opacity & neighbor-lights]
      (if (neg? cur-light)
        cur-light
-       (apply max
+       (apply max cur-light
               (map #(- % (inc opacity))
                    (map #(if (neg? %)
                            (- -1 %)
                            %)
-                        (filter #(> % -256) neighbor-lights)))))))
+                        (filter #(and % (> % -256))
+                                neighbor-lights)))))))
 
 (defn iterate-light-zone
   ([light-zone opacity-zone]
@@ -694,8 +698,8 @@ given two dimension arguments"
 
 
 (defn map-exercise-3
-  "Like map-exercise-2, but adds some blue and yellow wool on the
-glowstone"
+  "Like map-exercise-2, but replaces most of the glowstone with stone,
+and adds some blue and yellow wool on the floors"
   ([x-chunks z-chunks]
      (let [generator (fn [x y z]
                        (cond (> 0.001 (rand))
@@ -708,7 +712,9 @@ glowstone"
                                   (zero? (mod x 4)))
                                (mc-block :stone)
                              (zero? (mod y 4))
-                               (mc-block :glowstone)
+                               (if (> 0.01 (rand))
+                                 (mc-block :glowstone)
+                                 (mc-block :stone))
                              (= 1 (mod y 4))
                                (cond (> 0.05 (rand)) (mc-block :blue-wool)
                                      (> 0.01 (rand)) (mc-block :yellow-wool)
