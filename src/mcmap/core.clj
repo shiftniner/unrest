@@ -269,23 +269,32 @@ tagged data"
                (zone-lookup zone x y z))))))
 
 (defn sky-light
-  "Returns a seq of bytes with sky light data for the given zone"
-  ;; XXX hardcoded as 0 for every block for now
-  ([zone]
-     (repeat 16384 (byte 0))))
+  "Returns a seq of bytes with sky light data for the given mcmap"
+  ([mcmap]
+     (let [skylight-zone (:skylight-zone mcmap)]
+       (nybbles-to-bytes
+          (for [x (range (zone-x-size skylight-zone))
+                z (range (zone-z-size skylight-zone))
+                y (range (zone-y-size skylight-zone))]
+            (zone-lookup skylight-zone x y z))))))
 
 (defn block-light-bytes
-  "Returns a seq of bytes with block light data, which must have been
-precomputed with compute-block-light, for the given zone"
-  ;; XXX hardcoded as 15 for every block for now
-  ([zone]
-     (repeat 16384 (byte -1))))
+  "Returns a seq of bytes with block light data for the given mcmap"
+  ([mcmap]
+     (let [light-zone (:light-zone mcmap)]
+       (nybbles-to-bytes
+          (for [x (range (zone-x-size light-zone))
+                z (range (zone-z-size light-zone))
+                y (range (zone-y-size light-zone))]
+            (zone-lookup light-zone x y z))))))
 
 (defn height-map-bytes
-  "Returns a seq of bytes of heightmap data for the given zone"
-  ;; XXX hardcoded as 127 for everything for now
-  ([zone]
-     (repeat 256 (byte 127))))
+  "Returns a seq of bytes of heightmap data for the given mcmap"
+  ([mcmap]
+     (let [height-zone (:height-zone mcmap)]
+       (for [x (range (zone-x-size light-zone))
+             z (range (zone-z-size light-zone))]
+         (zone-lookup height-zone x 0 z)))))
 
 (defn tile-entity
   ([ [ze x y z] ]
@@ -344,11 +353,11 @@ data in the given byte buffer"
                         (tag-byte-array "Data"
                                         (block-data blocks))
                         (tag-byte-array "SkyLight"
-                                        (sky-light blocks))
+                                        (sky-light mcmap))
                         (tag-byte-array "BlockLight"
-                                        (block-light-bytes blocks))
+                                        (block-light-bytes mcmap))
                         (tag-byte-array "HeightMap"
-                                        (height-map-bytes blocks))
+                                        (height-map-bytes mcmap))
                         (tag-list "Entities" 10 [])
                         (tag-list "TileEntities" 10
                                   (tile-entities blocks x0 z0))
@@ -435,7 +444,11 @@ seq of locations"
 number of chunks in the given seq of chunks"
   ([chunks]
      ;; encoding scheme is not documented in the wiki; why do we even
-     ;; need chunk timestamps?  0 for everything should be safe
+     ;; need chunk timestamps?  0 for everything should be safe.
+
+     ;; I have a theory that this might be why my stone sometimes gets
+     ;; replaced with dirt, gravel, and ores, though -- part of some
+     ;; old landscape upgrade process.
      (byte-buffer (repeat 4096 0))))
 
 (defn pad-chunk
@@ -497,11 +510,24 @@ includes water)"
        (or (if-let [l (:force-nospread-light ze)]
              (- -256 l))
            (if-let [l (:force-light ze)]
-             (- l))
+             (- -1 l))
            (if-let [l (:light ze)]
              l)
            (block-light (:type ze)))
        (or (+light-levels+ ze)
+           0))))
+
+(defn block-skylight
+  ([ze x y z height-zone]
+     (or (if (map? ze)
+           (or (if-let [l (:force-nospread-skylight ze)]
+                 (- -256 l))
+               (if-let [l (:force-skylight ze)]
+                 (- -1 l))
+               (if-let [l (:skylight ze)]
+                 l)))
+         (if (> y (zone-lookup height-zone x 0 z))
+           15
            0))))
 
 (defn spread-light
@@ -530,6 +556,25 @@ includes water)"
                            (maybe-zone-lookup light-zone x y (inc z))
                            (maybe-zone-lookup light-zone x y (dec z)))))))
 
+(defn translate-light-zone
+  "Takes a light zone with values from -511 to 256, and returns a zone
+with Minecraft light values from 0 to 15"
+  ([light-zone]
+     (gen-mcmap-zone (zone-x-size light-zone)
+                     (zone-y-size light-zone)
+                     (zone-z-size light-zone)
+           (fn [x y z]
+             (let [l (zone-lookup light-zone x y z)
+                   l (cond (<= l -256)
+                             (- -256 l)
+                           (neg? l)
+                             (- -1 l)
+                           :else
+                             l)]
+               (if (> l 15)
+                 15
+                 l))))))
+
 (defn compute-block-light
   ([block-zone opacity-zone]
      (loop [light-zone (gen-mcmap-zone (zone-x-size block-zone)
@@ -537,16 +582,27 @@ includes water)"
                                        (zone-z-size block-zone)
                              (fn [x y z]
                                (block-light
-                                (zone-lookup block-zone x y z))))]
-       (let [new-light-zone (iterate-light-zone light-zone opacity-zone)]
+                                   (zone-lookup block-zone x y z))))]
+       (let [new-light-zone (iterate-light-zone light-zone
+                                                opacity-zone)]
          (if (= new-light-zone light-zone)
-           light-zone
+           (translate-light-zone light-zone)
            (recur new-light-zone))))))
 
 (defn compute-skylight
   ([block-zone opacity-zone height-zone]
-     ;; XXX
-     ))
+     (loop [skylight-zone (gen-mcmap-zone (zone-x-size block-zone)
+                                          (zone-y-size block-zone)
+                                          (zone-z-size block-zone)
+                                (fn [x y z]
+                                  (block-skylight
+                                      (zone-lookup block-zone x y z)
+                                      x y z height-zone)))]
+       (let [new-skylight-zone (iterate-light-zone skylight-zone
+                                                   opacity-zone)]
+         (if (= new-skylight-zone skylight-zone)
+           (translate-light-zone skylight-zone)
+           (recur new-skylight-zone))))))
 
 (defn gen-mcmap
   "Given x and z sizes and a function of x y and z that returns a
