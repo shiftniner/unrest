@@ -31,25 +31,38 @@ block, and returns a zone of the specified size"
      (gen-mcmap-zone x-size +chunk-height+ z-size f))
   ([x-size y-size z-size f]
      (vec (for [x (range x-size)]
-            (vec (for [y (range y-size)]
-                   (vec (for [z (range z-size)]
+            (vec (for [z (range z-size)]
+                   (vec (for [y (range y-size)]
                           (f x y z)))))))))
 
-(defn zone-z-size
-  ([zone]
-     (count ( (zone 0) 0 ))))
-
-(defn zone-y-size
-  ([zone]
-     (count (zone 0))))
+(defn p-gen-mcmap-zone
+  "Takes x and z dimensions, and a function of x y and z returning a
+block, and returns a zone of the specified size"
+  ;; Probably want to make this a single vector later, in a structure
+  ;; with coordinates.
+  ([x-size z-size f]
+     (gen-mcmap-zone x-size +chunk-height+ z-size f))
+  ([x-size y-size z-size f]
+     (vec (pmap #(vec (for [z (range z-size)]
+                        (vec (for [y (range y-size)]
+                               (f % y z)))))
+                (range x-size)))))
 
 (defn zone-x-size
   ([zone]
      (count zone)))
 
+(defn zone-y-size
+  ([zone]
+     (count ( (zone 0) 0 ))))
+
+(defn zone-z-size
+  ([zone]
+     (count (zone 0))))
+
 (defn zone-lookup
   ([zone x y z]
-     ( ( (zone x) y) z )))
+     ( ( (zone x) z) y )))
 
 (defn maybe-zone-lookup
   "Like zone-lookup, but returns nil if the coordinates are out of
@@ -126,12 +139,12 @@ will be folded), returns a byte buffer"
   "Takes any number of byte buffers and concatenates them into a
 single byte buffer"
   ([& byte-buffers]
-     (byte-buffer (mapcat #(.array %)
+     (byte-buffer (mapcat #(.array ^ByteBuffer %)
                           byte-buffers))))
 
 (defn utf8-bytes
   ([s]
-     (.getBytes s "UTF-8")))
+     (.getBytes ^String s "UTF-8")))
 
 (defn str-to-byte-buffer
   "Encodes the given string using UTF-8"
@@ -323,7 +336,7 @@ tagged data"
   "Returns a byte buffer containing a zlib compressed version of the
 data in the given byte buffer"
   ([buf]
-     (let [bs (.array buf)
+     (let [bs (.array ^ByteBuffer buf)
            out (byte-array (count bs))
            c (doto (Deflater.)
                (.setInput bs)
@@ -386,7 +399,7 @@ where each chunk is {:x <chunk-x> :z <chunk-z> :data <byte-buffer>"
 (defn byte-buffer-size
   "Returns the length in bytes of the given byte buffer"
   ([b]
-     (count (seq (.array b)))))
+     (count (seq (.array ^ByteBuffer b)))))
 
 (defn locations
   "Returns a seq of chunk file locations and sector counts (in 4KiB
@@ -534,25 +547,25 @@ includes water)"
            0))))
 
 (defn spread-light
-  ([cur-light opacity & neighbor-lights]
+  ([cur-light total-opacity & neighbor-lights]
      (if (neg? cur-light)
        cur-light
        (apply max cur-light
-              (map #(- % (inc opacity))
-                   (map #(if (neg? %)
-                           (- -1 %)
-                           %)
-                        (filter #(and % (> % -256))
-                                neighbor-lights)))))))
+              (map #(- (if (neg? %)
+                         (- -1 %)
+                         %)
+                       total-opacity)
+                   (filter #(and % (> % -256))
+                           neighbor-lights))))))
 
 (defn iterate-light-zone
   ([light-zone opacity-zone]
-     (gen-mcmap-zone (zone-x-size light-zone)
+     (p-gen-mcmap-zone (zone-x-size light-zone)
                      (zone-y-size light-zone)
                      (zone-z-size light-zone)
            (fn [x y z]
              (spread-light (zone-lookup light-zone x y z)
-                           (zone-lookup opacity-zone x y z)
+                           (inc (zone-lookup opacity-zone x y z))
                            (maybe-zone-lookup light-zone (inc x) y z)
                            (maybe-zone-lookup light-zone (dec x) y z)
                            (maybe-zone-lookup light-zone x (inc y) z)
@@ -640,9 +653,9 @@ extracted from that zone, in Minecraft beta .mcr format"
 
 (defn write-file
   "Writes the given byte buffer to the given filename"
-  ([filename byte-buffer]
+  ([^String filename ^ByteBuffer byte-buffer]
      (with-open [out (FileOutputStream. filename)]
-       (.write out (.array byte-buffer)))))
+       (.write ^FileOutputStream out (.array byte-buffer)))))
 
 (defn map-exercise-1
   "Returns the .mcr binary data for a single region made up of
