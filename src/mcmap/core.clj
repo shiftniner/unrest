@@ -516,9 +516,10 @@ includes water)"
 
 (defn map-height
   ([zone x z]
-     (first (filter #(opaque? (zone-lookup zone x % z)) 
-                    (range (dec +chunk-height+)
-                           -1 -1)))))
+     (or (first (filter #(opaque? (zone-lookup zone x % z))
+                        (range (dec +chunk-height+)
+                               -1 -1)))
+         0)))
 
 (defn block-light
   ([ze]
