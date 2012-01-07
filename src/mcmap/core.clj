@@ -103,13 +103,15 @@ include any part of the given zone"
   "Returns the byte block ID for the given zone element"
   ([ze]
      (if (map? ze)
-       (block-id (:type ze))
+       (block-id (or (:real-type ze)
+                     (:type ze)))
        (or ( {:air              0
               :stone            1
               :wool             35
               :fire             51
               :mob-spawner      52
               :monster-spawner  52
+              :chest            54
               :glowstone        89
               }
              ze )
@@ -131,7 +133,7 @@ will be folded), returns a byte buffer"
      (ByteBuffer/wrap
         (into-array Byte/TYPE
                     (map #(if (> % 127)
-                            (- % 256)
+                            (bit-xor % -256)
                             %)
                          bs)))))
 
@@ -309,19 +311,53 @@ tagged data"
 (defn tile-entity
   ([ [ze x y z] ]
      (when (map? ze)
-       (let [t (:type ze)]
-         (case t
-               (:monster-spawner :mob-spawner)
-                 [ (tag-compound
-                      [ (tag-string "id" "MobSpawner")
-                        (tag-int "x" x)
-                        (tag-int "y" y)
-                        (tag-int "z" z)
+       (let [t (:type ze)
+             fields
+               (case t
+                     (:monster-spawner :mob-spawner)
+                       ["MobSpawner"
                         (tag-string "EntityId" (:mob ze))
                         (tag-short "Delay" (or (:delay ze)
-                                               200))])]
-               ;; default:
-               nil)))))
+                                               200))]
+                     :chest
+                       ["Chest"
+                        (tag-list "Items" 10
+                                  (:items ze))]
+                     ;; default:
+                     nil)]
+         (when-let [ [id & additional-fields] fields]
+           [ (tag-compound
+                (list* (tag-string "id" id)
+                       (tag-int "x" x)
+                       (tag-int "y" y)
+                       (tag-int "z" z)
+                       additional-fields))])))))
+
+(defn enchantment
+  "Takes a seq of enchantments in {:id n, :lvl n} form and returns a
+TAG_Compound called \"tag\", which can be used as a property on an
+inventory item"
+  ([enchs]
+     (tag-compound "tag"
+        (tag-list "ench" 10
+                  (map #(tag-compound (tag-short "id" (:id %))
+                                      (tag-short "lvl" (:lvl %))))))))
+
+(defn inventory-list
+  "Takes a seq of items defined as {:id block-or-item-id, :damage
+n, :count n, :slot n, (and optionally :ench (enchantment ...))} and
+returns a seq of UTAG_Compounds, suitable for use as the :items slot
+in a Furnace, Chest, Trap, Cauldron, or Minecart (with chest)"
+  ([items]
+     (map #(tag-compound
+             (list*
+               (tag-short "id"     (:id     %))
+               (tag-short "Damage" (or (:damage %) 0))
+               (tag-byte  "Count"  (or (:count  %) 1))
+               (tag-byte  "Slot"   (:slot   %))
+               (if-let [ench (:ench %)]
+                 [ (enchantment ench) ])))
+          items)))
 
 (defn tile-entities
   "Returns a seq of TAG_Compounds"
@@ -713,7 +749,7 @@ given two dimension arguments"
 
 (defn map-exercise-3
   "Like map-exercise-2, but replaces most of the glowstone with stone,
-and adds some blue and yellow wool on the floors"
+and adds some blue and yellow wool and chests on the floors"
   ([x-chunks z-chunks]
      (let [generator (fn [x y z]
                        (cond (> 0.001 (rand))
@@ -732,7 +768,13 @@ and adds some blue and yellow wool on the floors"
                              (= 1 (mod y 4))
                                (cond (> 0.05 (rand)) (mc-block :blue-wool)
                                      (> 0.01 (rand)) (mc-block :yellow-wool)
-                                     :else           (mc-block :air))
+                                     (> 0.01 (rand))
+                                       (mc-block :chest,
+                                                 :force-skylight 10,
+                                                 :items
+                                                 (inventory-list
+                                                  [ {:id 57, :slot 13} ]))
+                                     :else (mc-block :air))
                              :else (mc-block :air)))
            mcmap (gen-mcmap (* x-chunks +chunk-side+)
                             (* z-chunks +chunk-side+)
@@ -745,3 +787,46 @@ and adds some blue and yellow wool on the floors"
   ([filename x-chunks z-chunks]
      (write-file filename (map-exercise-3 x-chunks z-chunks))))
 
+
+(defn map-exercise-4
+  "Like map-exercise-3, but raises the ceilings, gets rid of the wool,
+and fills the chests with speed splash potions for testing speedy mobs"
+  ([x-chunks z-chunks]
+     (let [generator (fn [x y z]
+                       (cond (> 0.001 (rand))
+                               (mc-block :mob-spawner
+                                         :mob "Creeper" :delay 200)
+                             (> 0.001 (rand))
+                               (mc-block :mob-spawner
+                                         :mob "Zombie" :delay 200)
+                             (and (zero? (mod z 8))
+                                  (zero? (mod x 8)))
+                               (mc-block :stone)
+                             (zero? (mod y 8))
+                               (if (> 0.01 (rand))
+                                 (mc-block :glowstone)
+                                 (mc-block :stone))
+                             (= 1 (mod y 8))
+                               (cond (> 0.01 (rand))
+                                       (mc-block :chest,
+                                                 :force-skylight 10,
+                                                 :items
+                                                 (inventory-list
+                                                  (map (fn [slot]
+                                                         {:id 373,
+                                                          :count 64,
+                                                          :slot slot,
+                                                          :damage 16482})
+                                                       (range 0 27))))
+                                     :else (mc-block :air))
+                             :else (mc-block :air)))
+           mcmap (gen-mcmap (* x-chunks +chunk-side+)
+                            (* z-chunks +chunk-side+)
+                            generator)]
+       (mcmap-to-mcr-binary mcmap 0 0)))
+  ([filename]
+     (write-file filename (map-exercise-4)))
+  ([]
+     (map-exercise-4 2 2))
+  ([filename x-chunks z-chunks]
+     (write-file filename (map-exercise-4 x-chunks z-chunks))))
