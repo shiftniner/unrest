@@ -36,9 +36,7 @@
   ([cave-params]
      (fn [x y z]
        (cond (in-cave? cave-params x y z)
-               (if (> 0.01 (rand))
-                 (mc-block :mob-spawner :mob "Giant" :delay 200)
-                 (mc-block :air))
+             (mc-block :air)
              :else (if (> 0.01 (rand))
                      (mc-block :glowstone)
                      (mc-block :stone))))))
