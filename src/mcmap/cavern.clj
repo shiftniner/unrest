@@ -4,7 +4,11 @@
 (defn in-cave?-fn
   "Takes a cave-params hash (see random-cave for an example) or a seq
 of cave-params hashes, and returns a fn of x y z that returns true if
-the coordinates are within the walls of a cave"
+the coordinates are within the walls of a cave.  If cave-params is a
+single cave, the function returned also takes a single y argument and
+returns a vector [cx cz td] with the x and z coordinates of the center
+of the cave at that y, and the theta divisor for the cave, used in
+computing twists."
   ([cave-params]
      (if (or (vector? cave-params)
              (seq? cave-params))
@@ -94,38 +98,11 @@ the coordinates are within the walls of a cave"
                             generator)]
        (mcmap-to-mcr-binary mcmap 0 0))))
 
-(defn cave-exercise-1
-  ([x-chunks z-chunks]
-     (let [cave-params {:x0 (* x-chunks +chunk-side+ 1/2)
-                        :z0 (* z-chunks +chunk-side+ 1/2)
-                        :radius (* x-chunks +chunk-side+ 1/4)}]
-       (generic-map-maker x-chunks z-chunks
-                          (inverse-cave-generator cave-params)))))
-
-(defn cave-exercise-2
-  ([x-chunks z-chunks]
-     (let [cave-params {:x0 (* x-chunks +chunk-side+ 1/2)
-                        :z0 (* z-chunks +chunk-side+ 1/2)
-                        :radius (* x-chunks +chunk-side+ 3/8)}]
-       (generic-map-maker x-chunks z-chunks
-                          (simple-cave-generator cave-params)))))
-
-(defn cave-exercise-3
-  ([x-chunks z-chunks]
-     (let [cave-params [{:x0 (* x-chunks +chunk-side+ 1/2)
-                         :z0 (* z-chunks +chunk-side+ 1/2)
-                         :radius (* x-chunks +chunk-side+ 3/8)}
-                        {:x0 (* x-chunks +chunk-side+ 1/2)
-                         :z0 (* z-chunks +chunk-side+ 1/2)
-                         :radius (* x-chunks +chunk-side+ 3/16)}]]
-       (generic-map-maker x-chunks z-chunks
-                          (simple-cave-generator cave-params)))))
-
 (defn random-cave
   ([x-max z-max]
      (let [x0 (* x-max (rand))
            z0 (* z-max (rand))
-           radius (rand (* 1/2 (max x-max z-max)))]
+           radius (+ 8 (rand (+ -8 (* 1/2 (min x-max z-max)))))]
        (if (and (> (- x0 radius) 5)
                 (> (- z0 radius) 5)
                 (> x-max (+ x0 radius 5))
@@ -208,6 +185,33 @@ cave-params for a single continuous twisting cave"
                       max-x
                       max-z
                       (+ y 0.5 (rand)))))))
+
+(defn cave-exercise-1
+  ([x-chunks z-chunks]
+     (let [cave-params {:x0 (* x-chunks +chunk-side+ 1/2)
+                        :z0 (* z-chunks +chunk-side+ 1/2)
+                        :radius (* x-chunks +chunk-side+ 1/4)}]
+       (generic-map-maker x-chunks z-chunks
+                          (inverse-cave-generator cave-params)))))
+
+(defn cave-exercise-2
+  ([x-chunks z-chunks]
+     (let [cave-params {:x0 (* x-chunks +chunk-side+ 1/2)
+                        :z0 (* z-chunks +chunk-side+ 1/2)
+                        :radius (* x-chunks +chunk-side+ 3/8)}]
+       (generic-map-maker x-chunks z-chunks
+                          (simple-cave-generator cave-params)))))
+
+(defn cave-exercise-3
+  ([x-chunks z-chunks]
+     (let [cave-params [{:x0 (* x-chunks +chunk-side+ 1/2)
+                         :z0 (* z-chunks +chunk-side+ 1/2)
+                         :radius (* x-chunks +chunk-side+ 3/8)}
+                        {:x0 (* x-chunks +chunk-side+ 1/2)
+                         :z0 (* z-chunks +chunk-side+ 1/2)
+                         :radius (* x-chunks +chunk-side+ 3/16)}]]
+       (generic-map-maker x-chunks z-chunks
+                          (simple-cave-generator cave-params)))))
 
 (defn cave-exercise-4
   ([x-chunks z-chunks]
