@@ -107,6 +107,7 @@ include any part of the given zone"
                      (:type ze)))
        (or ( {:air              0
               :stone            1
+              :bedrock          7
               :wool             35
               :fire             51
               :mob-spawner      52
@@ -808,9 +809,9 @@ and fills the chests with speed splash potions for testing speedy mobs"
                                  (mc-block :glowstone)
                                  (mc-block :stone))
                              (= 1 (mod y 8))
-                               (cond (> 0.01 (rand))
+                               (cond (> 0.002 (rand))
                                        (mc-block :chest,
-                                                 :force-skylight 10,
+                                                 :skylight 10,
                                                  :items
                                                  (inventory-list
                                                   (map (fn [slot]
