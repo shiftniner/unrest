@@ -583,7 +583,7 @@ includes water)"
            15
            0))))
 
-(defn spread-light
+(defn recalc-light
   ([cur-light total-opacity & neighbor-lights]
      (if (neg? cur-light)
        cur-light
@@ -601,7 +601,7 @@ includes water)"
                      (zone-y-size light-zone)
                      (zone-z-size light-zone)
            (fn [x y z]
-             (spread-light (zone-lookup light-zone x y z)
+             (recalc-light (zone-lookup light-zone x y z)
                            (inc (zone-lookup opacity-zone x y z))
                            (maybe-zone-lookup light-zone (inc x) y z)
                            (maybe-zone-lookup light-zone (dec x) y z)
@@ -629,34 +629,35 @@ with Minecraft light values from 0 to 15"
                  15
                  l))))))
 
-(defn compute-block-light
-  ([block-zone opacity-zone]
-     (loop [light-zone (gen-mcmap-zone (zone-x-size block-zone)
-                                       (zone-y-size block-zone)
-                                       (zone-z-size block-zone)
-                             (fn [x y z]
-                               (block-light
-                                   (zone-lookup block-zone x y z))))]
+(defn spread-light
+  ([light-zone opacity-zone]
+     (loop [light-zone light-zone]
        (let [new-light-zone (iterate-light-zone light-zone
                                                 opacity-zone)]
          (if (= new-light-zone light-zone)
            (translate-light-zone light-zone)
            (recur new-light-zone))))))
 
+(defn compute-block-light
+  ([block-zone opacity-zone]
+     (let [light-zone (gen-mcmap-zone (zone-x-size block-zone)
+                                      (zone-y-size block-zone)
+                                      (zone-z-size block-zone)
+                            (fn [x y z]
+                              (block-light
+                                  (zone-lookup block-zone x y z))))]
+       (spread-light light-zone opacity-zone))))
+
 (defn compute-skylight
   ([block-zone opacity-zone height-zone]
-     (loop [skylight-zone (gen-mcmap-zone (zone-x-size block-zone)
-                                          (zone-y-size block-zone)
-                                          (zone-z-size block-zone)
-                                (fn [x y z]
-                                  (block-skylight
-                                      (zone-lookup block-zone x y z)
-                                      x y z height-zone)))]
-       (let [new-skylight-zone (iterate-light-zone skylight-zone
-                                                   opacity-zone)]
-         (if (= new-skylight-zone skylight-zone)
-           (translate-light-zone skylight-zone)
-           (recur new-skylight-zone))))))
+     (let [skylight-zone (gen-mcmap-zone (zone-x-size block-zone)
+                                         (zone-y-size block-zone)
+                                         (zone-z-size block-zone)
+                               (fn [x y z]
+                                 (block-skylight
+                                     (zone-lookup block-zone x y z)
+                                     x y z height-zone)))]
+       (spread-light skylight-zone opacity-zone))))
 
 (defn gen-mcmap
   "Given x and z sizes and a function of x y and z that returns a
