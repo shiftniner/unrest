@@ -111,9 +111,9 @@ computing twists."
 
 (defn distance-2d-sloped
   ([x0 z0 x1 z1 x-slope z-slope]
-     (let [x-dist (/ (Math/abs (- x0 x1))
+     (let [x-dist (* (Math/abs (- x0 x1))
                      x-slope)
-           z-dist (/ (Math/abs (- z0 z1))
+           z-dist (* (Math/abs (- z0 z1))
                      z-slope)]
        (Math/sqrt (+ (* x-dist x-dist)
                      (* z-dist z-dist))))))
@@ -130,7 +130,7 @@ computing twists."
                  :bedrock
                (and (> y 125)
                     (> y (+ 125 (distance-2d-sloped
-                                    x z x-start z-start 14 14))))
+                                    x z x-start z-start 2/31 2/31))))
                  :air
                (and (> y 120)
                     (> y (- 130 (distance-2d-sloped
