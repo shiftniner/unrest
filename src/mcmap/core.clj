@@ -381,6 +381,11 @@ data in the given byte buffer"
            c-len (.deflate c out)]
        (byte-buffer (take c-len out)))))
 
+(defn msg
+  ;; XXX Make this print only if current *msg-level* >= level.
+  ([level & atoms]
+     (println (apply str atoms))))
+
 (defn extract-chunk
   "Returns a binary chunk {:x <chunk-x> :z <chunk-z> :data
 <byte-buffer>} at the given coordinates within the given mcmap"

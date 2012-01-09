@@ -14,13 +14,31 @@ computing twists."
              (seq? cave-params))
        (if (seq cave-params)
          (let [fns (map in-cave?-fn cave-params)]
-           (fn [x y z]
-             (loop [in-cave? (first fns)
-                    rest-fns (rest fns)]
-               (cond (in-cave? x y z) true
-                     (seq rest-fns) (recur (first rest-fns)
-                                           (rest rest-fns))
-                     :else false)))))
+           (fn
+             ([x y z]
+                (loop [in-cave? (first fns)
+                       rest-fns (rest fns)]
+                  (cond (in-cave? x y z) true
+                        (seq rest-fns) (recur (first rest-fns)
+                                              (rest rest-fns))
+                        :else false)))
+             ([y]
+                (loop [in-cave? (first fns)
+                       rest-fns (rest fns)
+                       params (first cave-params)
+                       rest-params (rest cave-params)]
+                  (cond (and (<= y (:max-y params))
+                             (>= y (:min-y params)))
+                          (in-cave? y)
+                        (not (seq rest-fns))
+                          (throw (RuntimeException.
+                                  (str "Ran out of cave in in-cave? for"
+                                       " y=" y)))
+                        :else
+                          (recur (first rest-fns)
+                                 (rest rest-fns)
+                                 (first rest-params)
+                                 (rest rest-params))))))))
        ;; not (or (vector? ...) ...) -- i.e., cave-params is a single cave:
        (let [x0 (:x0 cave-params)
              z0 (:z0 cave-params)
@@ -90,6 +108,40 @@ computing twists."
        (fn [x y z]
          (cond (in-cave? x y z) (mc-block :air)
                :else (mc-block :stone))))))
+
+(defn distance-2d-sloped
+  ([x0 z0 x1 z1 x-slope z-slope]
+     (let [x-dist (/ (Math/abs (- x0 x1))
+                     x-slope)
+           z-dist (/ (Math/abs (- z0 z1))
+                     z-slope)]
+       (Math/sqrt (+ (* x-dist x-dist)
+                     (* z-dist z-dist))))))
+
+(defn epic-cave-generator
+  ([cave-params x-max z-max x-start z-start]
+     (let [in-cave? (in-cave?-fn cave-params)
+           x-bound (dec x-max)
+           z-bound (dec z-max)
+           ground-cap-x-slope (/ 20 x-max)
+           ground-cap-z-slope (/ 20 z-max)]
+       (fn [x y z]
+         (cond (or (zero? x) (zero? z) (= x-bound x) (= z-bound z))
+                 :bedrock
+               (and (> y 125)
+                    (> y (+ 125 (distance-2d-sloped
+                                    x z x-start z-start 14 14))))
+                 :air
+               (and (> y 120)
+                    (> y (- 130 (distance-2d-sloped
+                                    x z x-start z-start
+                                    ground-cap-x-slope
+                                    ground-cap-z-slope))))
+                 :ground
+               (in-cave? x y z)
+                 :air
+               :else
+                 :ground)))))
 
 (defn generic-map-maker
   ([x-chunks z-chunks generator]
@@ -186,6 +238,155 @@ cave-params for a single continuous twisting cave"
                       max-z
                       (+ y 0.5 (rand)))))))
 
+(defn pick-centermost-cave
+  "Returns [centermost-cave other-caves]"
+  ([caves max-x max-z]
+     (let [cx (/ max-x 2)
+           cz (/ max-z 2)
+           top-points (map #((in-cave?-fn %) 127)
+                           caves)
+           dists-squared (map #(let [ {x :cave-x, z :cave-z} %
+                                      dx (- x cx)
+                                      dz (- z cz)]
+                                 (+ (* dx dx) (* dz dz)))
+                              top-points)
+           min-dist-squared (apply min dists-squared)]
+       (loop [n 0
+              dists dists-squared]
+         (if (= min-dist-squared (first dists))
+           ;; n is the one; return it
+           [(nth caves n)
+            (concat (take n caves)
+                    (drop (inc n) caves))]
+           (recur (inc n)
+                  (rest dists)))))))
+
+(defn find-closest-point
+  "Returns the y altitude between 20 and 100 where the two given caves
+are at their closest"
+  ([cave-params-1 cave-params-2]
+     (let [in-cave?-1 (in-cave?-fn cave-params-1)
+           in-cave?-2 (in-cave?-fn cave-params-2)
+           y-range (range 20 101)
+           points-1 (map #(let [{x :cave-x, z :cave-z}
+                                (in-cave?-1 %)]
+                            [x z])
+                         y-range)
+           points-2 (map #(let [{x :cave-x, z :cave-z}
+                                (in-cave?-2 %)]
+                            [x z])
+                         y-range)
+           dists-squared (map #(let [ [x1 z1] %1
+                                      [x2 z2] %2
+                                      dx (- x1 x2)
+                                      dz (- z1 z2)]
+                                 (+ (* dx dx) (* dz dz)))
+                              points-1 points-2)
+           min-dist-squared (apply min dists-squared)]
+       (loop [y-range y-range
+              dists-squared dists-squared]
+         (if (= min-dist-squared (first dists-squared))
+           (first y-range)
+           (recur (rest y-range)
+                  (rest dists-squared)))))))
+
+(defn caves-intersect?
+  "Returns true only if the two given caves intersect; this function
+may sometimes generate false negatives, but will never generate false
+positives"
+  ([cave-params-1 cave-params-2]
+     (let [y (find-closest-point cave-params-1 cave-params-2)
+           in-cave?-1 (in-cave?-fn cave-params-1)
+           in-cave?-2 (in-cave?-fn cave-params-2)
+           {x1 :cave-x, z1 :cave-z} (in-cave?-1 y)
+           {x2 :cave-x, z2 :cave-z} (in-cave?-2 y)
+           [dx dz t-max]
+              (if (> (Math/abs (- x1 x2))
+                     (Math/abs (- z1 z2)))
+                [(Math/signum (- x2 x1))
+                 (/ (- z2 z1)
+                    (Math/abs (- x2 x1)))
+                 (Math/abs (- x2 x1))]
+                [(/ (- x2 x1)
+                    (Math/abs (- z2 z1)))
+                 (Math/signum (- z2 z1))
+                 (Math/abs (- z2 z1))])]
+       (loop [x x1
+              z z1
+              t 0]
+         (let [in-1 (in-cave?-1 x y z)
+               in-2 (in-cave?-2 x y z)]
+           (cond (not (or in-1 in-2))
+                   false
+                 (and in-1 in-2)
+                   true
+                 (> t t-max)
+                   false
+                 :else
+                   (recur (+ x dx)
+                          (+ z dz)
+                          (inc t))))))))
+
+(defn epic-cave-network
+  "Returns a zone and a starting point as [zone start-x start-z].  The
+zone mostly contains :ground, with caverns of :air carved out of it,
+all of which are interconnected and reachable from the starting point,
+with bedrock on all vertical sides, and capped with :ground on top
+except for caves with openings near the middle."
+  ([n-caves max-x max-z]
+     (msg 10 "Generating cave network ...")
+     (let [gen-twisted-cave #(twist-cave (random-cave max-x max-z)
+                                         max-x max-z)
+           candidate-caves (repeatedly n-caves gen-twisted-cave)
+           _ (msg 8 "Finding centermost cave")
+           [start candidate-caves] (pick-centermost-cave candidate-caves
+                                                         max-x max-z)
+           caves [start]
+           {start-x :cave-x,
+            start-z :cave-z}  ( (in-cave?-fn start) 127)]
+       (loop [caves caves
+              candidate-caves candidate-caves
+              i 0]
+         (msg 3 "Accumulated " (count caves) " caves, finding"
+              " intersections with cave #" (inc i))
+         (cond (>= (count caves) n-caves)
+                 ;; return here
+                 (let [_ (msg 3 "Picked enough caves; now carving")
+                       caves (take n-caves caves)
+                       generator (epic-cave-generator
+                                    caves max-x max-z start-x start-z)
+                       zone (gen-mcmap-zone max-x max-z generator)]
+                   [zone start-x start-z])
+               (>= i (count caves))
+                 (let [more-to-get (inc (int (/ n-caves 3)))]
+                   (msg 1 "generating " more-to-get " more caves; currently"
+                        " have " (count caves) " that intersect")
+                   (recur (reverse caves)
+                          (concat (repeatedly more-to-get gen-twisted-cave)
+                                  candidate-caves)
+                          0))
+               :else
+                 (let [criterion-cave (nth caves i)
+                       [caves-to-add remaining-candidates]
+                         (loop [caves-to-add ()
+                                remaining-candidates ()
+                                caves-to-try candidate-caves]
+                           (if (not (seq caves-to-try))
+                             [caves-to-add remaining-candidates]
+                             (if (caves-intersect? (first caves-to-try)
+                                                   criterion-cave)
+                               (recur (cons (first caves-to-try)
+                                            caves-to-add)
+                                      remaining-candidates
+                                      (rest caves-to-try))
+                               (recur caves-to-add
+                                      (cons (first caves-to-try)
+                                            remaining-candidates)
+                                      (rest caves-to-try)))))]
+                   (recur (concat caves caves-to-add)
+                          remaining-candidates
+                          (inc i))))))))
+
 (defn cave-exercise-1
   ([x-chunks z-chunks]
      (let [cave-params {:x0 (* x-chunks +chunk-side+ 1/2)
@@ -229,3 +430,16 @@ cave-params for a single continuous twisting cave"
            max-z (* z-chunks +chunk-side+)]
        (generic-map-maker x-chunks z-chunks
                           (dark-cave-generator cave-params)))))
+
+(defn cave-exercise-6
+  ([x-chunks z-chunks]
+     (let [max-x (* x-chunks +chunk-side+)
+           max-z (* z-chunks +chunk-side+)
+           epic-zone (epic-cave-network 15 max-x max-z)
+           generator (fn [x y z]
+                       (let [ze (zone-lookup epic-zone x y z)]
+                         (case ze
+                               :ground (mc-block :stone)
+                               :air (mc-block :air)
+                               :bedrock (mc-block :bedrock))))]
+       (generic-map-maker x-chunks z-chunks generator))))
