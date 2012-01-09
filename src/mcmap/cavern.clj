@@ -435,11 +435,13 @@ except for caves with openings near the middle."
   ([x-chunks z-chunks]
      (let [max-x (* x-chunks +chunk-side+)
            max-z (* z-chunks +chunk-side+)
-           epic-zone (epic-cave-network 15 max-x max-z)
+           [epic-zone start-x start-z]
+                 (epic-cave-network 15 max-x max-z)
            generator (fn [x y z]
                        (let [ze (zone-lookup epic-zone x y z)]
                          (case ze
                                :ground (mc-block :stone)
                                :air (mc-block :air)
                                :bedrock (mc-block :bedrock))))]
+       (println "Start is x=" start-x " z=" start-z)
        (generic-map-maker x-chunks z-chunks generator))))
