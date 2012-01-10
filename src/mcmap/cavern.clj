@@ -334,7 +334,7 @@ all of which are interconnected and reachable from the starting point,
 with bedrock on all vertical sides, and capped with :ground on top
 except for caves with openings near the middle."
   ([n-caves max-x max-z]
-     (msg 10 "Generating cave network ...")
+     (msg 1 "Generating cave network ...")
      (let [gen-twisted-cave #(twist-cave (random-cave max-x max-z)
                                          max-x max-z)
            candidate-caves (repeatedly n-caves gen-twisted-cave)
@@ -347,11 +347,11 @@ except for caves with openings near the middle."
        (loop [caves caves
               candidate-caves candidate-caves
               i 0]
-         (msg 3 "Accumulated " (count caves) " caves, finding"
+         (msg 6 "Accumulated " (count caves) " caves, finding"
               " intersections with cave #" (inc i))
          (cond (>= (count caves) n-caves)
                  ;; return here
-                 (let [_ (msg 3 "Picked enough caves; now carving")
+                 (let [_ (msg 3 "Picked enough caves; now carving ...")
                        caves (take n-caves caves)
                        generator (epic-cave-generator
                                     caves max-x max-z start-x start-z)
@@ -359,7 +359,7 @@ except for caves with openings near the middle."
                    [zone start-x start-z])
                (>= i (count caves))
                  (let [more-to-get (inc (int (/ n-caves 3)))]
-                   (msg 1 "generating " more-to-get " more caves; currently"
+                   (msg 3 "generating " more-to-get " more caves; currently"
                         " have " (count caves) " that intersect")
                    (recur (reverse caves)
                           (concat (repeatedly more-to-get gen-twisted-cave)

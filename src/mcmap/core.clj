@@ -384,7 +384,8 @@ data in the given byte buffer"
        (byte-buffer (take c-len out)))))
 
 (defn msg
-  ;; XXX Make this print only if current *msg-level* >= level.
+  ;; XXX Make this print only if current *msg-level* >= level.  I.e.,
+  ;; higher level implies chattier, less important messages.
   ([level & atoms]
      (println (apply str atoms))))
 
@@ -671,15 +672,20 @@ with Minecraft light values from 0 to 15"
   "Given x and z sizes and a function of x y and z that returns a
 block, returns an mcmap complete with computed light levels"
   ([x-size z-size f]
-     (let [block-zone (gen-mcmap-zone x-size z-size f)
+     (let [_ (msg 1 "Placing blocks ...")
+           block-zone (gen-mcmap-zone x-size z-size f)
+           _ (msg 1 "Mapping opaque and transparent blocks ...")
            opacity-zone (gen-mcmap-zone x-size z-size
                           (fn [x y z]
                             (block-opacity
-                               (zone-lookup block-zone x y z))))
+                             (zone-lookup block-zone x y z))))
+           _ (msg 1 "Computing height map ...")
            height-zone (gen-mcmap-zone x-size 1 z-size
                          (fn [x _ z]
                            (map-height block-zone x z)))
+           _ (msg 1 "Computing block-source light ...")
            light-zone (compute-block-light block-zone opacity-zone)
+           _ (msg 1 "Computing sky light ...")
            skylight-zone (compute-skylight block-zone opacity-zone
                                            height-zone)]
        {:block-zone block-zone
@@ -691,6 +697,7 @@ block, returns an mcmap complete with computed light levels"
   "Takes an mcmap and two region coordinates, and returns a region
 extracted from that zone, in Minecraft beta .mcr format"
   ([mcmap x z]
+     (msg 1 "Extracting chunks for region " x "." z " ...")
      (let [chunks (mcmap-to-chunks mcmap x z)
            locs (locations chunks)]
        (concat-bytes (locations-to-bytes locs)
