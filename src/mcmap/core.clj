@@ -108,7 +108,9 @@ include any part of the given zone"
        (or ( {:air              0
               :stone            1
               :bedrock          7
+              :sandstone        24
               :wool             35
+              :piston-target    36
               :fire             51
               :mob-spawner      52
               :monster-spawner  52

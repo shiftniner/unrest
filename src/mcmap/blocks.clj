@@ -27,5 +27,11 @@
      (apply hash-map
             (concat (interleave [:stone
                                  :wool
+                                 :glowstone
+                                 :bedrock
+                                 :sandstone
                                  :glowstone]
-                                (repeat 255)))))
+                                (repeat 255))
+                    (interleave [:piston-target
+                                 :water]
+                                (repeat 1)))))

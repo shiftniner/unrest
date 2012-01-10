@@ -123,8 +123,8 @@ computing twists."
      (let [in-cave? (in-cave?-fn cave-params)
            x-bound (dec x-max)
            z-bound (dec z-max)
-           ground-cap-x-slope (/ 20 x-max)
-           ground-cap-z-slope (/ 20 z-max)]
+           ground-cap-x-slope (/ 40 x-max)
+           ground-cap-z-slope (/ 40 z-max)]
        (fn [x y z]
          (cond (or (zero? x) (zero? z) (= x-bound x) (= z-bound z))
                  :bedrock
@@ -132,8 +132,8 @@ computing twists."
                     (> y (+ 125 (distance-2d-sloped
                                     x z x-start z-start 2/31 2/31))))
                  :air
-               (and (> y 120)
-                    (> y (- 130 (distance-2d-sloped
+               (and (> y 121)
+                    (> y (- 138 (distance-2d-sloped
                                     x z x-start z-start
                                     ground-cap-x-slope
                                     ground-cap-z-slope))))
@@ -440,7 +440,7 @@ except for caves with openings near the middle."
            generator (fn [x y z]
                        (let [ze (zone-lookup epic-zone x y z)]
                          (case ze
-                               :ground (mc-block :stone)
+                               :ground (mc-block :sandstone)
                                :air (mc-block :air)
                                :bedrock (mc-block :bedrock))))]
        (println "Start is x=" start-x " z=" start-z)
