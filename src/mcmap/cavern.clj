@@ -39,48 +39,76 @@ computing twists."
                                  (rest rest-fns)
                                  (first rest-params)
                                  (rest rest-params))))))))
-       ;; not (or (vector? ...) ...) -- i.e., cave-params is a single cave:
-       (let [x0 (:x0 cave-params)
-             z0 (:z0 cave-params)
-             min-y (:min-y cave-params)
-             max-y (:max-y cave-params)
-             r (:radius cave-params)
-             turn-rate (or (:turn-rate cave-params) 1)
-             theta-divisor (* turn-rate (* 0.25 r))
-             theta-offset (or (:theta-offset cave-params) 0)
-             div-64-r (/ 64 r)
-             width-rate (or (:width-rate cave-params) 5.0)
-             width-offset (or (:width-offset cave-params) 0)
-             base-width (or (:base-width cave-params) 3)
-             width-mul (or (:width-mul cave-params) 6)]
-         (fn
-           ([x y z]
-              (if (or (> y max-y)
-                      (< y min-y))
-                false
-                (let [x (- x x0)
-                      z (- z z0)
-                      theta (+ theta-offset (/ y theta-divisor))
+       ;; not (or (vector? ...) ...) -- i.e., cave-params is a hash:
+       (if-let [layers (:layered-cave-params cave-params)]
+         (let [fns (vec (map in-cave?-fn layers))]
+           (fn
+             ([x y z]
+                (if-let [f (fns y)]
+                  (f x y z)
+                  (throw (Exception. (str "in-cave? " x " " y " " z
+                                          " called, fns is: " fns
+                                          " with count " (count fns))))))))
+         ;; not layered -- just one cave:
+         (let [x0 (:x0 cave-params)
+               z0 (:z0 cave-params)
+               min-y (:min-y cave-params)
+               max-y (:max-y cave-params)
+               r (:radius cave-params)
+               turn-rate (or (:turn-rate cave-params) 1)
+               theta-divisor (* turn-rate (* 0.25 r))
+               theta-offset (or (:theta-offset cave-params) 0)
+               div-64-r (/ 64 r)
+               width-rate (or (:width-rate cave-params) 5.0)
+               width-offset (or (:width-offset cave-params) 0)
+               base-width (or (:base-width cave-params) 3)
+               width-mul (or (:width-mul cave-params) 6)]
+           (fn
+             ([x y z]
+                (if (or (> y max-y)
+                        (< y min-y))
+                  false
+                  (let [x (- x x0)
+                        z (- z z0)
+                        theta (+ theta-offset (/ y theta-divisor))
+                        cave-x (* r (Math/sin theta))
+                        cave-z (* r (Math/cos theta))
+                        x-dist (- x cave-x)
+                        z-dist (- z cave-z)
+                        width (* width-mul
+                                 (+ base-width
+                                    (Math/sin (+ width-offset
+                                                 (/ y width-rate)))))
+                        dist-squared (+ (* x-dist x-dist)
+                                        (* z-dist z-dist))
+                        dist-skew (+ (* cave-x x-dist div-64-r)
+                                     (* cave-z z-dist div-64-r))
+                        dist-squared (+ dist-squared
+                                        (Math/abs dist-skew))]
+                    (< dist-squared (* width width)))))
+             ([y]
+                (let [theta (+ theta-offset (/ y theta-divisor))
                       cave-x (* r (Math/sin theta))
-                      cave-z (* r (Math/cos theta))
-                      x-dist (- x cave-x)
-                      z-dist (- z cave-z)
-                      width (* width-mul (+ base-width
-                                            (Math/sin (+ width-offset
-                                                         (/ y width-rate)))))
-                      dist-squared (+ (* x-dist x-dist)
-                                      (* z-dist z-dist))
-                      dist-skew (+ (* cave-x x-dist div-64-r)
-                                   (* cave-z z-dist div-64-r))
-                      dist-squared (+ dist-squared (Math/abs dist-skew))]
-                  (< dist-squared (* width width)))))
-           ([y]
-              (let [theta (+ theta-offset (/ y theta-divisor))
-                    cave-x (* r (Math/sin theta))
-                    cave-z (* r (Math/cos theta))]
-                {:cave-x (+ cave-x x0)
-                 :cave-z (+ cave-z z0)
-                 :theta-divisor theta-divisor})))))))
+                      cave-z (* r (Math/cos theta))]
+                  {:cave-x (+ cave-x x0)
+                   :cave-z (+ cave-z z0)
+                   :theta-divisor theta-divisor}))))))))
+
+(defn filter-cave-params-by-y
+  ([y cave-params]
+     (filter #(and (>= y (:min-y %))
+                   (<= y (:max-y %)))
+             cave-params)))
+
+(defn optimize-cave-params
+  "Takes cave-params as nested seqs; returns cave-params as a hash
+in {:layered-cave-params (cp-seq cp-seq ...) form}"
+  ([cave-params]
+     (let [flat-cp (flatten cave-params)
+           cp-seqs (map filter-cave-params-by-y
+                        (range 128)
+                        (repeat flat-cp))]
+       {:layered-cave-params cp-seqs})))
 
 (defn inverse-cave-generator
   ([cave-params]
@@ -347,12 +375,12 @@ except for caves with openings near the middle."
        (loop [caves caves
               candidate-caves candidate-caves
               i 0]
-         (msg 6 "Accumulated " (count caves) " caves, finding"
+         (msg 6 "Picked " (count caves) " caves, finding"
               " intersections with cave #" (inc i))
          (cond (>= (count caves) n-caves)
                  ;; return here
                  (let [_ (msg 3 "Picked enough caves; now carving ...")
-                       caves (take n-caves caves)
+                       caves (optimize-cave-params (take n-caves caves))
                        generator (epic-cave-generator
                                     caves max-x max-z start-x start-z)
                        zone (gen-mcmap-zone max-x max-z generator)]
@@ -437,11 +465,31 @@ except for caves with openings near the middle."
            max-z (* z-chunks +chunk-side+)
            [epic-zone start-x start-z]
                  (epic-cave-network 15 max-x max-z)
+           _ (msg 3 "Adding bedrock ...")
+           bedrock-generator (fn [x y z]
+                               (let [ze (zone-lookup epic-zone x y z)
+                                     neighbors (neighbors-of epic-zone
+                                                             x y z)]
+                                 (if (every? #{:ground :bedrock}
+                                             (cons ze neighbors))
+                                   :bedrock
+                                   ze)))
+           epic-zone (gen-mcmap-zone max-x max-z bedrock-generator)
+           _ (msg 3 "Adding creamy middle ...")
+           x-bound (dec max-x)
+           z-bound (dec max-z)
            generator (fn [x y z]
-                       (let [ze (zone-lookup epic-zone x y z)]
-                         (case ze
-                               :ground (mc-block :sandstone)
-                               :air (mc-block :air)
-                               :bedrock (mc-block :bedrock))))]
+                       (let [ze (zone-lookup epic-zone x y z)
+                             neighbors (neighbors-of epic-zone x y z)]
+                         (if (or (zero? x) (zero? z)
+                                 (= x-bound x) (= z-bound z))
+                           (mc-block :bedrock)
+                           (case ze
+                                 :bedrock
+                                   (if (every? #(= :bedrock %) neighbors)
+                                     (mc-block :lava-source)
+                                     :bedrock)
+                                 :air (mc-block :air)
+                                 :ground (mc-block :sandstone)))))]
        (println "Start is x=" start-x " z=" start-z)
        (generic-map-maker x-chunks z-chunks generator))))

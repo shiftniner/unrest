@@ -4,8 +4,8 @@
 (def +light-levels+
      {:fire 15
       :jack-o-lantern 15
-      :lava 15
-      :stationary-lava 15
+      :lava-source 15
+      :lava-flow 15
       :glowstone 15
       :locked-chest 15
       :torch 14
@@ -32,5 +32,6 @@
                                  :sandstone]
                                 (repeat 255))
                     (interleave [:piston-target
-                                 :water]
+                                 :water-flow
+                                 :water-source]
                                 (repeat 1)))))

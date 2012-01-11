@@ -2,7 +2,9 @@
   (:use mcmap.blocks)
   (:import java.nio.ByteBuffer
            java.util.zip.Deflater
-           java.io.FileOutputStream))
+           java.io.FileOutputStream
+           java.text.SimpleDateFormat
+           java.util.Date))
 
 (def +region-side+ (* 16 32))
 (def +chunk-side+ 16)
@@ -75,6 +77,19 @@ bounds instead of throwing an exception"
        nil
        (zone-lookup zone x y z))))
 
+(defn neighbors-of
+  "Returns a seq of up to six blocks adjacent to the given coordinates
+in the given zone"
+  ([zone x y z]
+     (lazy-seq
+      (filter identity
+              [(maybe-zone-lookup zone (inc x) y z)
+               (maybe-zone-lookup zone (dec x) y z)
+               (maybe-zone-lookup zone x (inc y) z)
+               (maybe-zone-lookup zone x (dec y) z)
+               (maybe-zone-lookup zone x y (inc z))
+               (maybe-zone-lookup zone x y (dec z))]))))
+
 (defn chunk-in-zone?
   "Returns true if and only if the given region and chunk coordinates
 include any part of the given zone"
@@ -108,6 +123,8 @@ include any part of the given zone"
        (or ( {:air              0
               :stone            1
               :bedrock          7
+              :lava-flow        10
+              :lava-source      11
               :sandstone        24
               :wool             35
               :piston-target    36
@@ -383,11 +400,13 @@ data in the given byte buffer"
            c-len (.deflate c out)]
        (byte-buffer (take c-len out)))))
 
-(defn msg
-  ;; XXX Make this print only if current *msg-level* >= level.  I.e.,
-  ;; higher level implies chattier, less important messages.
-  ([level & atoms]
-     (println (apply str atoms))))
+(let [date-formatter (SimpleDateFormat. "yyyy-MM-dd HH:mm:ss.SSS - ")]
+  (defn msg
+    ;; XXX Make this print only if current *msg-level* >= level.  I.e.,
+    ;; higher level implies chattier, less important messages.
+    ([level & atoms]
+       (let [time-str (.format date-formatter (Date.))]
+         (println (apply str time-str atoms))))))
 
 (defn extract-chunk
   "Returns a binary chunk {:x <chunk-x> :z <chunk-z> :data
@@ -610,14 +629,9 @@ includes water)"
                      (zone-y-size light-zone)
                      (zone-z-size light-zone)
            (fn [x y z]
-             (recalc-light (zone-lookup light-zone x y z)
-                           (inc (zone-lookup opacity-zone x y z))
-                           (maybe-zone-lookup light-zone (inc x) y z)
-                           (maybe-zone-lookup light-zone (dec x) y z)
-                           (maybe-zone-lookup light-zone x (inc y) z)
-                           (maybe-zone-lookup light-zone x (dec y) z)
-                           (maybe-zone-lookup light-zone x y (inc z))
-                           (maybe-zone-lookup light-zone x y (dec z)))))))
+             (apply recalc-light (zone-lookup light-zone x y z)
+                    (inc (zone-lookup opacity-zone x y z))
+                    (neighbors-of light-zone x y z))))))
 
 (defn translate-light-zone
   "Takes a light zone with values from -511 to 256, and returns a zone
