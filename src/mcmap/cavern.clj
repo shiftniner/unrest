@@ -459,12 +459,14 @@ except for caves with openings near the middle."
        (generic-map-maker x-chunks z-chunks
                           (dark-cave-generator cave-params)))))
 
+(def ^:dynamic *num-caves* 15)
+
 (defn cave-exercise-6
   ([x-chunks z-chunks]
      (let [max-x (* x-chunks +chunk-side+)
            max-z (* z-chunks +chunk-side+)
            [epic-zone start-x start-z]
-                 (epic-cave-network 15 max-x max-z)
+                 (epic-cave-network *num-caves* max-x max-z)
            _ (msg 3 "Adding bedrock ...")
            bedrock-generator (fn [x y z]
                                (let [ze (zone-lookup epic-zone x y z)
