@@ -3,4 +3,4 @@
   :dependencies [[org.clojure/clojure "1.3.0"]]
   :dev-dependencies [[swank-clojure "1.3.3"]
                      [midje "0.4.0"]]
-  :jvm-opts ["-Xmx2g"])
+  :jvm-opts ["-Xmx4g"])
