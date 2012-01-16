@@ -574,18 +574,23 @@ containing the chunks for an mcr file"
 
 (defn opaque?
   "Returns true if the given block is at all opaque to light (which
-includes water)"
+includes water and lava)"
   ([ze]
      (pos? (block-opacity ze))))
 
 (defn map-height
+  "Given a block zone and x and z coordinates, returns the y
+coordinate of the highest block at that x and z that receives the full
+light of the sun"
   ([zone x z]
-     (or (first (filter #(opaque? (zone-lookup zone x % z))
-                        (range (dec +chunk-height+)
-                               -1 -1)))
-         0)))
+     (inc (or (first (filter #(opaque? (zone-lookup zone x % z))
+                             (range (- +chunk-height+ 2)
+                                    -1 -1)))
+              -1))))
 
 (defn block-light
+  "Given a block zone element, returns the base block light
+level (before spreading light from neighboring blocks) for that block"
   ([ze]
      (if (map? ze)
        (or (if-let [l (:force-nospread-light ze)]
@@ -599,6 +604,9 @@ includes water)"
            0))))
 
 (defn block-skylight
+  "Given a block zone element, its coordinates, and a height map,
+returns the base sky light level (before spreading light from
+neighboring blocks) for that location"
   ([ze x y z height-zone]
      (or (if (map? ze)
            (or (if-let [l (:force-nospread-skylight ze)]
@@ -607,11 +615,13 @@ includes water)"
                  (- -1 l))
                (if-let [l (:skylight ze)]
                  l)))
-         (if (> y (zone-lookup height-zone x 0 z))
+         (if (>= y (zone-lookup height-zone x 0 z))
            15
            0))))
 
 (defn recalc-light
+  "Recalculates light for one block based on its opacity and the light
+levels of all neighboring blocks"
   ([cur-light total-opacity & neighbor-lights]
      (if (neg? cur-light)
        cur-light
