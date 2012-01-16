@@ -33,5 +33,7 @@
                                 (repeat 255))
                     (interleave [:piston-target
                                  :water-flow
-                                 :water-source]
+                                 :water-source
+                                 :lava-flow
+                                 :lava-source]
                                 (repeat 1)))))
