@@ -852,12 +852,22 @@ and fills the chests with speed splash potions for testing speedy mobs"
                                                  :skylight 10,
                                                  :items
                                                  (inventory-list
-                                                  (map (fn [slot]
-                                                         {:id 373,
+                                                  (map (fn [slot [id dmg]]
+                                                         {:id id
                                                           :count 64,
                                                           :slot slot,
-                                                          :damage 16482})
-                                                       (range 0 27))))
+                                                          :damage dmg})
+                                                       (range 0 27)
+                                                       [ [90 0]
+                                                         [119 0]
+                                                         [120 0x0]
+                                                         [120 0x1]
+                                                         [120 0x2]
+                                                         [120 0x3]
+                                                         [120 0x4]
+                                                         [120 0x5]
+                                                         [120 0x6]
+                                                         [120 0x7]])))
                                      :else (mc-block :air))
                              :else (mc-block :air)))
            mcmap (gen-mcmap (* x-chunks +chunk-side+)
