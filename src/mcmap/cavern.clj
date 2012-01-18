@@ -1,5 +1,6 @@
 (ns mcmap.cavern
-  (:use mcmap.core))
+  (:use mcmap.core
+        mcmap.srand))
 
 (defn in-cave?-fn
   "Takes a cave-params hash (see random-cave for an example) or a seq
