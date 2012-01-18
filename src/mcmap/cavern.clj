@@ -111,22 +111,22 @@ in {:layered-cave-params (cp-seq cp-seq ...) form}"
        {:layered-cave-params cp-seqs})))
 
 (defn inverse-cave-generator
-  ([cave-params]
+  ([cave-params seed]
      (let [in-cave? (in-cave?-fn cave-params)]
        (fn [x y z]
          (cond (in-cave? x y z)
-                 (if (> 0.01 (rand))
+                 (if (> 0.01 (srand 1 seed x y z))
                    (mc-block :glowstone)
                    (mc-block :stone))
                :else (mc-block :air))))))
 
 (defn simple-cave-generator
-  ([cave-params]
+  ([cave-params seed]
      (let [in-cave? (in-cave?-fn cave-params)]
        (fn [x y z]
          (cond (in-cave? x y z)
                  (mc-block :air)
-               :else (if (> 0.01 (rand))
+               :else (if (> 0.01 (srand 1 seed x y z))
                        (mc-block :glowstone)
                        (mc-block :stone)))))))
 
@@ -179,26 +179,30 @@ in {:layered-cave-params (cp-seq cp-seq ...) form}"
        (mcmap-to-mcr-binary mcmap 0 0))))
 
 (defn random-cave
-  ([x-max z-max]
-     (let [x0 (* x-max (rand))
-           z0 (* z-max (rand))
-           radius (+ 8 (rand (+ -8 (* 1/2 (min x-max z-max)))))]
-       (if (and (> (- x0 radius) 5)
-                (> (- z0 radius) 5)
-                (> x-max (+ x0 radius 5))
-                (> z-max (+ z0 radius 5)))
-         {:x0 x0
-          :z0 z0
-          :min-y 0
-          :max-y 128
-          :radius radius
-          :turn-rate (if (> 0.5 (rand))
-                       -1 1)
-          :theta-offset (rand (* Math/PI 2))
-          :width-offset (rand (* Math/PI 2))
-          :width-rate (+ 3.5 (rand 3))
-          :twistiness (* (rand) (rand) (rand))}
-         (recur x-max z-max)))))
+  ([x-max z-max seed]
+     (loop [salt 0]
+       (let [x0 (* x-max (srand 1 seed salt 1))
+             z0 (* z-max (srand 1 seed salt 2))
+             radius (+ 8 (srand (+ -8 (* 1/2 (min x-max z-max)))
+                                seed salt 3))]
+         (if (and (> (- x0 radius) 5)
+                  (> (- z0 radius) 5)
+                  (> x-max (+ x0 radius 5))
+                  (> z-max (+ z0 radius 5)))
+           {:x0 x0
+            :z0 z0
+            :min-y 0
+            :max-y 128
+            :radius radius
+            :turn-rate (if (> 0.5 (srand 1 seed salt 4))
+                         -1 1)
+            :theta-offset (srand (* Math/PI 2) seed salt 5)
+            :width-offset (srand (* Math/PI 2) seed salt 6)
+            :width-rate (+ 3.5 (srand 3 seed salt 7))
+            :twistiness (* (srand 1 seed salt 8)
+                           (srand 1 seed salt 9)
+                           (srand 1 seed salt 10))}
+           (recur (inc salt)))))))
 
 (defn twist-new-center
   "Returns the new x0 and z0 (as a vector, [x0 z0]) resulting from
@@ -249,22 +253,26 @@ altitude y"
 (defn twist-cave
   "Takes cave-params for a single spiral cave and returns a seq of
 cave-params for a single continuous twisting cave"
-  ([cave-params max-x max-z]
-     (twist-cave [cave-params] max-x max-z (+ 0.5 (rand))))
-  ([cave-params max-x max-z y]
-     (let [cave1 (first cave-params)
-           caver (rest  cave-params)]
-       (cond (>= y (:max-y cave1))
-               cave-params
-             (or (< (:twistiness cave1) (rand))
-                 (not (can-twist? cave1 y max-x max-z)))
-               (recur cave-params max-x max-z (+ y 0.5 (rand)))
-             :else
-               (recur (concat (split-cave cave1 y)
-                              caver)
-                      max-x
-                      max-z
-                      (+ y 0.5 (rand)))))))
+  ([cave-params max-x max-z seed]
+     (twist-cave [cave-params] max-x max-z (+ 0.5 (srand 1 seed 1))
+                 seed))
+  ([cave-params max-x max-z y seed]
+     (loop [cave-params cave-params
+            y           y
+            salt        0]
+       (let [cave1 (first cave-params)
+             caver (rest  cave-params)]
+         (cond (>= y (:max-y cave1))
+                 cave-params
+               (or (< (:twistiness cave1) (srand 1 seed salt 1))
+                   (not (can-twist? cave1 y max-x max-z)))
+                 (recur cave-params (+ y 0.5 (srand 1 seed salt 2))
+                        (inc salt))
+               :else
+                 (recur (concat (split-cave cave1 y)
+                                caver)
+                        (+ y 0.5 (srand 1 seed salt 3))
+                        (inc salt)))))))
 
 (defn pick-centermost-cave
   "Returns [centermost-cave other-caves]"
@@ -361,11 +369,18 @@ zone mostly contains :ground, with caverns of :air carved out of it,
 all of which are interconnected and reachable from the starting point,
 with bedrock on all vertical sides, and capped with :ground on top
 except for caves with openings near the middle."
-  ([n-caves max-x max-z]
+  ([n-caves max-x max-z seed]
      (msg 1 "Generating cave network ...")
-     (let [gen-twisted-cave #(twist-cave (random-cave max-x max-z)
-                                         max-x max-z)
-           candidate-caves (repeatedly n-caves gen-twisted-cave)
+     (let [gen-twisted-cave #(twist-cave (random-cave max-x max-z
+                                                      (long
+                                                       (srand +seed-max+
+                                                              seed % 1)))
+                                         max-x max-z
+                                         (long (srand +seed-max+
+                                                      seed % 2)))
+           cave-seq (map gen-twisted-cave (range))
+           candidate-caves (take n-caves cave-seq)
+           cave-seq (drop n-caves cave-seq)
            _ (msg 8 "Finding centermost cave")
            [start candidate-caves] (pick-centermost-cave candidate-caves
                                                          max-x max-z)
@@ -374,6 +389,7 @@ except for caves with openings near the middle."
             start-z :cave-z}  ( (in-cave?-fn start) 127)]
        (loop [caves caves
               candidate-caves candidate-caves
+              cave-seq cave-seq
               i 0]
          (msg 6 "Picked " (count caves) " caves, finding"
               " intersections with cave #" (inc i))
@@ -390,8 +406,9 @@ except for caves with openings near the middle."
                    (msg 3 "generating " more-to-get " more caves; currently"
                         " have " (count caves) " that intersect")
                    (recur (reverse caves)
-                          (concat (repeatedly more-to-get gen-twisted-cave)
+                          (concat (take more-to-get cave-seq)
                                   candidate-caves)
+                          (drop more-to-get cave-seq)
                           0))
                :else
                  (let [criterion-cave (nth caves i)
@@ -413,6 +430,7 @@ except for caves with openings near the middle."
                                       (rest caves-to-try)))))]
                    (recur (concat caves caves-to-add)
                           remaining-candidates
+                          cave-seq
                           (inc i))))))))
 
 (defn cave-exercise-1
@@ -421,7 +439,7 @@ except for caves with openings near the middle."
                         :z0 (* z-chunks +chunk-side+ 1/2)
                         :radius (* x-chunks +chunk-side+ 1/4)}]
        (generic-map-maker x-chunks z-chunks
-                          (inverse-cave-generator cave-params)))))
+                          (inverse-cave-generator cave-params 0)))))
 
 (defn cave-exercise-2
   ([x-chunks z-chunks]
@@ -429,7 +447,7 @@ except for caves with openings near the middle."
                         :z0 (* z-chunks +chunk-side+ 1/2)
                         :radius (* x-chunks +chunk-side+ 3/8)}]
        (generic-map-maker x-chunks z-chunks
-                          (simple-cave-generator cave-params)))))
+                          (simple-cave-generator cave-params 0)))))
 
 (defn cave-exercise-3
   ([x-chunks z-chunks]
@@ -440,15 +458,18 @@ except for caves with openings near the middle."
                          :z0 (* z-chunks +chunk-side+ 1/2)
                          :radius (* x-chunks +chunk-side+ 3/16)}]]
        (generic-map-maker x-chunks z-chunks
-                          (simple-cave-generator cave-params)))))
+                          (simple-cave-generator cave-params 0)))))
 
 (defn cave-exercise-4
   ([x-chunks z-chunks]
      (let [max-x (* x-chunks +chunk-side+)
            max-z (* z-chunks +chunk-side+)
-           gen-rand-cave #(random-cave max-x max-z)
+           gen-rand-cave #(random-cave max-x max-z
+                                       (int (rand +seed-max+)))
            cave-params (repeatedly 15 gen-rand-cave)
-           cave-params (map #(twist-cave % max-x max-z) cave-params)]
+           cave-params (map #(twist-cave % max-x max-z
+                                         (int (rand +seed-max+)))
+                            cave-params)]
        (generic-map-maker x-chunks z-chunks
                           (dark-cave-generator cave-params)))))
 
@@ -463,10 +484,14 @@ except for caves with openings near the middle."
 
 (defn cave-exercise-6
   ([x-chunks z-chunks]
+     (let [seed (long (rand +seed-max+))]
+       (println "Chose seed:" seed)
+       (cave-exercise-6 x-chunks z-chunks seed)))
+  ([x-chunks z-chunks seed]
      (let [max-x (* x-chunks +chunk-side+)
            max-z (* z-chunks +chunk-side+)
            [epic-zone start-x start-z]
-                 (epic-cave-network *num-caves* max-x max-z)
+                 (epic-cave-network *num-caves* max-x max-z seed)
            _ (msg 3 "Adding bedrock ...")
            bedrock-generator (fn [x y z]
                                (let [ze (zone-lookup epic-zone x y z)
