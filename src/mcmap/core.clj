@@ -25,10 +25,9 @@
      (apply hash-map :type type extra-data)))
 
 (defn gen-mcmap-zone
-  "Takes x and z dimensions, and a function of x y and z returning a
-block, and returns a zone of the specified size"
-  ;; Probably want to make this a single vector later, in a structure
-  ;; with coordinates.
+  "Takes x and z dimensions (or x, y, and z dimensions), and a
+function of x y and z returning a block, and returns a zone of the
+specified size"
   ([x-size z-size f]
      (gen-mcmap-zone x-size +chunk-height+ z-size f))
   ([x-size y-size z-size f]
@@ -37,11 +36,33 @@ block, and returns a zone of the specified size"
                    (vec (for [y (range y-size)]
                           (f x y z)))))))))
 
+(defn- rising-mcmap-column
+  ([x z y-size f]
+     (loop [y 1
+            prev-block (f x 0 z nil)
+            ret [prev-block]]
+       (if (= y y-size)
+         ret
+         (let [next-block (f x y z prev-block)]
+           (recur (inc y)
+                  next-block
+                  (conj ret next-block)))))))
+
+(defn rising-recursive-gen-mcmap-zone
+  "Takes x and z dimensions (or x, y, and z dimensions), and a
+function of x, y, z, and the result of calling the function on the
+next lower block (or nil for y=0), and returns a zone of the specified
+size"
+  ([x-size z-size f]
+     (rising-recursive-gen-mcmap-zone x-size +chunk-height+ z-size f))
+  ([x-size y-size z-size f]
+     (vec (for [x (range x-size)]
+            (vec (for [z (range z-size)]
+                   (rising-mcmap-column x z y-size f)))))))
+
 (defn p-gen-mcmap-zone
   "Takes x and z dimensions, and a function of x y and z returning a
 block, and returns a zone of the specified size"
-  ;; Probably want to make this a single vector later, in a structure
-  ;; with coordinates.
   ([x-size z-size f]
      (gen-mcmap-zone x-size +chunk-height+ z-size f))
   ([x-size y-size z-size f]
