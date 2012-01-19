@@ -36,6 +36,17 @@ specified size"
                    (vec (for [y (range y-size)]
                           (f x y z)))))))))
 
+(defn p-gen-mcmap-zone
+  "Takes x and z dimensions, and a function of x y and z returning a
+block, and returns a zone of the specified size"
+  ([x-size z-size f]
+     (p-gen-mcmap-zone x-size +chunk-height+ z-size f))
+  ([x-size y-size z-size f]
+     (vec (pmap #(vec (for [z (range z-size)]
+                        (vec (for [y (range y-size)]
+                               (f % y z)))))
+                (range x-size)))))
+
 (defn- rising-mcmap-column
   ([x z y-size f]
      (loop [y 1
@@ -162,17 +173,6 @@ specified size"
        (gen-mcmap-zone x-size y-size z-size
                        (fn [x y z]
                          (zone-lookup tmp-zone y x z))))))
-
-(defn p-gen-mcmap-zone
-  "Takes x and z dimensions, and a function of x y and z returning a
-block, and returns a zone of the specified size"
-  ([x-size z-size f]
-     (p-gen-mcmap-zone x-size +chunk-height+ z-size f))
-  ([x-size y-size z-size f]
-     (vec (pmap #(vec (for [z (range z-size)]
-                        (vec (for [y (range y-size)]
-                               (f % y z)))))
-                (range x-size)))))
 
 (defn zone-x-size
   ([zone]
