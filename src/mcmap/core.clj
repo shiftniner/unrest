@@ -60,6 +60,109 @@ size"
             (vec (for [z (range z-size)]
                    (rising-mcmap-column x z y-size f)))))))
 
+(defn- falling-mcmap-column
+  ([x z y-size f]
+     (loop [y (- y-size 2)
+            prev-block (f x (dec y-size) z nil)
+            ret (list prev-block)]
+       (if (= y -1)
+         ret
+         (let [next-block (f x y z prev-block)]
+           (recur (dec y)
+                  next-block
+                  (cons next-block ret)))))))
+
+(defn falling-recursive-gen-mcmap-zone
+  "Takes x and z dimensions (or x, y, and z dimensions), and a
+function of x, y, z, and the result of calling the function on the
+next higher block (or nil for y=max), and returns a zone of the
+specified size"
+  ([x-size z-size f]
+     (falling-recursive-gen-mcmap-zone x-size +chunk-height+ z-size f))
+  ([x-size y-size z-size f]
+     (vec (for [x (range x-size)]
+            (vec (for [z (range z-size)]
+                   (vec (falling-mcmap-column x z y-size f))))))))
+
+(defn southward-recursive-gen-mcmap-zone
+  "Takes x and z dimensions (or x, y, and z dimensions), and a
+function of x, y, z, and the result of calling the function on the
+next block to the north (or nil for z=0), and returns a zone of the
+specified size"
+  ([x-size z-size f]
+     (southward-recursive-gen-mcmap-zone x-size +chunk-height+ z-size f))
+  ([x-size y-size z-size f]
+     ; Swap z and y, call rising-recursive-gen-mcmap-zone, then swap z
+     ; and y back
+     (let [tmp-zone
+             (rising-recursive-gen-mcmap-zone
+                x-size z-size y-size
+                (fn [x y z prev]
+                  (f x z y prev)))]
+       (gen-mcmap-zone x-size y-size z-size
+                       (fn [x y z]
+                         (zone-lookup tmp-zone x z y))))))
+
+(defn northward-recursive-gen-mcmap-zone
+  "Takes x and z dimensions (or x, y, and z dimensions), and a
+function of x, y, z, and the result of calling the function on the
+next block to the south (or nil for z=max), and returns a zone of the
+specified size"
+  ([x-size z-size f]
+     (northward-recursive-gen-mcmap-zone x-size +chunk-height+ z-size f))
+  ([x-size y-size z-size f]
+     ; Swap z and y, call falling-recursive-gen-mcmap-zone, then swap
+     ; z and y back
+     (let [tmp-zone
+             (falling-recursive-gen-mcmap-zone
+                x-size z-size y-size
+                (fn [x y z prev]
+                  (f x z y prev)))]
+       (gen-mcmap-zone x-size y-size z-size
+                       (fn [x y z]
+                         (zone-lookup tmp-zone x z y))))))
+
+;;; TODO these next two are most in need of rewriting for better
+;;; performance.
+
+(defn eastward-recursive-gen-mcmap-zone
+  "Takes x and z dimensions (or x, y, and z dimensions), and a
+function of x, y, z, and the result of calling the function on the
+next block to the west (or nil for x=0), and returns a zone of the
+specified size"
+  ([x-size z-size f]
+     (eastward-recursive-gen-mcmap-zone x-size +chunk-height+ z-size f))
+  ([x-size y-size z-size f]
+     ; Swap x and y, call rising-recursive-gen-mcmap-zone, then swap x
+     ; and y back
+     (let [tmp-zone
+             (rising-recursive-gen-mcmap-zone
+                y-size x-size z-size
+                (fn [x y z prev]
+                  (f y x z prev)))]
+       (gen-mcmap-zone x-size y-size z-size
+                       (fn [x y z]
+                         (zone-lookup tmp-zone y x z))))))
+
+(defn westward-recursive-gen-mcmap-zone
+  "Takes x and z dimensions (or x, y, and z dimensions), and a
+function of x, y, z, and the result of calling the function on the
+next block to the east (or nil for x=max), and returns a zone of the
+specified size"
+  ([x-size z-size f]
+     (westward-recursive-gen-mcmap-zone x-size +chunk-height+ z-size f))
+  ([x-size y-size z-size f]
+     ; Swap x and y, call falling-recursive-gen-mcmap-zone, then swap
+     ; x and y back
+     (let [tmp-zone
+             (falling-recursive-gen-mcmap-zone
+                y-size x-size z-size
+                (fn [x y z prev]
+                  (f y x z prev)))]
+       (gen-mcmap-zone x-size y-size z-size
+                       (fn [x y z]
+                         (zone-lookup tmp-zone y x z))))))
+
 (defn p-gen-mcmap-zone
   "Takes x and z dimensions, and a function of x y and z returning a
 block, and returns a zone of the specified size"
@@ -654,15 +757,39 @@ levels of all neighboring blocks"
                    (filter #(and % (> % -256))
                            neighbor-lights))))))
 
+(defn recalc-light-1
+  "Recalculates light for one block based on its opacity and the light
+levels of ONE neighboring block"
+  ([cur-light total-opacity neighbor-light]
+     (cond (neg? cur-light)
+             cur-light
+           (and neighbor-light (> neighbor-light -256))
+             (max (- (if (neg? neighbor-light)
+                       (- -1 neighbor-light)
+                       neighbor-light)
+                     total-opacity)
+                  cur-light)
+           :else
+             cur-light)))
+
 (defn iterate-light-zone
   ([light-zone opacity-zone]
-     (p-gen-mcmap-zone (zone-x-size light-zone)
-                     (zone-y-size light-zone)
-                     (zone-z-size light-zone)
-           (fn [x y z]
-             (apply recalc-light (zone-lookup light-zone x y z)
-                    (inc (zone-lookup opacity-zone x y z))
-                    (neighbors-of light-zone x y z))))))
+     (let [gen-fn #(fn [x y z prev]
+                     (recalc-light-1
+                         (zone-lookup % x y z)
+                         (inc (zone-lookup opacity-zone x y z))
+                         prev))]
+       (reduce #(%2 (zone-x-size %1)
+                    (zone-y-size %1)
+                    (zone-z-size %1)
+                    (gen-fn %1))
+               light-zone
+               [falling-recursive-gen-mcmap-zone
+                westward-recursive-gen-mcmap-zone
+                southward-recursive-gen-mcmap-zone
+                rising-recursive-gen-mcmap-zone
+                northward-recursive-gen-mcmap-zone
+                eastward-recursive-gen-mcmap-zone]))))
 
 (defn translate-light-zone
   "Takes a light zone with values from -511 to 256, and returns a zone
