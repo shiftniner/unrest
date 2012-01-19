@@ -3,7 +3,7 @@
         mcmap.cavern
         mcmap.srand))
 
-;;; Replace this with a function of distance from start later
+;;; Replace this with a function of local difficulty later
 (def +max-cavern-light+ 10)
 
 (defn gen-unrest-map
