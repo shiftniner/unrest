@@ -396,11 +396,12 @@ except for caves with openings near the middle."
               " intersections with cave #" (inc i))
          (cond (>= (count caves) n-caves)
                  ;; return here
-                 (let [_ (msg 3 "Picked enough caves; now carving ...")
+                 (let [_ (msg 3 "Picked enough caves; optimizing ...")
                        caves (optimize-cave-params (take n-caves caves))
                        generator (epic-cave-generator
                                     caves max-x max-z start-x start-z)
-                       zone (gen-mcmap-zone max-x max-z generator)]
+                       _ (msg 3 "Carving ...")
+                       zone (p-gen-mcmap-zone max-x max-z generator)]
                    [zone start-x start-z])
                (>= i (count caves))
                  (let [more-to-get (inc (int (/ n-caves 3)))]
