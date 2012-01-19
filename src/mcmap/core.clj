@@ -855,14 +855,25 @@ block, returns an mcmap complete with computed light levels"
            height-zone (gen-mcmap-zone x-size 1 z-size
                          (fn [x _ z]
                            (map-height block-zone x z)))
-           _ (msg 1 "Computing block-source light ...")
-           light-zone (compute-block-light block-zone opacity-zone)
-           _ (msg 1 "Computing sky light ...")
-           skylight-zone (compute-skylight block-zone opacity-zone
-                                           height-zone)]
+           light-zone (promise)
+           skylight-zone (promise)
+           _ (msg 1 "Starting block-source light calcs ...")
+           _ (send (agent nil)
+                   (fn [_]
+                     (deliver light-zone
+                              (compute-block-light block-zone
+                                                   opacity-zone))
+                     (msg 1 "Done with block-source light calcs")))
+           _ (msg 1 "Starting sky light calcs ...")
+           _ (send (agent nil)
+                   (fn [_]
+                     (deliver skylight-zone
+                              (compute-skylight block-zone opacity-zone
+                                                height-zone))
+                     (msg 1 "Done with sky light calcs")))]
        {:block-zone block-zone
-        :light-zone light-zone
-        :skylight-zone skylight-zone
+        :light-zone @light-zone
+        :skylight-zone @skylight-zone
         :height-zone height-zone})))
 
 (defn mcmap-to-mcr-binary
