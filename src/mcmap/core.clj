@@ -167,7 +167,7 @@ specified size"
   "Takes x and z dimensions, and a function of x y and z returning a
 block, and returns a zone of the specified size"
   ([x-size z-size f]
-     (gen-mcmap-zone x-size +chunk-height+ z-size f))
+     (p-gen-mcmap-zone x-size +chunk-height+ z-size f))
   ([x-size y-size z-size f]
      (vec (pmap #(vec (for [z (range z-size)]
                         (vec (for [y (range y-size)]
