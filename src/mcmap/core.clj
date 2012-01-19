@@ -580,9 +580,11 @@ data in the given byte buffer"
 where each chunk is {:x <chunk-x> :z <chunk-z> :data <byte-buffer>"
   ([mcmap x z]
      (let [block-zone (:block-zone mcmap)]
-       (for [chunk-x (range 32) chunk-z (range 32)
-             :when (chunk-in-zone? block-zone x z chunk-x chunk-z)]
-         (extract-chunk mcmap x z chunk-x chunk-z)))))
+       (pmap (fn [ [chunk-x chunk-z] ]
+               (extract-chunk mcmap x z chunk-x chunk-z))
+             (for [chunk-x (range 32) chunk-z (range 32)
+                   :when (chunk-in-zone? block-zone x z chunk-x chunk-z)]
+               [chunk-x chunk-z])))))
 
 (defn byte-buffer-size
   "Returns the length in bytes of the given byte buffer"
@@ -845,7 +847,7 @@ with Minecraft light values from 0 to 15"
 block, returns an mcmap complete with computed light levels"
   ([x-size z-size f]
      (let [_ (msg 1 "Placing blocks ...")
-           block-zone (gen-mcmap-zone x-size z-size f)
+           block-zone (p-gen-mcmap-zone x-size z-size f)
            _ (msg 1 "Mapping opaque and transparent blocks ...")
            opacity-zone (gen-mcmap-zone x-size z-size
                           (fn [x y z]
