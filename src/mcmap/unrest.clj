@@ -35,7 +35,7 @@
                                              (cons ze neighbors))
                                    :bedrock
                                    ze)))
-           epic-zone (gen-mcmap-zone max-x max-z bedrock-generator)
+           epic-zone (p-gen-mcmap-zone max-x max-z bedrock-generator)
            _ (msg 3 "Adding creamy middle ...")
            x-bound (dec max-x)
            z-bound (dec max-z)

@@ -67,9 +67,9 @@ size"
   ([x-size z-size f]
      (rising-recursive-gen-mcmap-zone x-size +chunk-height+ z-size f))
   ([x-size y-size z-size f]
-     (vec (for [x (range x-size)]
-            (vec (for [z (range z-size)]
-                   (rising-mcmap-column x z y-size f)))))))
+     (vec (pmap #(vec (for [z (range z-size)]
+                        (rising-mcmap-column % z y-size f)))
+                (range x-size)))))
 
 (defn- falling-mcmap-column
   ([x z y-size f]
@@ -91,9 +91,9 @@ specified size"
   ([x-size z-size f]
      (falling-recursive-gen-mcmap-zone x-size +chunk-height+ z-size f))
   ([x-size y-size z-size f]
-     (vec (for [x (range x-size)]
-            (vec (for [z (range z-size)]
-                   (vec (falling-mcmap-column x z y-size f))))))))
+     (vec (pmap #(vec (for [z (range z-size)]
+                        (vec (falling-mcmap-column % z y-size f))))
+                (range x-size)))))
 
 (defn southward-recursive-gen-mcmap-zone
   "Takes x and z dimensions (or x, y, and z dimensions), and a
@@ -110,9 +110,9 @@ specified size"
                 x-size z-size y-size
                 (fn [x y z prev]
                   (f x z y prev)))]
-       (gen-mcmap-zone x-size y-size z-size
-                       (fn [x y z]
-                         (zone-lookup tmp-zone x z y))))))
+       (p-gen-mcmap-zone x-size y-size z-size
+                         (fn [x y z]
+                           (zone-lookup tmp-zone x z y))))))
 
 (defn northward-recursive-gen-mcmap-zone
   "Takes x and z dimensions (or x, y, and z dimensions), and a
@@ -129,9 +129,9 @@ specified size"
                 x-size z-size y-size
                 (fn [x y z prev]
                   (f x z y prev)))]
-       (gen-mcmap-zone x-size y-size z-size
-                       (fn [x y z]
-                         (zone-lookup tmp-zone x z y))))))
+       (p-gen-mcmap-zone x-size y-size z-size
+                         (fn [x y z]
+                           (zone-lookup tmp-zone x z y))))))
 
 ;;; TODO these next two are most in need of rewriting for better
 ;;; performance.
@@ -151,9 +151,9 @@ specified size"
                 y-size x-size z-size
                 (fn [x y z prev]
                   (f y x z prev)))]
-       (gen-mcmap-zone x-size y-size z-size
-                       (fn [x y z]
-                         (zone-lookup tmp-zone y x z))))))
+       (p-gen-mcmap-zone x-size y-size z-size
+                         (fn [x y z]
+                           (zone-lookup tmp-zone y x z))))))
 
 (defn westward-recursive-gen-mcmap-zone
   "Takes x and z dimensions (or x, y, and z dimensions), and a
@@ -170,9 +170,9 @@ specified size"
                 y-size x-size z-size
                 (fn [x y z prev]
                   (f y x z prev)))]
-       (gen-mcmap-zone x-size y-size z-size
-                       (fn [x y z]
-                         (zone-lookup tmp-zone y x z))))))
+       (p-gen-mcmap-zone x-size y-size z-size
+                         (fn [x y z]
+                           (zone-lookup tmp-zone y x z))))))
 
 (defn zone-x-size
   ([zone]
