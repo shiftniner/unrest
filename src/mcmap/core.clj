@@ -686,6 +686,7 @@ number of chunks in the given seq of chunks"
   "Given seqs of chunks and locations, returns a byte buffer
 containing the chunks for an mcr file"
   ([chunks locs]
+     (msg 1 "Placing chunks ...")
      (let [shifted-locs (cons {:offset 0, :count 2} locs)
            chunks-and-pads (mapcat pad-chunk chunks locs shifted-locs)]
        (apply concat-bytes chunks-and-pads))))
