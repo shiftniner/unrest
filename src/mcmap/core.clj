@@ -476,10 +476,10 @@ tagged data"
                                   (:items ze))]
                      :wall-sign
                        ["Sign"
-                        (tag-string "Text1" (-> ze :text 0 (or "")))
-                        (tag-string "Text2" (-> ze :text 1 (or "")))
-                        (tag-string "Text3" (-> ze :text 2 (or "")))
-                        (tag-string "Text4" (-> ze :text 3 (or "")))]
+                        (tag-string "Text1" (-> ze :text (get 0) (or "")))
+                        (tag-string "Text2" (-> ze :text (get 1) (or "")))
+                        (tag-string "Text3" (-> ze :text (get 2) (or "")))
+                        (tag-string "Text4" (-> ze :text (get 3) (or "")))]
                      ;; default:
                      nil)]
          (when-let [ [id & additional-fields] fields]
