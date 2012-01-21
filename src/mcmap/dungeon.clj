@@ -20,14 +20,14 @@
                       :air)))}
       {:x0 0, :y0 0, :z0 7,
        :zone
-         (gen-mcmap-zone 6 6 6
+         (gen-mcmap-zone 6 7 7
             (fn [x y z]
-              (cond (some #{0 5} [y z])
+              (cond (some #{0 6} [y z])
                       :moss-stone
                     (= [x y z] [3 3 1])
                       (mc-block :wall-sign
                                 :text ["" "Hello," "Dungeon"]
-                                :face :north)
+                                :face :south)
                     :else
                     :air)))}])
 
