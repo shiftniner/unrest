@@ -29,7 +29,8 @@
                                  :wool
                                  :glowstone
                                  :bedrock
-                                 :sandstone]
+                                 :sandstone
+                                 :moss-stone]
                                 (repeat 255))
                     (interleave [:piston-target
                                  :water-flow
