@@ -33,15 +33,8 @@
 
 (defn maybe-box-lookup
   ([box x y z]
-     (let [{x0 :x0, y0 :y0, z0 :z0, zone :zone} box
-           xd (zone-x-size zone)
-           yd (zone-y-size zone)
-           zd (zone-z-size zone)]
-       (when (and (>= x x0) (>= y y0) (>= z z0)
-                  (< x (+ x0 xd))
-                  (< y (+ y0 yd))
-                  (< z (+ z0 zd)))
-         (zone-lookup zone (- x x0) (- y y0) (- z z0))))))
+     (let [{x0 :x0, y0 :y0, z0 :z0, zone :zone} box]
+       (maybe-zone-lookup zone (- x x0) (- y y0) (- z z0)))))
 
 (defn place-dungeons
   "Takes a zone and a seq of dungeon boxes, and returns the zone with
