@@ -252,10 +252,12 @@ include any part of the given zone"
               :sandstone        24
               :wool             35
               :piston-target    36
+              :moss-stone       48
               :fire             51
               :mob-spawner      52
               :monster-spawner  52
               :chest            54
+              :wall-sign        68
               :glowstone        89
               }
              ze )
@@ -414,7 +416,12 @@ tagged data"
 (defn block-datum
   ([ze]
      (if (map? ze)
-       (or (:datum ze) 0)
+       (or (:datum ze)
+           (case (:type ze)
+                 :wall-sign
+                 ( {:south 0 :west 1 :north 2 :east 3 nil 0}
+                   (:face ze))
+                 0))
        0)))
 
 (defn block-data
@@ -467,6 +474,12 @@ tagged data"
                        ["Chest"
                         (tag-list "Items" 10
                                   (:items ze))]
+                     :wall-sign
+                       ["Sign"
+                        (tag-string "Text1" (-> ze :text 0 (or "")))
+                        (tag-string "Text2" (-> ze :text 1 (or "")))
+                        (tag-string "Text3" (-> ze :text 2 (or "")))
+                        (tag-string "Text4" (-> ze :text 3 (or "")))]
                      ;; default:
                      nil)]
          (when-let [ [id & additional-fields] fields]
