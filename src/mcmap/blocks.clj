@@ -30,7 +30,11 @@
                                  :glowstone
                                  :bedrock
                                  :sandstone
-                                 :moss-stone]
+                                 :moss-stone
+                                 :wood
+                                 :cobble
+                                 :iron-block
+                                 :diamond-block]
                                 (repeat 255))
                     (interleave [:piston-target
                                  :water-flow

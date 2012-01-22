@@ -10,19 +10,78 @@
 (def +chunk-side+ 16)
 (def +chunk-height+ 128)
 
+;;; These next three fns probably belong in mcmap.blocks
+
 (defn mc-block
   "Returns the specified block in mcmap's internal data format"
   ([type]
      (case type
            :blue-wool    {:type :wool :datum 0xB}
            :yellow-wool  {:type :wool :datum 0x4}
-           :wool         {:type :wool :datum 0x0}
+           (:white-wool :wool)
+                         {:type :wool :datum 0x0}
+           :wood         {:type :wood :datum 0x0}
+           :spruce       {:type :wood :datum 0x1}
+           :birch        {:type :wood :datum 0x2}
+           :south-ladder {:type :ladder :datum 0x2}
+           :north-ladder {:type :ladder :datum 0x3}
+           :east-ladder  {:type :ladder :datum 0x4}
+           :west-ladder  {:type :ladder :datum 0x5}
            #=(light-emitting-block-types)
              {:type type :light (+light-levels+ type)}
            ;; default:
            type))
   ([type & extra-data]
      (apply hash-map :type type extra-data)))
+
+(defn block-id
+  "Returns the byte block ID for the given zone element"
+  ([ze]
+     (if (map? ze)
+       (block-id (or (:real-type ze)
+                     (:type ze)))
+       (or ( {:air              0
+              :stone            1
+              :cobble           4
+              :bedrock          7
+              :lava-flow        10
+              :lava-source      11
+              :wood             17
+              :sandstone        24
+              :wool             35
+              :piston-target    36
+              :iron-block       42
+              :moss-stone       48
+              :fire             51
+              :mob-spawner      52
+              :monster-spawner  52
+              :chest            54
+              :diamond-block    57
+              :ladder           65
+              :wall-sign        68
+              :glowstone        89
+              }
+             ze)
+           (throw (RuntimeException. (str "Block ID unknown for " ze)))))))
+
+(defn mc-item
+  "Returns either an item ID, or [id damage], for the given inventory
+item"
+  ([type]
+     (or (case type
+               :arrow           262
+               :coal            263
+               :string          287
+               :leather         334
+               :steak           364
+               nil)
+         (let [block (mc-block type)
+               dmg (when (map? block)
+                     (:datum block))]
+           (if dmg
+             [ (block-id block)
+               dmg]
+             (block-id block))))))
 
 (defn gen-mcmap-zone
   "Takes x and z dimensions (or x, y, and z dimensions), and a
@@ -237,31 +296,6 @@ include any part of the given zone"
                                    (+ %1 x0)
                                    (+ %2 y0)
                                    (+ %3 z0)))))
-
-(defn block-id
-  "Returns the byte block ID for the given zone element"
-  ([ze]
-     (if (map? ze)
-       (block-id (or (:real-type ze)
-                     (:type ze)))
-       (or ( {:air              0
-              :stone            1
-              :bedrock          7
-              :lava-flow        10
-              :lava-source      11
-              :sandstone        24
-              :wool             35
-              :piston-target    36
-              :moss-stone       48
-              :fire             51
-              :mob-spawner      52
-              :monster-spawner  52
-              :chest            54
-              :wall-sign        68
-              :glowstone        89
-              }
-             ze )
-           (throw (RuntimeException. (str "Block ID unknown for " ze)))))))
 
 (defn block-ids
   "Returns a seq of bytes with block IDs for the given zone; assumes zone
