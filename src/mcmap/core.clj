@@ -894,6 +894,11 @@ with Minecraft light values from 0 to 15"
   "Given x and z sizes and a function of x y and z that returns a
 block, returns an mcmap complete with computed light levels"
   ([x-size z-size f]
+     (when (or (pos? (mod x-size 16))
+               (pos? (mod z-size 16)))
+       (throw (RuntimeException.
+               (str "Illegal map dimensions: " x-size "x" z-size
+                    "; must be multiples of 16"))))
      (let [_ (msg 1 "Placing blocks ...")
            block-zone (p-gen-mcmap-zone x-size z-size f)
            _ (msg 1 "Mapping opaque and transparent blocks ...")
