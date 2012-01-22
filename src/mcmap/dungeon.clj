@@ -3,48 +3,53 @@
         mcmap.srand))
 
 (def +hello-dungeon+
-     [{:x0 6, :y0 0, :z0 0,
+     [(fn [])
+      {:x0 6,  :y0 0,  :z0 0,
+       :xd 21, :yd 21, :zd 21,
        :zone
-         (gen-mcmap-zone 21 21 21
-            (fn [x y z]
-              (cond (and (= x 0)
-                         (< 7 z 13)
-                         (< 0 y 6))
-                      :air
-                    (some #{0 20} [x y z])
-                      :moss-stone
-                    (= [x y z] [10 1 10])
-                      (mc-block :mob-spawner
-                                :mob "Zombie" :delay 0)
-                    :else
-                      :air)))}
+         (atom
+           (gen-mcmap-zone 21 21 21
+             (fn [x y z]
+               (cond (and (= x 0)
+                          (< 7 z 13)
+                          (< 0 y 6))
+                       :air
+                     (some #{0 20} [x y z])
+                       :moss-stone
+                     (= [x y z] [10 1 10])
+                       (mc-block :mob-spawner
+                                 :mob "Zombie" :delay 0)
+                     :else
+                       :air))))}
       {:x0 0, :y0 0, :z0 7,
+       :xd 6, :yd 7, :zd 7,
        :zone
-         (gen-mcmap-zone 6 7 7
-            (fn [x y z]
-              (cond (some #{0 6} [y z])
-                      :moss-stone
-                    (= [x y z] [3 3 1])
-                      (mc-block :wall-sign
-                                :text ["" "Hello," "Dungeon"]
-                                :face :south)
-                    :else
-                    :air)))}])
+         (atom
+           (gen-mcmap-zone 6 7 7
+             (fn [x y z]
+               (cond (some #{0 6} [y z])
+                       :moss-stone
+                     (= [x y z] [3 3 1])
+                       (mc-block :wall-sign
+                                 :text ["" "Hello," "Dungeon"]
+                                 :face :south)
+                     :else
+                       :air))))}])
 
 (defn maybe-box-lookup
   ([box x y z]
      (let [{x0 :x0, y0 :y0, z0 :z0, zone :zone} box]
-       (maybe-zone-lookup zone (- x x0) (- y y0) (- z z0)))))
+       (maybe-zone-lookup @zone (- x x0) (- y y0) (- z z0)))))
 
 (defmacro dungeon-max
   "Takes an axis (x, y, or z), and a dungeon, and returns the maximum
 extent of the dungeon along that axis"
   ([axis dungeon]
-     (let [size-fn (symbol "mcmap.core" (str "zone-" axis "-size"))
+     (let [size-key   (keyword (str axis "d"))
            origin-key (keyword (str axis "0"))]
        `(apply max (map #(+ (~origin-key %)
-                            (~size-fn (:zone %)))
-                        ~dungeon)))))
+                            (~size-key   %))
+                        (rest ~dungeon))))))
 
 (defmacro dungeon-min
   "Takes an axis (x, y, or z), and a dungeon, and returns the minimum
@@ -52,7 +57,7 @@ extent of the dungeon along that axis"
   ([axis dungeon]
      (let [origin-key (keyword (str axis "0"))]
        `(apply min (map #(~origin-key %)
-                        ~dungeon)))))
+                        (rest ~dungeon))))))
 
 (defn dungeon-max-x ([dungeon] (dungeon-max x dungeon)))
 (defn dungeon-max-y ([dungeon] (dungeon-max y dungeon)))
@@ -61,18 +66,36 @@ extent of the dungeon along that axis"
 (defn dungeon-min-y ([dungeon] (dungeon-min y dungeon)))
 (defn dungeon-min-z ([dungeon] (dungeon-min z dungeon)))
 
+(defn translate-dungeon
+  "Takes a dungeon and x, y, and z deltas, and returns the dungeon
+moved to that position"
+  ([dungeon xd yd zd]
+     (cons (first dungeon)
+           (map #(assoc %
+                   :x0 (+ (:x0 %) xd)
+                   :y0 (+ (:y0 %) yd)
+                   :z0 (+ (:z0 %) zd))
+                (rest dungeon)))))
+
+(defn multi-dungeon-lookup
+  "Takes a structure containing any number of dungeons, and x, y, and
+z coordinates, and returns the zone element at that point, which will
+be nil for any point that is not inside any dungeon"
+  ([dungeons x y z]
+     (some #(maybe-box-lookup % x y z)
+           (mapcat rest dungeons))))
+
 (defn place-dungeons
-  "Takes a zone and a seq of dungeon boxes, and returns the zone with
-the dungeons placed in it"
+  "Takes a zone and a seq of dungeons, and returns the zone with the
+dungeons placed in it"
   ;; Might be better to have this return a fn for gen-mcmap[-zone]
-  ([zone boxes]
+  ([zone dungeons]
      (gen-mcmap-zone (zone-x-size zone)
                      (zone-y-size zone)
                      (zone-z-size zone)
-       (fn [x y z]
-         (or (some #(maybe-box-lookup % x y z)
-                   boxes)
-             (zone-lookup zone x y z))))))
+        (fn [x y z]
+          (or (multi-dungeon-lookup dungeons x y z)
+              (zone-lookup zone x y z))))))
 
 (defn round-to-chunk-size
   ([n]
@@ -106,7 +129,7 @@ count (default 64), and returns a chest block full of that item"
      (let [x-size (* x-chunks +chunk-side+)
            z-size (* z-chunks +chunk-side+)
            zone (gen-mcmap-zone x-size z-size (fn [x y z] :air))
-           zone (place-dungeons zone dungeon)
+           zone (place-dungeons zone [dungeon])
            mcmap (gen-mcmap x-size z-size
                             (fn [x y z]
                               (zone-lookup zone x y z)))]
@@ -133,7 +156,7 @@ choosing the appropriate number of chunks for the given dungeon"
            z-size (round-to-chunk-size (inc (dungeon-max-z dungeon)))
            _ (println "zone size: x=" x-size " z=" z-size)
            zone (gen-mcmap-zone x-size z-size (fn [x y z] :air))
-           zone (place-dungeons zone dungeon)
+           zone (place-dungeons zone [dungeon])
            mcmap (gen-mcmap x-size z-size
                             (fn [x y z]
                               (zone-lookup zone x y z)))]
