@@ -1,9 +1,12 @@
 (ns mcmap.dungeon
   (:use mcmap.core
-        mcmap.srand))
+        mcmap.srand
+        mcmap.cavern))
+
+(def +dungeon-placement-retries+ 20)
 
 (def +hello-dungeon+
-     [(fn [])
+     [(fn [params])
       {:x0 6,  :y0 0,  :z0 0,
        :xd 21, :yd 21, :zd 21,
        :zone
@@ -66,6 +69,15 @@ extent of the dungeon along that axis"
 (defn dungeon-min-y ([dungeon] (dungeon-min y dungeon)))
 (defn dungeon-min-z ([dungeon] (dungeon-min z dungeon)))
 
+(defn dungeon-max-extent
+  ([dungeon]
+     (max (- (dungeon-max-x dungeon)
+             (dungeon-min-x dungeon))
+          (- (dungeon-max-y dungeon)
+             (dungeon-min-y dungeon))
+          (- (dungeon-max-z dungeon)
+             (dungeon-min-z dungeon)))))
+
 (defn translate-dungeon
   "Takes a dungeon and x, y, and z deltas, and returns the dungeon
 moved to that position"
@@ -122,6 +134,104 @@ count (default 64), and returns a chest block full of that item"
                                  :slot slot
                                  :damage damage})
                               (range 27)))))))
+
+(defn pick-hallway
+  ([orientation seed salt]
+     )
+
+  )
+
+(defn rotate-box-clockwise
+  ([box]
+     ;; XXX
+     ))
+
+(defn flip-box
+  ([box]
+     ;; XXX
+     ))
+
+(defn rotate-box-counterclockwise
+  ([box]
+     ;; XXX
+     ))
+
+(defn rotate-dummy-dungeon
+  "Takes a dungeon and an orientation (a number of
+clockwise-from-overhead 90-degree turns) and returns a rotated
+dummy dungeon (with no zones and a dummy delivery fn)"
+  ([dungeon orientation]
+     (cons (fn [params])
+           (map (case orientation
+                      0 identity
+                      1 rotate-box-clockwise
+                      2 flip-box
+                      3 rotate-box-counterclockwise)
+                (rest dungeon)))))
+
+(defn space-filling-seq
+  ([size grid]
+     (if (< grid 2)
+       nil
+       (let [half-grid (/ grid 2)
+             incg (fn [x] (+ x half-grid))]
+         (concat
+          (apply concat
+                 (for [x (range 0 size grid)
+                       y (range 0 size grid)
+                       z (range 0 size grid)]
+                   [ [(incg x) y z]
+                     [x (incg y) z]
+                     [x y (incg z)]
+                     [(incg x) (incg y) z]
+                     [(incg x) y (incg z)]
+                     [x (incg y) (incg z)]
+                     [(incg x) (incg y) (incg z)]]))
+          (space-filling-seq size half-grid))))))
+
+(defn point-in-dungeon
+  ([dungeon [x y z]]
+     ;; XXX
+     ))
+
+(defn dungeon-filling-seq
+  ([dungeon orientation xd yd zd]
+     (let [max-dimension (dungeon-max-extent dungeon)
+           grid-size (first (filter #(> % max-dimension)
+                                    (iterate #(* 2 %) 1)))
+           rotated-dungeon (rotate-dummy-dungeon dungeon orientation)]
+       (map ; XXX - translate by xd yd zd
+            (filter #(point-in-dungeon dungeon %)
+                    (concat [0 0 0]
+                            (space-filling-seq grid-size grid-size)))))))
+
+(defn try-find-place-for-dungeon
+  "Makes on attempt at finding a place for a dungeon, and returns nil
+if the attempt fails, and [x y z orientation hallway] if it succeeds"
+  ([dungeon zone accept-fn pick-place-fn seed salt]
+     (let [ [xt yt zt orientation] (pick-place-fn seed salt)
+            [hallway xh yh zh] (pick-hallway orientation seed salt)
+            blocks-to-check (dungeon-filling-seq dungeon orientation
+                                                 (+ xt xh)
+                                                 (+ yt yh)
+                                                 (+ zt zh))]
+       (when (every? accept-fn blocks-to-check)
+         [xt yt zt orientation hallway]))))
+
+(defn find-place-for-dungeon
+  "Takes a dungeon, a zone in which to place it, a function that takes
+a zone element and returns true if the zone element may be overwritten
+by a dungeon block, a function of a seed salt that returns a location
+to try placing the entrance to a dungeon, and a seed; and returns a
+location, orientation, and hallway configuration that succeeds, or nil
+if placement failed too many times"
+  ([dungeon zone accept-fn pick-place-fn seed]
+     (loop [retries +dungeon-placement-retries+]
+       (or (try-find-place-for-dungeon dungeon zone accept-fn
+                                       pick-place-fn seed retries)
+           (if (pos? retries)
+             (recur (dec retries))
+             nil)))))
 
 (defn dungeon-exercise-1
   "Makes an area with just empty air and a dungeon"
