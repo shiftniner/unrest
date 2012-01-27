@@ -89,7 +89,7 @@ moved to that position"
                    :z0 (+ (:z0 %) zd))
                 (rest dungeon)))))
 
-(defn multi-dungeon-lookup
+(defn maybe-dungeon-lookup
   "Takes a structure containing any number of dungeons, and x, y, and
 z coordinates, and returns the zone element at that point, which will
 be nil for any point that is not inside any dungeon"
@@ -106,7 +106,7 @@ dungeons placed in it"
                      (zone-y-size zone)
                      (zone-z-size zone)
         (fn [x y z]
-          (or (multi-dungeon-lookup dungeons x y z)
+          (or (maybe-dungeon-lookup dungeons x y z)
               (zone-lookup zone x y z))))))
 
 (defn round-to-chunk-size
@@ -135,41 +135,83 @@ count (default 64), and returns a chest block full of that item"
                                  :damage damage})
                               (range 27)))))))
 
-(defn pick-hallway
-  ([orientation seed salt]
-     )
-
-  )
-
-(defn rotate-box-clockwise
+(defn rotate-dummy-box-clockwise
   ([box]
-     ;; XXX
-     ))
+     (let [{x0 :x0, y0 :y0, z0 :z0,
+            xd :xd, yd :yd, zd :zd} box]
+       {:x0 (- 0 z0 zd) :y0 y0, :z0 x0,
+        :xd zd, :yd yd, :zd xd})))
 
-(defn flip-box
+(defn flip-dummy-box
   ([box]
-     ;; XXX
-     ))
+     (let [{x0 :x0, y0 :y0, z0 :z0,
+            xd :xd, yd :yd, zd :zd} box]
+       {:x0 (- 0 x0 xd) :y0 y0, :z0 (- 0 z0 zd),
+        :xd xd, :yd yd, :zd zd})))
 
-(defn rotate-box-counterclockwise
+(defn rotate-dummy-box-counterclockwise
   ([box]
-     ;; XXX
-     ))
+     (let [{x0 :x0, y0 :y0, z0 :z0,
+            xd :xd, yd :yd, zd :zd} box]
+       {:x0 z0 :y0 y0, :z0 (- 0 x0 xd),
+        :xd zd, :yd yd, :zd xd})))
 
 (defn rotate-dummy-dungeon
   "Takes a dungeon and an orientation (a number of
-clockwise-from-overhead 90-degree turns) and returns a rotated
-dummy dungeon (with no zones and a dummy delivery fn)"
+clockwise-from-overhead 90-degree turns around the origin) and returns
+a rotated dummy dungeon (with no zones and a dummy delivery fn)"
   ([dungeon orientation]
      (cons (fn [params])
            (map (case orientation
                       0 identity
-                      1 rotate-box-clockwise
-                      2 flip-box
-                      3 rotate-box-counterclockwise)
+                      1 rotate-dummy-box-clockwise
+                      2 flip-dummy-box
+                      3 rotate-dummy-box-counterclockwise)
                 (rest dungeon)))))
 
+(defn pick-hallway
+  "Returns a randomly-chosen hallway (in dungeon form), and x, y, and
+z deltas from traveling through the hallway, as [hallway xd yd zd]"
+  ([orientation seed salt]
+     ;; This is all pretty stupid; there should be high-level
+     ;; functions to rotate things so I only have to have code to
+     ;; generate a hallway with one orientation.
+     (let [len (int (snorm [10 10 5] seed salt))
+           hall-fn (fn [w y]
+                     (cond (some #{0 6} [w y])
+                             :bedrock
+                           (some #{1 5} [w y])
+                             :moss-brick
+                           :else
+                             :air))
+           zone-fn (case orientation
+                         (0 2) (fn [x y z] (hall-fn z y))
+                         (1 3) (fn [x y z] (hall-fn x y)))
+           [x-dim z-dim] (case orientation
+                               (0 2) [len 7]
+                               (1 3) [7 len])
+           y-dim 7
+           zone (gen-mcmap-zone x-dim y-dim z-dim zone-fn)
+           [x0 z0 xd zd]
+             (case orientation
+                   0 [0 0 len 0]
+                   1 [0 0 0 len]
+                   2 [(- len) 0 (- len) 0]
+                   3 [0 (- len) 0 (- len)])
+           yd 0]
+       [ [(fn [params])
+          {:x0 x0, :y0 0, :z0 z0,
+           :xd x-dim, :yd y-dim, :zd z-dim,
+           :zone (atom zone)}]
+         xd yd zd])))
+
 (defn space-filling-seq
+  "Returns a seq of all points, with x y and z coordinates >= 0 and <
+size, in an order such that a large extent of the volume is covered
+relatively quickly"
+  ([size]
+     (cons [0 0 0]
+           (space-filling-seq size size)))
   ([size grid]
      (if (< grid 2)
        nil
@@ -189,21 +231,32 @@ dummy dungeon (with no zones and a dummy delivery fn)"
                      [(incg x) (incg y) (incg z)]]))
           (space-filling-seq size half-grid))))))
 
+(defn point-in-box
+  ([box x y z]
+     (let [x0 (:x0 box)
+           y0 (:y0 box)
+           z0 (:z0 box)]
+       (and (>= x x0) (>= y y0) (>= z z0)
+            (< x (+ x0 (:xd box)))
+            (< y (+ y0 (:yd box)))
+            (< z (+ z0 (:zd box)))))))
+
 (defn point-in-dungeon
   ([dungeon [x y z]]
-     ;; XXX
-     ))
+     (some #(point-in-box % x y z)
+           (rest dungeon))))
 
 (defn dungeon-filling-seq
   ([dungeon orientation xd yd zd]
+     ;; This really only needs to cover the surfaces of the boxes
      (let [max-dimension (dungeon-max-extent dungeon)
            grid-size (first (filter #(> % max-dimension)
                                     (iterate #(* 2 %) 1)))
            rotated-dungeon (rotate-dummy-dungeon dungeon orientation)]
-       (map ; XXX - translate by xd yd zd
+       (map #(fn [ [x y z] ]
+               [(+ x xd) (+ y yd) (+ z zd)])
             (filter #(point-in-dungeon dungeon %)
-                    (concat [0 0 0]
-                            (space-filling-seq grid-size grid-size)))))))
+                    (space-filling-seq grid-size))))))
 
 (defn try-find-place-for-dungeon
   "Makes on attempt at finding a place for a dungeon, and returns nil
