@@ -3,36 +3,43 @@
         mcmap.srand
         mcmap.cavern))
 
-(def +dungeon-placement-retries+ 20)
+(def +dungeon-placement-retries+ 100)
+
+(def +air-finder-retries+ 50000)
 
 (def +hello-dungeon+
      [(fn [params])
-      {:x0 6,  :y0 0,  :z0 0,
+      {:x0 6,  :y0 0,  :z0 -7,
        :xd 21, :yd 21, :zd 21,
        :zone
          (atom
            (gen-mcmap-zone 21 21 21
              (fn [x y z]
                (cond (and (= x 0)
-                          (< 7 z 13)
-                          (< 0 y 6))
+                          (< 8 z 12)
+                          (< 1 y 5))
                        :air
                      (some #{0 20} [x y z])
+                       :bedrock
+                     (some #{1 19} [x y z])
                        :moss-stone
-                     (= [x y z] [10 1 10])
+                     (#{[10 2 10] [8 2 8] [12 2 12]
+                        [8 2 12] [12 2 8] [10 3 10]} [x y z])
                        (mc-block :mob-spawner
                                  :mob "Zombie" :delay 0)
                      :else
                        :air))))}
-      {:x0 0, :y0 0, :z0 7,
+      {:x0 0, :y0 0, :z0 0,
        :xd 6, :yd 7, :zd 7,
        :zone
          (atom
            (gen-mcmap-zone 6 7 7
              (fn [x y z]
                (cond (some #{0 6} [y z])
+                       :bedrock
+                     (some #{1 5} [y z])
                        :moss-stone
-                     (= [x y z] [3 3 1])
+                     (= [x y z] [3 3 2])
                        (mc-block :wall-sign
                                  :text ["" "Hello," "Dungeon"]
                                  :face :south)
@@ -102,12 +109,28 @@ be nil for any point that is not inside any dungeon"
 dungeons placed in it"
   ;; Might be better to have this return a fn for gen-mcmap[-zone]
   ([zone dungeons]
-     (gen-mcmap-zone (zone-x-size zone)
-                     (zone-y-size zone)
-                     (zone-z-size zone)
+     (p-gen-mcmap-zone (zone-x-size zone)
+                       (zone-y-size zone)
+                       (zone-z-size zone)
         (fn [x y z]
           (or (maybe-dungeon-lookup dungeons x y z)
               (zone-lookup zone x y z))))))
+
+(defn place-hallways
+  "Takes a zone and a seq of dungeons defining hallways, and returns
+the zone with the hallways placed in it, only replacing non-air blocks
+in the zone"
+  ;; Might be better to have this return a fn for gen-mcmap[-zone]
+  ([zone dungeons]
+     (p-gen-mcmap-zone (zone-x-size zone)
+                       (zone-y-size zone)
+                       (zone-z-size zone)
+        (fn [x y z]
+          (let [ze (zone-lookup zone x y z)]
+            (if (= ze :air)
+              :air
+              (or (maybe-dungeon-lookup dungeons x y z)
+                  ze)))))))
 
 (defn round-to-chunk-size
   ([n]
@@ -181,7 +204,7 @@ z deltas from traveling through the hallway, as [hallway xd yd zd]"
                      (cond (some #{0 6} [w y])
                              :bedrock
                            (some #{1 5} [w y])
-                             :moss-brick
+                             (mc-block :moss-brick)
                            :else
                              :air))
            zone-fn (case orientation
@@ -247,29 +270,41 @@ relatively quickly"
            (rest dungeon))))
 
 (defn dungeon-filling-seq
+  "Takes a dungeon, an orientation, and offsets by which to move the
+dungeon, and returns a seq of points that would be within the
+dungeon's boxes if it were placed at that orientation and offset"
   ([dungeon orientation xd yd zd]
-     ;; This really only needs to cover the surfaces of the boxes
      (let [max-dimension (dungeon-max-extent dungeon)
            grid-size (first (filter #(> % max-dimension)
                                     (iterate #(* 2 %) 1)))
-           rotated-dungeon (rotate-dummy-dungeon dungeon orientation)]
-       (map #(fn [ [x y z] ]
-               [(+ x xd) (+ y yd) (+ z zd)])
+           rotated-dungeon (rotate-dummy-dungeon dungeon orientation)
+           min-x (dungeon-min-x dungeon)
+           min-y (dungeon-min-y dungeon)
+           min-z (dungeon-min-z dungeon)]
+       (map (fn [ [x y z] ]
+              [(+ x xd) (+ y yd) (+ z zd)])
             (filter #(point-in-dungeon dungeon %)
-                    (space-filling-seq grid-size))))))
+                    (map (fn [ [x y z] ]
+                           [(+ x min-x)
+                            (+ y min-y)
+                            (+ z min-z)])
+                         (space-filling-seq grid-size)))))))
 
 (defn try-find-place-for-dungeon
   "Makes on attempt at finding a place for a dungeon, and returns nil
 if the attempt fails, and [x y z orientation hallway] if it succeeds"
   ([dungeon zone accept-fn pick-place-fn seed salt]
      (let [ [xt yt zt orientation] (pick-place-fn seed salt)
-            [hallway xh yh zh] (pick-hallway orientation seed salt)
+            hallvect (pick-hallway orientation seed salt)
+            [hallway xh yh zh] hallvect
+            ;; Only really need to check the surfaces of the boxes
             blocks-to-check (dungeon-filling-seq dungeon orientation
                                                  (+ xt xh)
                                                  (+ yt yh)
                                                  (+ zt zh))]
-       (when (every? accept-fn blocks-to-check)
-         [xt yt zt orientation hallway]))))
+       (when (every? #(accept-fn (apply maybe-zone-lookup zone %))
+                     blocks-to-check)
+         [xt yt zt orientation hallvect]))))
 
 (defn find-place-for-dungeon
   "Takes a dungeon, a zone in which to place it, a function that takes
@@ -286,6 +321,33 @@ if placement failed too many times"
              (recur (dec retries))
              nil)))))
 
+(let [air-check-seq (filter #(every? (partial > 7) %)
+                            (space-filling-seq 8))]
+  (defn air-finder
+    "Takes a zone and returns a pick-place-fn for find-place-for-dungeon
+that just finds a random pocket of air, which is assumed to be
+reachable, or nil on failure"
+    ([zone]
+       (fn [seed salt]
+         (loop [salt2 +air-finder-retries+]
+           (let [x0 (+ 2 (int (srand (- (zone-x-size zone) 10)
+                                     seed salt salt2 1)))
+                 y0 (+ 2 (int (srand (- (zone-y-size zone) 10)
+                                     seed salt salt2 2)))
+                 z0 (+ 2 (int (srand (- (zone-z-size zone) 10)
+                                     seed salt salt2 3)))
+                 orientation 0          ; (srand 4 seed salt salt2 4)
+                 ]
+             (cond (every? (fn [ [x y z]]
+                             ( #{:air}
+                               (zone-lookup zone (+ x x0) (+ y y0) (+ z z0))))
+                           air-check-seq)
+                     [(inc x0) (inc y0) (inc z0) orientation]
+                   (pos? salt2)
+                     (recur (dec salt2))
+                   :else
+                     (throw (RuntimeException. "air-finder failed")))))))))
+
 (defn dungeon-exercise-1
   "Makes an area with just empty air and a dungeon"
   ([x-chunks z-chunks dungeon]
@@ -298,7 +360,7 @@ if placement failed too many times"
                               (zone-lookup zone x y z)))]
        (mcmap-to-mcr-binary mcmap 0 0))))
 
-(defn dungeon-exercise-2
+(defn dungeon-playtest-1
   "Makes an area with just empty air and a dungeon, automatically
 choosing the appropriate number of chunks for the given dungeon"
   ([dungeon]
@@ -355,3 +417,60 @@ out of region 0,0 and used for playtesting dungeons"
                             (mc-block :air)))]
        (mcmap-to-mcr-binary (gen-mcmap x-size z-size gen-fn)
                             0 0))))
+
+(defn dungeon-exercise-2
+  "Creates an epic cave network and puts a dungeon in it someplace
+reachable"
+  ([seed]
+     (let [chunks 16
+           max-x (* chunks +chunk-side+)
+           max-z (* chunks +chunk-side+)
+           [epic-zone start-x start-z]
+                 (epic-cave-network 15 max-x max-z seed)
+           _ (msg 3 "Finding a place for a dungeon ...")
+           [dun-x dun-y dun-z orientation [hallway hx hy hz]]
+               (find-place-for-dungeon +hello-dungeon+ epic-zone
+                                       #{:ground} (air-finder epic-zone)
+                                       seed)
+           _ (when-not dun-x
+               (throw (RuntimeException. "find-place-for-dungeon failed")))
+           _ (println "place: " dun-x dun-y dun-z "orient" orientation
+                      "hall" hx hy hz)
+           placed-hello (translate-dungeon +hello-dungeon+
+                                           (+ dun-x hx)
+                                           (+ dun-y hy)
+                                           (+ dun-z hz))
+           placed-hallway (translate-dungeon hallway dun-x dun-y dun-z)
+           _ (msg 3 "Placing the dungeon ...")
+           epic-zone (place-dungeons epic-zone [placed-hello])
+           epic-zone (place-hallways epic-zone [placed-hallway])
+           _ (msg 3 "Adding bedrock ...")
+           bedrock-generator (fn [x y z]
+                               (let [ze (zone-lookup epic-zone x y z)
+                                     neighbors (neighbors-of epic-zone
+                                                             x y z)]
+                                 (if (every? #{:ground :bedrock}
+                                             (cons ze neighbors))
+                                   :bedrock
+                                   ze)))
+           epic-zone (gen-mcmap-zone max-x max-z bedrock-generator)
+           _ (msg 3 "Adding creamy middle ...")
+           x-bound (dec max-x)
+           z-bound (dec max-z)
+           generator (fn [x y z]
+                       (let [ze (zone-lookup epic-zone x y z)
+                             neighbors (neighbors-of epic-zone x y z)]
+                         (if (or (zero? x) (zero? z)
+                                 (= x-bound x) (= z-bound z))
+                           (mc-block :bedrock)
+                           (case ze
+                                 :bedrock
+                                   (if (every? #(= :bedrock %) neighbors)
+                                     (mc-block :lava-source)
+                                     :bedrock)
+                                 :air (mc-block :air)
+                                 :ground (mc-block :sandstone)
+                                 ze))))]
+       (println "Start is x=" start-x " z=" start-z)
+       (generic-map-maker chunks chunks generator))))
+
