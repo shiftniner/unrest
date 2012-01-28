@@ -27,6 +27,8 @@
            :north-ladder {:type :ladder :datum 0x3}
            :east-ladder  {:type :ladder :datum 0x4}
            :west-ladder  {:type :ladder :datum 0x5}
+           :moss-brick    {:type :stone-bricks :datum 0x1}
+           :cracked-brick {:type :stone-bricks :datum 0x2}
            #=(light-emitting-block-types)
              {:type type :light (+light-levels+ type)}
            ;; default:
@@ -60,6 +62,7 @@
               :ladder           65
               :wall-sign        68
               :glowstone        89
+              :stone-bricks     98
               }
              ze)
            (throw (RuntimeException. (str "Block ID unknown for " ze)))))))
@@ -82,6 +85,22 @@ item"
              [ (block-id block)
                dmg]
              (block-id block))))))
+
+(defn zone-x-size
+  ([zone]
+     (count zone)))
+
+(defn zone-y-size
+  ([zone]
+     (count ( (zone 0) 0 ))))
+
+(defn zone-z-size
+  ([zone]
+     (count (zone 0))))
+
+(defn zone-lookup
+  ([zone x y z]
+     ( ( (zone x) z) y )))
 
 (defn gen-mcmap-zone
   "Takes x and z dimensions (or x, y, and z dimensions), and a
@@ -232,22 +251,6 @@ specified size"
        (p-gen-mcmap-zone x-size y-size z-size
                          (fn [x y z]
                            (zone-lookup tmp-zone y x z))))))
-
-(defn zone-x-size
-  ([zone]
-     (count zone)))
-
-(defn zone-y-size
-  ([zone]
-     (count ( (zone 0) 0 ))))
-
-(defn zone-z-size
-  ([zone]
-     (count (zone 0))))
-
-(defn zone-lookup
-  ([zone x y z]
-     ( ( (zone x) z) y )))
 
 (defn maybe-zone-lookup
   "Like zone-lookup, but returns nil if the coordinates are out of

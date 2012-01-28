@@ -34,7 +34,8 @@
                                  :wood
                                  :cobble
                                  :iron-block
-                                 :diamond-block]
+                                 :diamond-block
+                                 :stone-bricks]
                                 (repeat 255))
                     (interleave [:piston-target
                                  :water-flow
