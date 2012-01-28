@@ -15,7 +15,7 @@
          (atom
            (gen-mcmap-zone 21 21 21
              (fn [x y z]
-               (cond (and (= x 0)
+               (cond (and (#{0 1} x)
                           (< 8 z 12)
                           (< 1 y 5))
                        :air
