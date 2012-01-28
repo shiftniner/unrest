@@ -42,7 +42,7 @@
                      (= [x y z] [3 3 2])
                        (mc-block :wall-sign
                                  :text ["" "Hello," "Dungeon"]
-                                 :face :south)
+                                 :face :north)
                      :else
                        :air))))}])
 
@@ -202,7 +202,7 @@ z deltas from traveling through the hallway, as [hallway xd yd zd]"
      (let [len (int (snorm [10 10 5] seed salt))
            hall-fn (fn [w y]
                      (cond (some #{0 6} [w y])
-                             :bedrock
+                             :ground
                            (some #{1 5} [w y])
                              (mc-block :moss-brick)
                            :else
