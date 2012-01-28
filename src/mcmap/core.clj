@@ -23,10 +23,10 @@
            :wood         {:type :wood :datum 0x0}
            :spruce       {:type :wood :datum 0x1}
            :birch        {:type :wood :datum 0x2}
-           :south-ladder {:type :ladder :datum 0x2}
-           :north-ladder {:type :ladder :datum 0x3}
-           :east-ladder  {:type :ladder :datum 0x4}
-           :west-ladder  {:type :ladder :datum 0x5}
+           :south-ladder {:type :ladder :face :south}
+           :north-ladder {:type :ladder :face :north}
+           :east-ladder  {:type :ladder :face :east}
+           :west-ladder  {:type :ladder :face :west}
            :moss-brick    {:type :stone-bricks :datum 0x1}
            :cracked-brick {:type :stone-bricks :datum 0x2}
            #=(light-emitting-block-types)
@@ -455,8 +455,8 @@ tagged data"
      (if (map? ze)
        (or (:datum ze)
            (case (:type ze)
-                 :wall-sign
-                 ( {:south 0 :west 1 :north 2 :east 3 nil 0}
+                 (:ladder :wall-sign)
+                 ( {:south 0x2 :north 0x3 :east 0x4 :west 0x5 nil 0}
                    (:face ze))
                  0))
        0)))
