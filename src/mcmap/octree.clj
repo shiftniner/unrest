@@ -44,7 +44,7 @@ region"
      (let [oct (or oct
                    {:x0 node-x0, :y0 node-y0, :z0 node-z0,
                     :size node-size
-                    :nodes [nil nil nil nil nil nil nil]
+                    :nodes [nil nil nil nil nil nil nil nil]
                     :contents nil})]
        (if (<= node-size min-dim)
          (add-to-contents oct {:o o,
