@@ -441,6 +441,32 @@ placed-hallway]; throws an exception if placement failed"
            placed-hallway (translate-dungeon hallway dun-x dun-y dun-z)]
        [placed-dungeon placed-hallway])))
 
+(defn non-intersecting-dunhalls
+  ([dunhalls size]
+     (non-intersecting-dunhalls dunhalls nil (octree size 8)))
+  ([dunhalls _ returned]
+     (lazy-seq
+      (loop [dunhalls dunhalls]
+        (when (seq dunhalls)
+          (if (some (fn [ {x0 :x0, y0 :y0, z0 :z0,
+                           xd :xd, yd :yd, zd :zd}]
+                      (oct-any-intersecting? returned x0 y0 z0
+                                             (+ x0 xd)
+                                             (+ y0 yd)
+                                             (+ z0 zd)))
+                    (mapcat rest (first dunhalls)))
+            (recur (rest dunhalls))
+            (cons (first dunhalls)
+                  (lazy-seq
+                   (let [returned (reduce (fn [returned box]
+                                            (oct-assoc-box returned box))
+                                          returned
+                                          (mapcat rest (first dunhalls)))]
+                     (non-intersecting-dunhalls
+                      (rest dunhalls)
+                      nil
+                      returned))))))))))
+
 (defn dungeon-exercise-1
   "Makes an area with just empty air and a dungeon"
   ([x-chunks z-chunks dungeon]
@@ -520,10 +546,13 @@ reachable"
            max-z (* chunks +chunk-side+)
            [epic-zone start-x start-z]
                  (epic-cave-network 15 max-x max-z seed)
-           dunhalls (pmap place-dungeon-in-caves
-                          (repeat epic-zone)
-                          (map #(long (srand +seed-max+ seed 5516 %))
-                               (range 100)))
+           excess-dunhalls (pmap place-dungeon-in-caves
+                                 (repeat epic-zone)
+                                 (map #(long (srand +seed-max+ seed
+                                                    5516 %))
+                                      (range 1000)))
+           dunhalls (take 20 (non-intersecting-dunhalls excess-dunhalls
+                                                        max-x))
            dungeons (map first dunhalls)
            hallways (map second dunhalls)
            _ (msg 3 "Placing dungeons ...")
