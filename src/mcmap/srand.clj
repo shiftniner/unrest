@@ -16,7 +16,7 @@
 ;;; intervals can lead to the same cycling problem as producing
 ;;; sequences by recursively reseeding.
 
-(def +seed-max+ (bit-shift-left 1 24))
+(def +seed-max+ (bit-shift-left 1 48))
 
 (defn- srand-1-long
   ([seed]
