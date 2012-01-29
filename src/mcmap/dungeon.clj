@@ -408,8 +408,7 @@ reachable, or nil on failure"
                                      seed salt salt2 2)))
                  z0 (+ 2 (int (srand (- (zone-z-size zone) 10)
                                      seed salt salt2 3)))
-                 orientation 2          ; (srand 4 seed salt salt2 4)
-                 ]
+                 orientation (int (srand 4 seed salt salt2 4))]
              (cond (every? (fn [ [x y z]]
                              ( #{:air}
                                (zone-lookup zone (+ x x0) (+ y y0) (+ z z0))))
@@ -419,6 +418,27 @@ reachable, or nil on failure"
                      (recur (dec salt2))
                    :else
                      (throw (RuntimeException. "air-finder failed")))))))))
+
+(defn place-dungeon-in-caves
+  "Takes a zone and a seed and returns [placed-dungeon
+placed-hallway]; throws an exception if placement failed"
+  ([zone seed]
+     (let [dungeon +hello-dungeon+      ; XXX
+           [dun-x dun-y dun-z orientation [hallway hx hy hz]]
+               (find-place-for-dungeon dungeon zone #{:ground}
+                                       (air-finder zone)
+                                       seed)
+           _ (when-not dun-x
+               (throw (RuntimeException. "find-place-for-dungeon failed")))
+           _ (println "place: " dun-x dun-y dun-z "orient" orientation
+                      "hall" hx hy hz)
+           placed-dungeon (translate-dungeon (rotate-dungeon dungeon
+                                                             orientation)
+                                             (+ dun-x hx)
+                                             (+ dun-y hy)
+                                             (+ dun-z hz))
+           placed-hallway (translate-dungeon hallway dun-x dun-y dun-z)]
+       [placed-dungeon placed-hallway])))
 
 (defn dungeon-exercise-1
   "Makes an area with just empty air and a dungeon"
@@ -499,27 +519,18 @@ reachable"
            max-z (* chunks +chunk-side+)
            [epic-zone start-x start-z]
                  (epic-cave-network 15 max-x max-z seed)
-           _ (msg 3 "Finding a place for a dungeon ...")
-           [dun-x dun-y dun-z orientation [hallway hx hy hz]]
-               (find-place-for-dungeon +hello-dungeon+ epic-zone
-                                       #{:ground} (air-finder epic-zone)
-                                       seed)
-           _ (when-not dun-x
-               (throw (RuntimeException. "find-place-for-dungeon failed")))
-           _ (println "place: " dun-x dun-y dun-z "orient" orientation
-                      "hall" hx hy hz)
-           placed-hello (translate-dungeon (rotate-dungeon
-                                              +hello-dungeon+
-                                              orientation)
-                                           (+ dun-x hx)
-                                           (+ dun-y hy)
-                                           (+ dun-z hz))
-           placed-hallway (translate-dungeon hallway dun-x dun-y dun-z)
-           _ (msg 3 "Placing the dungeon ...")
-           _ ( (first placed-hello) nil)
-           epic-zone (place-dungeons epic-zone [placed-hello])
-           _ (msg 3 "Placing hallway ...")
-           epic-zone (place-hallways epic-zone [placed-hallway])
+           dunhalls (map place-dungeon-in-caves
+                         (repeat epic-zone)
+                         (map #(long (srand +seed-max+ seed 5516 %))
+                              (range 20)))
+           dungeons (map first dunhalls)
+           hallways (map second dunhalls)
+           _ (msg 3 "Placing dungeons ...")
+           _ (doseq [d dungeons]
+               ( (first d) nil))
+           epic-zone (place-dungeons epic-zone dungeons)
+           _ (msg 3 "Placing hallways ...")
+           epic-zone (place-hallways epic-zone hallways)
            _ (msg 3 "Adding bedrock ...")
            bedrock-generator (fn [x y z]
                                (let [ze (zone-lookup epic-zone x y z)
