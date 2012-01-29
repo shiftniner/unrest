@@ -919,16 +919,19 @@ block, returns an mcmap complete with computed light levels"
            _ (send (agent nil)
                    (fn [_]
                      (deliver light-zone
-                              (compute-block-light block-zone
-                                                   opacity-zone))
-                     (msg 1 "Done with block-source light calcs")))
+                              (let [v (compute-block-light block-zone
+                                                           opacity-zone)]
+                                (msg 1 "Done with block-source light calcs")
+                                v))))
            _ (msg 1 "Starting sky light calcs ...")
            _ (send (agent nil)
                    (fn [_]
                      (deliver skylight-zone
-                              (compute-skylight block-zone opacity-zone
-                                                height-zone))
-                     (msg 1 "Done with sky light calcs")))]
+                              (let [v (compute-skylight block-zone
+                                                        opacity-zone
+                                                        height-zone)]
+                                (msg 1 "Done with sky light calcs")
+                                v))))]
        {:block-zone block-zone
         :light-zone @light-zone
         :skylight-zone @skylight-zone
