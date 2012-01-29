@@ -3,7 +3,7 @@
         mcmap.srand
         mcmap.cavern))
 
-(def +dungeon-placement-retries+ 100)
+(def +dungeon-placement-retries+ 1000)
 
 (def +air-finder-retries+ 50000)
 
@@ -158,47 +158,119 @@ count (default 64), and returns a chest block full of that item"
                                  :damage damage})
                               (range 27)))))))
 
-(defn rotate-dummy-box-clockwise
+(defn rotate-empty-box-clockwise
   ([box]
      (let [{x0 :x0, y0 :y0, z0 :z0,
             xd :xd, yd :yd, zd :zd} box]
        {:x0 (- 0 z0 zd) :y0 y0, :z0 x0,
         :xd zd, :yd yd, :zd xd})))
 
-(defn flip-dummy-box
+(defn flip-empty-box
   ([box]
      (let [{x0 :x0, y0 :y0, z0 :z0,
             xd :xd, yd :yd, zd :zd} box]
        {:x0 (- 0 x0 xd) :y0 y0, :z0 (- 0 z0 zd),
         :xd xd, :yd yd, :zd zd})))
 
-(defn rotate-dummy-box-counterclockwise
+(defn rotate-empty-box-counterclockwise
   ([box]
      (let [{x0 :x0, y0 :y0, z0 :z0,
             xd :xd, yd :yd, zd :zd} box]
        {:x0 z0 :y0 y0, :z0 (- 0 x0 xd),
         :xd zd, :yd yd, :zd xd})))
 
-(defn rotate-dummy-dungeon
+(def +rotate-face-90+
+     {:north :east
+      :east  :south
+      :south :west
+      :west  :north})
+
+(defn rotate-block
+  ([rotation ze]
+     (if (or (zero? rotation)
+             (not (map? ze))
+             (not (:face ze)))
+       ze
+       (rotate-block (dec rotation)
+                     (assoc ze :face (+rotate-face-90+ (:face ze)))))))
+
+(defn rotate-empty-box
+  "Takes a box and an orientation (a number of clockwise-from-overhead
+90-degree turns around the origin), and returns a rotated box with
+no :zone"
+  ([orientation box]
+     ( (case (mod orientation 4)
+             0 identity
+             1 rotate-empty-box-clockwise
+             2 flip-empty-box
+             3 rotate-empty-box-counterclockwise)
+       box)))
+
+(defn rotate-zone-clockwise
+  ([zone]
+     (let [in-x (zone-x-size zone)
+           in-y (zone-y-size zone)
+           in-z (zone-z-size zone)]
+       (p-gen-mcmap-zone in-z in-y in-x
+         (fn [x y z]
+           (rotate-block 1 (zone-lookup zone z y (dec (- in-z x)))))))))
+
+(defn flip-zone
+  ([zone]
+     (let [in-x (zone-x-size zone)
+           in-y (zone-y-size zone)
+           in-z (zone-z-size zone)]
+       (p-gen-mcmap-zone in-x in-y in-z
+         (fn [x y z]
+           (rotate-block 2
+                         (zone-lookup zone
+                                      (dec (- in-x x))
+                                      y
+                                      (dec (- in-z z)))))))))
+
+(defn rotate-zone-counterclockwise
+  ([zone]
+     (let [in-x (zone-x-size zone)
+           in-y (zone-y-size zone)
+           in-z (zone-z-size zone)]
+       (p-gen-mcmap-zone in-z in-y in-x
+         (fn [x y z]
+           (rotate-block 2 (zone-lookup zone (dec (- in-x z)) y x)))))))
+
+(defn rotate-zone
+  "Takes a zone and an orientation (a number of clockwise-from-overhead
+90-degree turns around the origin), and returns a rotated zone"
+  ([orientation zone]
+     ( (case (mod orientation 4)
+             0 identity
+             1 rotate-zone-clockwise
+             2 flip-zone
+             3 rotate-zone-counterclockwise)
+       zone)))
+
+
+(defn rotate-dungeon
   "Takes a dungeon and an orientation (a number of
 clockwise-from-overhead 90-degree turns around the origin) and returns
-a rotated dummy dungeon (with no zones and a dummy delivery fn)"
+a rotated dungeon"
   ([dungeon orientation]
-     (cons (fn [params])
-           (map (case orientation
-                      0 identity
-                      1 rotate-dummy-box-clockwise
-                      2 flip-dummy-box
-                      3 rotate-dummy-box-counterclockwise)
-                (rest dungeon)))))
+     (let [promises (repeatedly (dec (count dungeon))
+                                promise)]
+       (cons (fn [params]
+               ( (first dungeon) params)
+               (dorun (map deliver
+                           promises
+                           (map #(rotate-zone orientation @(:zone %))
+                                (rest dungeon)))))
+             (map #(assoc (rotate-empty-box orientation %1)
+                     :zone %2)
+                  (rest dungeon)
+                  promises)))))
 
 (defn pick-hallway
   "Returns a randomly-chosen hallway (in dungeon form), and x, y, and
 z deltas from traveling through the hallway, as [hallway xd yd zd]"
   ([orientation seed salt]
-     ;; This is all pretty stupid; there should be high-level
-     ;; functions to rotate things so I only have to have code to
-     ;; generate a hallway with one orientation.
      (let [len (int (snorm [10 10 5] seed salt))
            hall-fn (fn [w y]
                      (cond (some #{0 6} [w y])
@@ -218,7 +290,7 @@ z deltas from traveling through the hallway, as [hallway xd yd zd]"
            [x0 z0 xd zd]
              (case orientation
                    0 [0 0 len 0]
-                   1 [0 0 0 len]
+                   1 [-7 0 0 len]
                    2 [(- len) 0 (- len) 0]
                    3 [0 (- len) 0 (- len)])
            yd 0]
@@ -277,7 +349,7 @@ dungeon's boxes if it were placed at that orientation and offset"
      (let [max-dimension (dungeon-max-extent dungeon)
            grid-size (first (filter #(> % max-dimension)
                                     (iterate #(* 2 %) 1)))
-           rotated-dungeon (rotate-dummy-dungeon dungeon orientation)
+           rotated-dungeon (rotate-dungeon dungeon orientation)
            min-x (dungeon-min-x dungeon)
            min-y (dungeon-min-y dungeon)
            min-z (dungeon-min-z dungeon)]
@@ -336,7 +408,7 @@ reachable, or nil on failure"
                                      seed salt salt2 2)))
                  z0 (+ 2 (int (srand (- (zone-z-size zone) 10)
                                      seed salt salt2 3)))
-                 orientation 0          ; (srand 4 seed salt salt2 4)
+                 orientation 1          ; (srand 4 seed salt salt2 4)
                  ]
              (cond (every? (fn [ [x y z]]
                              ( #{:air}
@@ -436,13 +508,17 @@ reachable"
                (throw (RuntimeException. "find-place-for-dungeon failed")))
            _ (println "place: " dun-x dun-y dun-z "orient" orientation
                       "hall" hx hy hz)
-           placed-hello (translate-dungeon +hello-dungeon+
+           placed-hello (translate-dungeon (rotate-dungeon
+                                              +hello-dungeon+
+                                              orientation)
                                            (+ dun-x hx)
                                            (+ dun-y hy)
                                            (+ dun-z hz))
            placed-hallway (translate-dungeon hallway dun-x dun-y dun-z)
            _ (msg 3 "Placing the dungeon ...")
+           _ ( (first placed-hello) nil)
            epic-zone (place-dungeons epic-zone [placed-hello])
+           _ (msg 3 "Placing hallway ...")
            epic-zone (place-hallways epic-zone [placed-hallway])
            _ (msg 3 "Adding bedrock ...")
            bedrock-generator (fn [x y z]
