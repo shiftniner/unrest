@@ -291,7 +291,7 @@ z deltas from traveling through the hallway, as [hallway xd yd zd]"
              (case orientation
                    0 [0 0 len 0]
                    1 [-7 0 0 len]
-                   2 [(- len) 0 (- len) 0]
+                   2 [(- len) -7 (- len) 0]
                    3 [0 (- len) 0 (- len)])
            yd 0]
        [ [(fn [params])
@@ -350,12 +350,12 @@ dungeon's boxes if it were placed at that orientation and offset"
            grid-size (first (filter #(> % max-dimension)
                                     (iterate #(* 2 %) 1)))
            rotated-dungeon (rotate-dungeon dungeon orientation)
-           min-x (dungeon-min-x dungeon)
-           min-y (dungeon-min-y dungeon)
-           min-z (dungeon-min-z dungeon)]
+           min-x (dungeon-min-x rotated-dungeon)
+           min-y (dungeon-min-y rotated-dungeon)
+           min-z (dungeon-min-z rotated-dungeon)]
        (map (fn [ [x y z] ]
               [(+ x xd) (+ y yd) (+ z zd)])
-            (filter #(point-in-dungeon dungeon %)
+            (filter #(point-in-dungeon rotated-dungeon %)
                     (map (fn [ [x y z] ]
                            [(+ x min-x)
                             (+ y min-y)
@@ -408,7 +408,7 @@ reachable, or nil on failure"
                                      seed salt salt2 2)))
                  z0 (+ 2 (int (srand (- (zone-z-size zone) 10)
                                      seed salt salt2 3)))
-                 orientation 1          ; (srand 4 seed salt salt2 4)
+                 orientation 2          ; (srand 4 seed salt salt2 4)
                  ]
              (cond (every? (fn [ [x y z]]
                              ( #{:air}
