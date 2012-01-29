@@ -1,7 +1,8 @@
 (ns mcmap.dungeon
   (:use mcmap.core
         mcmap.srand
-        mcmap.cavern))
+        mcmap.cavern
+        mcmap.octree))
 
 (def +dungeon-placement-retries+ 1000)
 
@@ -393,7 +394,7 @@ if placement failed too many times"
              (recur (dec retries))
              nil)))))
 
-(let [air-check-seq (filter #(every? (partial > 7) %)
+(let [air-check-seq (filter #(every? (partial > 5) %)
                             (space-filling-seq 8))]
   (defn air-finder
     "Takes a zone and returns a pick-place-fn for find-place-for-dungeon
@@ -402,18 +403,18 @@ reachable, or nil on failure"
     ([zone]
        (fn [seed salt]
          (loop [salt2 +air-finder-retries+]
-           (let [x0 (+ 2 (int (srand (- (zone-x-size zone) 10)
+           (let [x0 (+ 3 (int (srand (- (zone-x-size zone) 10)
                                      seed salt salt2 1)))
-                 y0 (+ 2 (int (srand (- (zone-y-size zone) 10)
+                 y0 (+ 8 (int (srand (- (zone-y-size zone) 16)
                                      seed salt salt2 2)))
-                 z0 (+ 2 (int (srand (- (zone-z-size zone) 10)
+                 z0 (+ 3 (int (srand (- (zone-z-size zone) 10)
                                      seed salt salt2 3)))
                  orientation (int (srand 4 seed salt salt2 4))]
              (cond (every? (fn [ [x y z]]
                              ( #{:air}
                                (zone-lookup zone (+ x x0) (+ y y0) (+ z z0))))
                            air-check-seq)
-                     [(inc x0) (inc y0) (inc z0) orientation]
+                     [x0 y0 z0 orientation]
                    (pos? salt2)
                      (recur (dec salt2))
                    :else
@@ -519,10 +520,10 @@ reachable"
            max-z (* chunks +chunk-side+)
            [epic-zone start-x start-z]
                  (epic-cave-network 15 max-x max-z seed)
-           dunhalls (map place-dungeon-in-caves
-                         (repeat epic-zone)
-                         (map #(long (srand +seed-max+ seed 5516 %))
-                              (range 20)))
+           dunhalls (pmap place-dungeon-in-caves
+                          (repeat epic-zone)
+                          (map #(long (srand +seed-max+ seed 5516 %))
+                               (range 100)))
            dungeons (map first dunhalls)
            hallways (map second dunhalls)
            _ (msg 3 "Placing dungeons ...")
