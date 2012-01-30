@@ -415,7 +415,13 @@ reachable, or nil on failure"
                              ( #{:air}
                                (zone-lookup zone (+ x x0) (+ y y0) (+ z z0))))
                            air-check-seq)
-                     [x0 y0 z0 orientation]
+                     (let [ [x-offset z-offset]
+                              (case orientation
+                                    0 [0 0]
+                                    1 [7 0]
+                                    2 [0 7]
+                                    3 [0 0])]
+                       [(+ x0 x-offset) y0 (+ z0 z-offset) orientation])
                    (pos? salt2)
                      (recur (dec salt2))
                    :else
