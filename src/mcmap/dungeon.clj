@@ -236,7 +236,7 @@ no :zone"
            in-z (zone-z-size zone)]
        (p-gen-mcmap-zone in-z in-y in-x
          (fn [x y z]
-           (rotate-block 2 (zone-lookup zone (dec (- in-x z)) y x)))))))
+           (rotate-block 3 (zone-lookup zone (dec (- in-x z)) y x)))))))
 
 (defn rotate-zone
   "Takes a zone and an orientation (a number of clockwise-from-overhead
