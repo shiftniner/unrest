@@ -157,3 +157,45 @@ region"
              (or (contents-intersecting? oct x0 y0 z0 x1 y1 z1)
                  (some #(oct-any-intersecting? % x0 y0 z0 x1 y1 z1)
                        (:nodes oct)))))))))
+
+(defn- intersecting-contents
+  ([oct x0 y0 z0 x1 y1 z1]
+     (let [contents (:contents oct)]
+       (map :o
+            (filter (fn [ {cx0 :x0, cy0 :y0, cz0 :z0,
+                           cx1 :x1, cy1 :y1, cz1 :z1} ]
+                      (and (> x1 cx0)
+                           (> y1 cy0)
+                           (> z1 cz0)
+                           (< x0 cx1)
+                           (< y0 cy1)
+                           (< z0 cz1)))
+                    contents)))))
+
+(defn oct-intersecting
+  "Given an octree and two coordinates defining a cuboid region,
+returns any contents of the octree intersecting the region"
+  ([oct x0 y0 z0 x1 y1 z1]
+     (when oct
+       (if (or (<= x1 (:x0 oct))
+               (<= y1 (:y0 oct))
+               (<= z1 (:z0 oct)))
+         nil
+         (let [size (:size oct)
+               oct-x1 (+ size (:x0 oct))
+               oct-y1 (+ size (:y0 oct))
+               oct-z1 (+ size (:z0 oct))]
+           (if (or (>= x0 oct-x1)
+                   (>= y0 oct-y1)
+                   (>= z0 oct-z1))
+             nil
+             (concat (intersecting-contents oct x0 y0 z0 x1 y1 z1)
+                     (mapcat #(oct-intersecting % x0 y0 z0 x1 y1 z1)
+                             (:nodes oct)))))))))
+
+(defn oct-lookup
+  "Given an octree and a point, return a seq of all contents
+of the octree overlapping that point"
+  ([oct x y z]
+     (oct-intersecting oct x y z (inc x) (inc y) (inc z))))
+

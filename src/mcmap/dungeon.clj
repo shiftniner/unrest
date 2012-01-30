@@ -97,41 +97,42 @@ moved to that position"
                    :z0 (+ (:z0 %) zd))
                 (rest dungeon)))))
 
-(defn maybe-dungeon-lookup
-  "Takes a structure containing any number of dungeons, and x, y, and
-z coordinates, and returns the zone element at that point, which will
-be nil for any point that is not inside any dungeon"
-  ([dungeons x y z]
+(defn maybe-multibox-lookup
+  "Takes a seq of boxes, and x, y, and z coordinates, and returns the
+zone element at that point, which will be nil for any point that is
+not inside any box"
+  ([boxes x y z]
      (some #(maybe-box-lookup % x y z)
-           (mapcat rest dungeons))))
+           boxes)))
 
 (defn place-dungeons
-  "Takes a zone and a seq of dungeons, and returns the zone with the
-dungeons placed in it"
+  "Takes a zone, a seq of dungeons, and a seq of hallways, and returns
+the zone with the dungeons placed in it"
   ;; Might be better to have this return a fn for gen-mcmap[-zone]
-  ([zone dungeons]
-     (p-gen-mcmap-zone (zone-x-size zone)
-                       (zone-y-size zone)
-                       (zone-z-size zone)
-        (fn [x y z]
-          (or (maybe-dungeon-lookup dungeons x y z)
-              (zone-lookup zone x y z))))))
-
-(defn place-hallways
-  "Takes a zone and a seq of dungeons defining hallways, and returns
-the zone with the hallways placed in it, only replacing non-air blocks
-in the zone"
-  ;; Might be better to have this return a fn for gen-mcmap[-zone]
-  ([zone dungeons]
-     (p-gen-mcmap-zone (zone-x-size zone)
-                       (zone-y-size zone)
-                       (zone-z-size zone)
-        (fn [x y z]
-          (let [ze (zone-lookup zone x y z)]
-            (if (= ze :air)
-              :air
-              (or (maybe-dungeon-lookup dungeons x y z)
-                  ze)))))))
+  ([zone dungeons hallways]
+     (let [dungeon-tree (octree (zone-x-size zone) 8)
+           hallway-tree (octree (zone-x-size zone) 8)
+           dungeon-tree (reduce (fn [oct box]
+                                  (oct-assoc-box oct box))
+                                dungeon-tree
+                                (mapcat rest dungeons))
+           hallway-tree (reduce (fn [oct box]
+                                  (oct-assoc-box oct box))
+                                hallway-tree
+                                (mapcat rest hallways))]
+       (p-gen-mcmap-zone (zone-x-size zone)
+                         (zone-y-size zone)
+                         (zone-z-size zone)
+         (fn [x y z]
+           (let [ze (zone-lookup zone x y z)]
+             (if-let [hze (and (not= ze :air)
+                               (maybe-multibox-lookup
+                                (oct-lookup hallway-tree x y z) x y z))]
+               hze
+               (if-let [dze (maybe-multibox-lookup
+                             (oct-lookup dungeon-tree x y z) x y z)]
+                 dze
+                 ze))))))))
 
 (defn round-to-chunk-size
   ([n]
@@ -431,8 +432,6 @@ placed-hallway]; throws an exception if placement failed"
                                        seed)
            _ (when-not dun-x
                (throw (RuntimeException. "find-place-for-dungeon failed")))
-           _ (println "place: " dun-x dun-y dun-z "orient" orientation
-                      "hall" hx hy hz)
            placed-dungeon (translate-dungeon (rotate-dungeon dungeon
                                                              orientation)
                                              (+ dun-x hx)
@@ -546,21 +545,21 @@ reachable"
            max-z (* chunks +chunk-side+)
            [epic-zone start-x start-z]
                  (epic-cave-network 15 max-x max-z seed)
+           _ (msg 3 "Finding dungeons ...")
            excess-dunhalls (pmap place-dungeon-in-caves
                                  (repeat epic-zone)
                                  (map #(long (srand +seed-max+ seed
                                                     5516 %))
                                       (range 1000)))
-           dunhalls (take 20 (non-intersecting-dunhalls excess-dunhalls
+           dunhalls (take 64 (non-intersecting-dunhalls excess-dunhalls
                                                         max-x))
            dungeons (map first dunhalls)
            hallways (map second dunhalls)
-           _ (msg 3 "Placing dungeons ...")
            _ (doseq [d dungeons]
                ( (first d) nil))
-           epic-zone (place-dungeons epic-zone dungeons)
-           _ (msg 3 "Placing hallways ...")
-           epic-zone (place-hallways epic-zone hallways)
+           _ (msg 3 (str "Got " (count dungeons) " dungeons"))
+           _ (msg 3 "Placing dungeons and hallways ...")
+           epic-zone (place-dungeons epic-zone dungeons hallways)
            _ (msg 3 "Adding bedrock ...")
            bedrock-generator (fn [x y z]
                                (let [ze (zone-lookup epic-zone x y z)
@@ -577,17 +576,19 @@ reachable"
            generator (fn [x y z]
                        (let [ze (zone-lookup epic-zone x y z)
                              neighbors (neighbors-of epic-zone x y z)]
-                         (if (or (zero? x) (zero? z)
-                                 (= x-bound x) (= z-bound z))
-                           (mc-block :bedrock)
-                           (case ze
-                                 :bedrock
-                                   (if (every? #(= :bedrock %) neighbors)
-                                     (mc-block :lava-source)
-                                     :bedrock)
-                                 :air (mc-block :air)
-                                 :ground (mc-block :sandstone)
-                                 ze))))]
+                         (cond (or (zero? x) (zero? z)
+                                   (= x-bound x) (= z-bound z))
+                                 (mc-block :bedrock)
+                               :else
+                                 (case ze
+                                       :bedrock
+                                       (if (every? #(= :bedrock %)
+                                                   neighbors)
+                                         (mc-block :lava-source)
+                                         :bedrock)
+                                       :air (mc-block :air)
+                                       :ground (mc-block :sandstone)
+                                       ze))))]
        (println "Start is x=" start-x " z=" start-z)
        (generic-map-maker chunks chunks generator))))
 
