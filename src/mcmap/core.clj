@@ -102,6 +102,10 @@ item"
   ([zone x y z]
      ( ( (zone x) z) y )))
 
+(defn all-zone-elements
+  ([zone]
+     (flatten zone)))
+
 (defn gen-mcmap-zone
   "Takes x and z dimensions (or x, y, and z dimensions), and a
 function of x y and z returning a block, and returns a zone of the
