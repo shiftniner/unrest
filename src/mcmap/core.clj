@@ -626,7 +626,6 @@ data in the given byte buffer"
                         (tag-byte "TerrainPopulated" 1) ]) ])]
        {:x chunk-x
         :z chunk-z
-        :data data
         :compressed-data (zlib-compress data)})))
 
 (defn mcmap-to-chunks
