@@ -2,6 +2,14 @@
   (:use mcmap.core
         mcmap.srand))
 
+(def ^:dynamic *min-spiral-radius* 8)
+(def ^:dynamic *max-spiral-radius* 1/2)
+(def ^:dynamic *base-width* 3)
+(def ^:dynamic *width-mul* 6)
+(def ^:dynamic *num-caves* 15)
+(def ^:dynamic *turn-rate* 1)
+(def ^:dynamic *edge-distance-fudge-factor* 5/12)
+
 (defn in-cave?-fn
   "Takes a cave-params hash (see random-cave for an example) or a seq
 of cave-params hashes, and returns a fn of x y z that returns true if
@@ -184,8 +192,11 @@ in {:layered-cave-params (cp-seq cp-seq ...) form}"
      (loop [salt 0]
        (let [x0 (* x-max (srand 1 seed salt 1))
              z0 (* z-max (srand 1 seed salt 2))
-             radius (+ 8 (srand (+ -8 (* 1/2 (min x-max z-max)))
-                                seed salt 3))]
+             radius (+ *min-spiral-radius*
+                       (srand (- (* *max-spiral-radius*
+                                    (min x-max z-max))
+                                 *min-spiral-radius*)
+                              seed salt 3))]
          (if (and (> (- x0 radius) 5)
                   (> (- z0 radius) 5)
                   (> x-max (+ x0 radius 5))
@@ -196,10 +207,12 @@ in {:layered-cave-params (cp-seq cp-seq ...) form}"
             :max-y 128
             :radius radius
             :turn-rate (if (> 0.5 (srand 1 seed salt 4))
-                         -1 1)
+                         (- *turn-rate*) *turn-rate*)
             :theta-offset (srand (* Math/PI 2) seed salt 5)
             :width-offset (srand (* Math/PI 2) seed salt 6)
             :width-rate (+ 3.5 (srand 3 seed salt 7))
+            :base-width *base-width*
+            :width-mul *width-mul*
             :twistiness (* (srand 1 seed salt 8)
                            (srand 1 seed salt 9)
                            (srand 1 seed salt 10))}
@@ -223,11 +236,15 @@ twisting the given cave-params at the given y"
 (defn can-twist?
   ([cave-params y x-max z-max]
      (let [ [x0 z0] (twist-new-center cave-params y)
-            radius (:radius cave-params)]
-       (and (> (- x0 radius) 5)
-            (> (- z0 radius) 5)
-            (> x-max (+ x0 radius 5))
-            (> z-max (+ z0 radius 5))))))
+            radius (:radius cave-params)
+            width-mul (:width-mul cave-params)
+            base-width (:base-width cave-params)
+            min-distance (* width-mul (dec base-width)
+                            *edge-distance-fudge-factor*)]
+       (and (> (- x0 radius) min-distance)
+            (> (- z0 radius) min-distance)
+            (> x-max (+ x0 radius min-distance))
+            (> z-max (+ z0 radius min-distance))))))
 
 (defn split-cave
   "Vertically segments a cave-params (which must be a single hash)
@@ -481,8 +498,6 @@ except for caves with openings near the middle."
            max-z (* z-chunks +chunk-side+)]
        (generic-map-maker x-chunks z-chunks
                           (dark-cave-generator cave-params)))))
-
-(def ^:dynamic *num-caves* 15)
 
 (defn cave-exercise-6
   ([x-chunks z-chunks]
