@@ -77,6 +77,21 @@ extent of the dungeon along that axis"
 (defn dungeon-min-y ([dungeon] (dungeon-min y dungeon)))
 (defn dungeon-min-z ([dungeon] (dungeon-min z dungeon)))
 
+(defn dungeon-x-extent
+  ([dungeon]
+     (- (dungeon-max-x dungeon)
+        (dungeon-min-x dungeon))))
+
+(defn dungeon-y-extent
+  ([dungeon]
+     (- (dungeon-max-y dungeon)
+        (dungeon-min-y dungeon))))
+
+(defn dungeon-z-extent
+  ([dungeon]
+     (- (dungeon-max-z dungeon)
+        (dungeon-min-z dungeon))))
+
 (defn dungeon-max-extent
   ([dungeon]
      (max (- (dungeon-max-x dungeon)
@@ -88,7 +103,7 @@ extent of the dungeon along that axis"
 
 (defn translate-dungeon
   "Takes a dungeon and x, y, and z deltas, and returns the dungeon
-moved to that position"
+translated by that vector"
   ([dungeon xd yd zd]
      (cons (first dungeon)
            (map #(assoc %
@@ -182,10 +197,22 @@ count (default 64), and returns a chest block full of that item"
         :xd zd, :yd yd, :zd xd})))
 
 (def +rotate-face-90+
-     {:north :east
-      :east  :south
-      :south :west
-      :west  :north})
+     {:north           :east
+      :north-northeast :east-southeast
+      :northeast       :southeast
+      :east-northeast  :south-southeast
+      :east            :south
+      :east-southeast  :south-southwest
+      :southeast       :southwest
+      :south-southeast :west-southwest
+      :south           :west
+      :south-southwest :west-northwest
+      :southwest       :northwest
+      :west-southwest  :north-northwest
+      :west            :north
+      :west-northwest  :north-northeast
+      :northwest       :northeast
+      :north-northwest :east-northeast})
 
 (defn rotate-block
   ([rotation ze]
