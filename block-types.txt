@@ -65,7 +65,7 @@
 103   Melon    {:freq 1, :br 5, :props [:drops-item :food]}
 105   Melon Stem D    {:freq 1, :br 0, :props [:weird]}
 52   Monster Spawner T    {:freq 1, :br 25, :props [:cannot-collect :harmful] :tile ["Enderman" "Zombie" "PigZombie" "Silverfish"]}
-52   Monster Spawner T    {:freq 1, :br 25, :props [:cannot-collect :deadly] :tile ["Spider" "Skeleton" "Giant" "Ghast" "CaveSpider"]}
+52   Monster Spawner T    {:freq 1, :br 25, :props [:cannot-collect :deadly] :tile ["Spider" "Skeleton" "Ghast" "CaveSpider"]}
 52   Monster Spawner T    {:freq 1, :br 25, :props [:cannot-collect :deadly :explosive] :tile ["Creeper"]}
 52   Monster Spawner T    {:freq 1, :br 25, :props [:cannot-collect :renewable-food] :tile ["Cow" "Chicken" "Pig"]}
 52   Monster Spawner T    {:freq 1, :br 25, :props [:cannot-collect] :tile ["Sheep" "Wolf"]}
