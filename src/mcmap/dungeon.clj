@@ -120,6 +120,13 @@ not inside any box"
      (some #(maybe-box-lookup % x y z)
            boxes)))
 
+(defn maybe-dungeon-lookup
+  "Takes a dungeon, and x, y, and z coordinates, and returns the zone
+element at that point, which will be nil for any point that is not
+inside the dungeon"
+  ([dungeon x y z]
+     (maybe-multibox-lookup (rest dungeon) x y z)))
+
 (defn place-dungeons
   "Takes a zone, a seq of dungeons, and a seq of hallways, and returns
 the zone with the dungeons placed in it"

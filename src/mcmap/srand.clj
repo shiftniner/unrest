@@ -50,6 +50,11 @@ long seed for srand"
                               16)
               (hash (partition 1 2 (drop 1 s))))))
 
+(defn reseed
+  "Takes a seed and some salts and returns a new seed"
+  ([seed & salts]
+     (long (apply srand +seed-max+ seed salts))))
+
 (defn snorm
   "Returns a Gaussian deviate with the given mean, standard deviation,
 and optional minimum and maximum (by rejecting values outside the

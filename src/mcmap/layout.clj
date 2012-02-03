@@ -1,16 +1,22 @@
 (ns mcmap.layout
   (:use mcmap.core
-        mcmap.dungeon))
+        mcmap.dungeon
+        mcmap.srand))
 
-(defn fbox-fn
+;;; Number of blocks per z slice at which it is worthwhile to use
+;;; p-gen-mcmap-zone instead of gen-mcmap-zone.  XXX 400 is a wild
+;;; guess; experiment.
+(def +size-at-which-pmap-faster+ 400)
+
+(defn fnbox-fn
   "Given x, y, and z sizes, and a fn of x, y, z, and params, returns a
 dungeon centered at 0,0,0 with then given size and contents determined
 by then fn"
   ([x-size y-size z-size f]
      (let [zone (promise)
            generator (if (and (> x-size 1)
-                              ;; XXX 400 is a wild guess
-                              (> (* y-size z-size) 400))
+                              (> (* y-size z-size)
+                                 +size-at-which-pmap-faster+))
                        p-gen-mcmap-zone
                        gen-mcmap-zone)]
        [(fn [params]
@@ -26,12 +32,12 @@ by then fn"
 
 ;;; This is a somewhat lame macro.  It only saves one pair of parens
 ;;; and "fn".
-(defmacro fbox
+(defmacro fnbox
   "Given x, y, and z sizes, a binding vector for x, y, z, and params,
 and code, returns a dungeon centered at 0,0,0 with the given size and
 with contents determined by evaluating the code at each coordinate"
   ([x-size y-size z-size binding-vector & body]
-     `(fbox-fn ~x-size ~y-size ~z-size
+     `(fnbox-fn ~x-size ~y-size ~z-size
                (fn ~binding-vector ~@body))))
 
 (defn box
@@ -40,7 +46,7 @@ element; default size is 1x1x1"
   ([ze]
      (box 1 1 1 ze))
   ([x-size y-size z-size ze]
-     (fbox x-size y-size z-size [_ _ _ _] ze)))
+     (fnbox x-size y-size z-size [_ _ _ _] ze)))
 
 (defn pad
   "Returns a dungeon of the given size filled with air"
@@ -66,12 +72,12 @@ alignment :high, <0 for alignment :low, and centered around =0 for
 alignment :center"
   ([axis alignment & dungeons]
      (let [ [translator dungeon-extent dungeon-min-axis]
-            {:x [#(translate-dungeon %1 %2 0 0)
-                 dungeon-x-extent dngeon-min-x]
-             :y [#(translate-dungeon %1 0 %2 0)
-                 dungeon-y-extent dngeon-min-y]
-             :z [#(translate-dungeon %1 0 0 %2)
-                 dungeon-z-extent dngeon-min-z]}
+            ({:x [#(translate-dungeon %1 %2 0 0)
+                  dungeon-x-extent dungeon-min-x]
+              :y [#(translate-dungeon %1 0 %2 0)
+                  dungeon-y-extent dungeon-min-y]
+              :z [#(translate-dungeon %1 0 0 %2)
+                  dungeon-z-extent dungeon-min-z]} axis)
             sizes (map dungeon-extent dungeons)
             total-size (reduce + sizes)
             targets (reductions + (case alignment
@@ -81,15 +87,15 @@ alignment :center"
                                 sizes)
             currents (map dungeon-min-axis dungeons)
             deltas (map - targets currents)]
-       (merge-dungeons
-        (map translator dungeons deltas)))))
+       (apply merge-dungeons
+              (map translator dungeons deltas)))))
 
 (defn stack
   "Takes any number of dungeons and stacks them (the dungeons, not
 their constituent boxes) bottom-to-top, centering the result
 vertically around y=0, and makes them a single dungeon"
   ([& dungeons]
-     (lineup :y :center dungeons)))
+     (apply lineup :y :center dungeons)))
 
 (defn htable
   "Takes any number of vectors of dungeons and arranges them in a
@@ -124,14 +130,14 @@ the given zone element; coordinates are preserved"
                                  (#{0 (dec y-size)} y)
                                  (#{0 (dec z-size)} z))
                            ze
-                           (or (maybe-multibox-lookup (rest dungeon)
-                                                      (- x min-x 1)
-                                                      (- y min-y 1)
-                                                      (- z min-z 1))
+                           (or (maybe-dungeon-lookup dungeon
+                                                     (- x min-x 1)
+                                                     (- y min-y 1)
+                                                     (- z min-z 1))
                                :air)))))))
-         :x0 min-x,  :y0 min-y,  :z0 min-z
-         :xd x-size, :yd y-size, :zd z-size
-         :zone p])))
+         {:x0 min-x,  :y0 min-y,  :z0 min-z
+          :xd x-size, :yd y-size, :zd z-size
+          :zone p}])))
 
 ;;; XXX I probably need some way of controlling which mobs are allowed
 ;;; to appear; e.g., for a map where blaze rods are an objective.  The
@@ -139,28 +145,103 @@ the given zone element; coordinates are preserved"
 
 (defn spawners
   ([x-size y-size z-size seed]
-     (fbox x-size y-size z-size [x y z params]
+     (fnbox x-size y-size z-size [x y z params]
         (let [pain (:pain params)
               h (int (+ 0.5 (snorm [(* 2 pain) 1] seed x z)))
               spawner? (< y h)]
           (if (not spawner?)
             :air
             (let [mob-num (int (snorm [(dec (* 8 pain)) 2 0 8]
-                                      seed x y z))
+                                      seed x y z 1))
                   mob ( ["Enderman" "Zombie" "PigZombie"
                          "Spider" "Skeleton" "Ghast" "Creeper"
                          "Blaze" "CaveSpider"]
                           mob-num)]
               (mc-block :mob-spawner
                         :mob mob
-                        :delay (int (* 200 (- 1 pain))))))))))
+                        :delay (int (snorm [(* 200 (- 1 pain))
+                                            50 0]
+                                           seed x y z 2)))))))))
+
+(defn dungeon-replace
+  "Takes two dungeons, returning a dungeon of the same shape as the
+first, but with blocks from the second wherever the two dungeons
+intersect"
+  ([dungeon overlay-dungeon]
+     (let [ps (repeatedly (dec (count dungeon))
+                          promise)
+           boxes (map assoc
+                      (rest dungeon)
+                      (repeat :zone)
+                      ps)]
+       (cons (fn [params]
+               ( (first dungeon) params)
+               ( (first overlay-dungeon) params)
+               (dorun
+                (map (fn [p orig-box]
+                       (let [x-size (:xd orig-box)
+                             y-size (:yd orig-box)
+                             z-size (:zd orig-box)
+                             x0 (:x0 orig-box)
+                             y0 (:y0 orig-box)
+                             z0 (:z0 orig-box)
+                             orig-zone @(:zone orig-box)
+                             generator
+                               (if (and (> x-size 1)
+                                        (> (* y-size z-size)
+                                           +size-at-which-pmap-faster+))
+                                 p-gen-mcmap-zone
+                                 gen-mcmap-zone)]
+                         (deliver p
+                           (generator x-size y-size z-size
+                             (fn [x y z]
+                               (or (maybe-dungeon-lookup overlay-dungeon
+                                                         (+ x x0)
+                                                         (+ y y0)
+                                                         (+ z z0))
+                                   (zone-lookup orig-zone x y z)))))))
+                     ps
+                     (rest dungeon))))
+             boxes))))
 
 (defn add-entrance
   "Takes a dungeon, a vector (y and z specify the position for the
 entrance, and x specifies the depth of the hole that needs to be
 punched in the dungeon), entrance sign text, and a seed, and returns a
 dungeon with an entrance added and with its location standardized"
-  ([dungeon [ex ey ez] text seed]
-     ;; XXX
-     ))
+  ([dungeon [depth ey ez] text seed]
+     (let [aligned-dungeon (translate-dungeon dungeon
+                                              0 (- ey) (- ez))
+           hole-punch (fnbox depth 7 7
+                        [x y z _]
+                        (cond (and (< x (dec depth))
+                                   (some #{0 6} [y z]))
+                                :bedrock
+                              (some #{2 3 4} [y z])
+                                :air
+                              :else
+                                nil))
+           ;; XXX - no signs, no difficulty-signifying material
+           entrance (fnbox 7 7 7
+                      [x y z _]
+                      (cond (some #{0 6} [y z])
+                            :bedrock
+                            (some #{1 5} [y z])
+                            :stone-bricks
+                            :else
+                            :air))]
+       (lineup :x :high
+               entrance
+               (dungeon-replace aligned-dungeon
+                                hole-punch)))))
+
+(defn prize-chest
+  "Returns a teensy dungeon consisting of a prize chest"
+  ([]
+     (fnbox 1 1 1 [_ _ _ params]
+            (mc-block :chest
+                      :items
+                      (inventory-list
+                       [{:id (mc-item :coal)
+                         :slot 13}])))))
 

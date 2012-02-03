@@ -9,7 +9,7 @@
 
 (defn hello-dungeon
   ([y-level seed]
-     (-> (stack (htable [(pad 1 2 7) (box (prize-chest))]
+     (-> (stack (htable [(pad 1 2 7) (prize-chest)]
                         [(pad 6 2 19)]
                         [(pad 5 2 7) (spawners 5 5 5 (reseed seed 1))]
                         [(pad 7 2 19)])
