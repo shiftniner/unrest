@@ -49,6 +49,7 @@
               :lava-flow        10
               :lava-source      11
               :wood             17
+              :glass            20
               :sandstone        24
               :wool             35
               :piston-target    36
@@ -63,6 +64,7 @@
               :wall-sign        68
               :glowstone        89
               :stone-bricks     98
+              :nether-brick     112
               }
              ze)
            (throw (RuntimeException. (str "Block ID unknown for " ze)))))))

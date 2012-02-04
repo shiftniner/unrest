@@ -35,7 +35,8 @@
                                  :cobble
                                  :iron-block
                                  :diamond-block
-                                 :stone-bricks]
+                                 :stone-bricks
+                                 :nether-brick]
                                 (repeat 255))
                     (interleave [:piston-target
                                  :water-flow
