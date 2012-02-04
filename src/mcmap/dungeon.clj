@@ -538,24 +538,33 @@ choosing the appropriate number of chunks for the given dungeon"
                    [dungeon-min-x dungeon-max-x
                     dungeon-min-y dungeon-max-y
                     dungeon-min-z dungeon-max-z]))
-     (when (or (some #(neg? (% dungeon))
-                     [dungeon-min-x dungeon-min-y dungeon-min-z])
-               (> (dungeon-max-y dungeon)
-                  +chunk-height+)
-               (some #(> (% dungeon)
-                         +region-side+)
-                     [dungeon-max-x dungeon-max-z]))
-       (throw (RuntimeException. (str "dungeon not sized or located"
-                                      " appropriately for region 0,0"))))
-     (let [x-size (round-to-chunk-size (inc (dungeon-max-x dungeon)))
-           z-size (round-to-chunk-size (inc (dungeon-max-z dungeon)))
-           _ (println "zone size: x=" x-size " z=" z-size)
-           zone (gen-mcmap-zone x-size z-size (fn [x y z] :air))
-           zone (place-dungeons zone [dungeon])
-           mcmap (gen-mcmap x-size z-size
-                            (fn [x y z]
-                              (zone-lookup zone x y z)))]
-       (mcmap-to-mcr-binary mcmap 0 0))))
+     (let [dungeon (translate-dungeon dungeon
+                                      (- (dungeon-min-x dungeon))
+                                      66
+                                      (- (dungeon-min-z dungeon)))]
+       (when (or (some #(neg? (% dungeon))
+                       [dungeon-min-x dungeon-min-y dungeon-min-z])
+                 (> (dungeon-max-y dungeon)
+                    +chunk-height+)
+                 (some #(> (% dungeon)
+                           +region-side+)
+                       [dungeon-max-x dungeon-max-z]))
+         (throw (RuntimeException. (str "dungeon not sized or located"
+                                        " appropriately for region 0,0"))))
+       (let [x-size (round-to-chunk-size (inc (dungeon-max-x dungeon)))
+             z-size (round-to-chunk-size (inc (dungeon-max-z dungeon)))
+             _ (println "zone size: x=" x-size " z=" z-size)
+             zone (gen-mcmap-zone x-size z-size
+                                  (fn [x y z]
+                                    (if (< y 65) :stone :air)))
+             zone (place-dungeons zone [dungeon] [])
+             mcmap (gen-mcmap x-size z-size
+                              (fn [x y z]
+                                (let [ze (zone-lookup zone x y z)]
+                                  (if (= :ground ze)
+                                    :sandstone
+                                    ze))))]
+         (mcmap-to-mcr-binary mcmap 0 0)))))
 
 (defn survival-map-supplies-1
   "Makes a single chunk with chests full of goodies, to be transferred
