@@ -1,5 +1,6 @@
 (ns mcmap.dungeons
   (:use mcmap.layout
+        mcmap.toolkit
         mcmap.blocks
         mcmap.core
         mcmap.srand))
