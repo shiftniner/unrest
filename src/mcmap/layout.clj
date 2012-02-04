@@ -10,7 +10,7 @@
 
 (defn fnbox-fn
   "Given x, y, and z sizes, and a fn of x, y, z, and params, returns a
-dungeon centered at 0,0,0 with then given size and contents determined
+dungeon centered at 0,0,0 with the given size and contents determined
 by then fn"
   ([x-size y-size z-size f]
      (let [zone (promise)
@@ -95,7 +95,7 @@ alignment :center"
 their constituent boxes) bottom-to-top, centering the result
 vertically around y=0, and makes them a single dungeon"
   ([& dungeons]
-     (apply lineup :y :center dungeons)))
+     (apply lineup :y :high dungeons)))
 
 (defn htable
   "Takes any number of vectors of dungeons and arranges them in a
@@ -104,7 +104,7 @@ ordered from west to east (such that the arrangement of code matches
 the map view in minutor)"
   ([& dungeon-vectors]
      (apply lineup :x :center
-            (map #(apply lineup :z :high (reverse %))
+            (map #(apply lineup :z :center (reverse %))
                  dungeon-vectors))))
 
 (defn surround
@@ -115,9 +115,9 @@ the given zone element; coordinates are preserved"
      (let [min-x (dungeon-min-x dungeon)
            min-y (dungeon-min-y dungeon)
            min-z (dungeon-min-z dungeon)
-           x-size (dungeon-x-extent dungeon)
-           y-size (dungeon-y-extent dungeon)
-           z-size (dungeon-z-extent dungeon)
+           x-size (+ 2 (dungeon-x-extent dungeon))
+           y-size (+ 2 (dungeon-y-extent dungeon))
+           z-size (+ 2 (dungeon-z-extent dungeon))
            p (promise)]
        [ (fn [params]
            (let [f (first dungeon)]
@@ -131,12 +131,12 @@ the given zone element; coordinates are preserved"
                                  (#{0 (dec z-size)} z))
                            ze
                            (or (maybe-dungeon-lookup dungeon
-                                                     (- x min-x 1)
-                                                     (- y min-y 1)
-                                                     (- z min-z 1))
+                                                     (+ x min-x -1)
+                                                     (+ y min-y -1)
+                                                     (+ z min-z -1))
                                :air)))))))
-         {:x0 min-x,  :y0 min-y,  :z0 min-z
-          :xd x-size, :yd y-size, :zd z-size
+         {:x0 (dec min-x), :y0 (dec min-y), :z0 (dec min-z)
+          :xd x-size,      :yd y-size,      :zd z-size
           :zone p}])))
 
 ;;; XXX I probably need some way of controlling which mobs are allowed
@@ -214,22 +214,28 @@ dungeon with an entrance added and with its location standardized"
                                               0 (- ey) (- ez))
            hole-punch (fnbox depth 7 7
                         [x y z _]
-                        (cond (and (< x (dec depth))
-                                   (some #{0 6} [y z]))
-                                :bedrock
-                              (some #{2 3 4} [y z])
-                                :air
+                        (cond (some #{0 6} [y z])
+                                (if (< x (dec depth))
+                                  :bedrock
+                                  nil)
+                              (some #{1 5} [y z])
+                                :stone-bricks
                               :else
-                                nil))
+                                :air))
+           hole-punch (translate-dungeon hole-punch
+                         (- (dungeon-min-x aligned-dungeon)
+                            (dungeon-min-x hole-punch))
+                         0
+                         0)
            ;; XXX - no signs, no difficulty-signifying material
            entrance (fnbox 7 7 7
                       [x y z _]
                       (cond (some #{0 6} [y z])
-                            :bedrock
+                              :bedrock
                             (some #{1 5} [y z])
-                            :stone-bricks
+                              :stone-bricks
                             :else
-                            :air))]
+                              :air))]
        (lineup :x :high
                entrance
                (dungeon-replace aligned-dungeon
