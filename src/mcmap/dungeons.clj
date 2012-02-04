@@ -9,15 +9,15 @@
 
 (defn hello-dungeon
   ([y-level seed]
-     (-> (stack (htable [(pad 1 2 7) (prize-chest)]
+     (-> (stack (htable [(pad 7 2 19)]
+                        [(spawners 5 5 5 (reseed seed 1))]
                         [(pad 6 2 19)]
-                        [(pad 5 2 7) (spawners 5 5 5 (reseed seed 1))]
-                        [(pad 7 2 19)])
+                        [(prize-chest)])
                 (pad 19 14 19))
          (surround :nether-brick)
          (surround :bedrock)
          (surround :ground)
-         (add-entrance [3 2 2]
+         (add-entrance [3 2 0]
                        "Hello, Dungeon"
                        (reseed seed 2)))))
 
