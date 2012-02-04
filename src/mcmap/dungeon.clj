@@ -127,13 +127,25 @@ inside the dungeon"
   ([dungeon x y z]
      (maybe-multibox-lookup (rest dungeon) x y z)))
 
+(defn render-dungeon
+  "Takes an unrendered dungeon, renders it, and returns it"
+  ([dungeon params]
+     ( (first dungeon) params)
+     dungeon))
+
 (defn place-dungeons
   "Takes a zone, a seq of dungeons, and a seq of hallways, and returns
 the zone with the dungeons placed in it"
   ;; Might be better to have this return a fn for gen-mcmap[-zone]
   ([zone dungeons hallways]
-     (let [dungeon-tree (octree (zone-x-size zone) 8)
-           hallway-tree (octree (zone-x-size zone) 8)
+     (let [zone-size (max (zone-x-size zone)
+                          (zone-z-size zone)
+                          (zone-y-size zone))
+           octree-size (first (filter #(>= % zone-size)
+                                      (iterate (partial * 2)
+                                               8)))
+           dungeon-tree (octree octree-size 8)
+           hallway-tree (octree octree-size 8)
            dungeon-tree (reduce (fn [oct box]
                                   (oct-assoc-box oct box))
                                 dungeon-tree
