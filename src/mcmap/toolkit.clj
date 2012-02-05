@@ -1,5 +1,6 @@
 (ns mcmap.toolkit
   (:use mcmap.core
+        mcmap.blocks
         mcmap.dungeon
         mcmap.srand
         mcmap.layout))
@@ -38,6 +39,23 @@
                        [{:id (mc-item :coal)
                          :slot 13}])))))
 
+(defn format-signs
+  "Given a :face direction, some text (see sign-wrap-text for format
+details), and an optional third argument specifying :sign-posts rather
+than the default :wall-signs, returns a vector of sign blocks (with
+air blocks for any gaps) containing the wrapped and formatted text"
+  ([face text]
+     (format-signs face text :wall-sign))
+  ([face text sign-type]
+     (let [wrapped-text (sign-wrap-text text)]
+       (vec (map (fn [t]
+                   (if t
+                     (mc-block sign-type
+                               :face face
+                               :text (vec t))
+                     :air))
+                 wrapped-text)))))
+
 (defn add-entrance
   "Takes a dungeon, a vector (y and z specify the position for the
 entrance, and x specifies the depth of the hole that needs to be
@@ -62,12 +80,17 @@ dungeon with an entrance added and with its location standardized"
                          0
                          0)
            ;; XXX - no signs, no difficulty-signifying material
-           entrance (fnbox 7 7 7
+           signs (format-signs :north text)
+           entrance-length (+ 6 (count signs))
+           entrance (fnbox entrance-length 7 7
                       [x y z _]
                       (cond (some #{0 6} [y z])
                               :bedrock
                             (some #{1 5} [y z])
                               :stone-bricks
+                            (and (= [3 2] [y z])
+                                 (< 2 x (+ 3 (count signs))))
+                              (get signs (- x 3))
                             :else
                               :air))]
        (-> (lineup :x :high

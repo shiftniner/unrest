@@ -19,6 +19,6 @@
          (surround :bedrock)
          (surround :ground)
          (add-entrance [3 2 0]
-                       "Hello, Dungeon"
+                       ["" "Hello," "Dungeon"]
                        (reseed seed 2)))))
 
