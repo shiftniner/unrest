@@ -10,84 +10,6 @@
 (def +chunk-side+ 16)
 (def +chunk-height+ 128)
 
-;;; These next three fns probably belong in mcmap.blocks
-
-(defn mc-block
-  "Returns the specified block in mcmap's internal data format"
-  ([type]
-     (case type
-           :blue-wool    {:type :wool :datum 0xB}
-           :yellow-wool  {:type :wool :datum 0x4}
-           (:white-wool :wool)
-                         {:type :wool :datum 0x0}
-           :wood         {:type :wood :datum 0x0}
-           :spruce       {:type :wood :datum 0x1}
-           :birch        {:type :wood :datum 0x2}
-           :south-ladder {:type :ladder :face :south}
-           :north-ladder {:type :ladder :face :north}
-           :east-ladder  {:type :ladder :face :east}
-           :west-ladder  {:type :ladder :face :west}
-           :moss-brick    {:type :stone-bricks :datum 0x1}
-           :cracked-brick {:type :stone-bricks :datum 0x2}
-           #=(light-emitting-block-types)
-             {:type type :light (+light-levels+ type)}
-           ;; default:
-           type))
-  ([type & extra-data]
-     (apply hash-map :type type extra-data)))
-
-(defn block-id
-  "Returns the byte block ID for the given zone element"
-  ([ze]
-     (if (map? ze)
-       (block-id (or (:real-type ze)
-                     (:type ze)))
-       (or ( {:air              0
-              :stone            1
-              :cobble           4
-              :bedrock          7
-              :lava-flow        10
-              :lava-source      11
-              :wood             17
-              :glass            20
-              :sandstone        24
-              :wool             35
-              :piston-target    36
-              :iron-block       42
-              :moss-stone       48
-              :fire             51
-              :mob-spawner      52
-              :monster-spawner  52
-              :chest            54
-              :diamond-block    57
-              :ladder           65
-              :wall-sign        68
-              :glowstone        89
-              :stone-bricks     98
-              :nether-brick     112
-              }
-             ze)
-           (throw (RuntimeException. (str "Block ID unknown for " ze)))))))
-
-(defn mc-item
-  "Returns either an item ID, or [id damage], for the given inventory
-item"
-  ([type]
-     (or (case type
-               :arrow           262
-               :coal            263
-               :string          287
-               :leather         334
-               :steak           364
-               nil)
-         (let [block (mc-block type)
-               dmg (when (map? block)
-                     (:datum block))]
-           (if dmg
-             [ (block-id block)
-               dmg]
-             (block-id block))))))
-
 (defn zone-x-size
   ([zone]
      (count zone)))
@@ -461,9 +383,13 @@ tagged data"
      (if (map? ze)
        (or (:datum ze)
            (case (:type ze)
-                 (:ladder :wall-sign)
-                 ( {:south 0x2 :north 0x3 :east 0x4 :west 0x5 nil 0}
-                   (:face ze))
+                 (:ladder :wall-sign :furnace :dispenser :chest)
+                   ( {:south 0x2 :north 0x3 :east 0x4 :west 0x5 nil 0}
+                     (:face ze))
+                 (:redstone-repeater-on :redstone-repeater-off)
+                   (bit-or ( {:north 0x0 :east 0x1 :south 0x2 :west 0x3}
+                             (:face ze))
+                           (* 4 (:delay ze)))
                  0))
        0)))
 
