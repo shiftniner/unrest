@@ -316,10 +316,14 @@ a rotated dungeon"
                   promises)))))
 
 (defn pick-hallway
-  "Returns a randomly-chosen hallway (in dungeon form), and x, y, and
-z deltas from traveling through the hallway, as [hallway xd yd zd]"
+  "Given a _dungeon_ orientation (not necessarily the orientation at
+which the player will enter the hallway), seed, and salt, returns a
+randomly-chosen hallway (in dungeon form), and x, y, and z deltas from
+traveling through the hallway, as [hallway xd yd zd]"
   ([orientation seed salt]
      (let [len (int (snorm [10 10 5] seed salt))
+           ;; These blocks need to be determined at render time based
+           ;; on params
            hall-fn (fn [w y]
                      (cond (some #{0 6} [w y])
                              :ground
@@ -538,10 +542,16 @@ choosing the appropriate number of chunks for the given dungeon"
                    [dungeon-min-x dungeon-max-x
                     dungeon-min-y dungeon-max-y
                     dungeon-min-z dungeon-max-z]))
-     (let [dungeon (translate-dungeon dungeon
+     (let [[hallway hx hy hz]
+             (pick-hallway 0 (long (rand +seed-max+)) 1)
+           hallway (translate-dungeon hallway
                                       (- (dungeon-min-x dungeon))
-                                      66
-                                      (- (dungeon-min-z dungeon)))]
+                                      63
+                                      (- (dungeon-min-z dungeon)))
+           dungeon (translate-dungeon dungeon
+                                      (- hx (dungeon-min-x dungeon))
+                                      (+ hy 63)
+                                      (- hz (dungeon-min-z dungeon)))]
        (when (or (some #(neg? (% dungeon))
                        [dungeon-min-x dungeon-min-y dungeon-min-z])
                  (> (dungeon-max-y dungeon)
@@ -557,7 +567,7 @@ choosing the appropriate number of chunks for the given dungeon"
              zone (gen-mcmap-zone x-size z-size
                                   (fn [x y z]
                                     (if (< y 65) :stone :air)))
-             zone (place-dungeons zone [dungeon] [])
+             zone (place-dungeons zone [dungeon hallway] [])
              mcmap (gen-mcmap x-size z-size
                               (fn [x y z]
                                 (let [ze (zone-lookup zone x y z)]

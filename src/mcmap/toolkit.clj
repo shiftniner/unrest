@@ -70,8 +70,9 @@ dungeon with an entrance added and with its location standardized"
                               :stone-bricks
                             :else
                               :air))]
-       (lineup :x :high
-               entrance
-               (dungeon-replace aligned-dungeon
-                                hole-punch)))))
+       (-> (lineup :x :high
+                   entrance
+                   (dungeon-replace aligned-dungeon
+                                    hole-punch))
+           (translate-dungeon 0 3 3)))))
 
