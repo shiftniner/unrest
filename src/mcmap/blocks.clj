@@ -62,8 +62,6 @@
            :west-ladder  {:type :ladder :face :west}
            :moss-brick    {:type :stone-bricks :datum 0x1}
            :cracked-brick {:type :stone-bricks :datum 0x2}
-           #=(light-emitting-block-types)
-             {:type type :light (+light-levels+ type)}
            ;; default:
            type))
   ([type & extra-data]
