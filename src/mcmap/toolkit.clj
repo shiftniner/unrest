@@ -70,7 +70,9 @@ dungeon with an entrance added and with its location standardized"
                                 (if (< x (dec depth))
                                   :bedrock
                                   nil)
-                              (some #{1 5} [y z])
+                              (= y 1)
+                                :sandstone
+                              (some #{1 5} [z y])
                                 :stone-bricks
                               :else
                                 :air))
@@ -86,7 +88,9 @@ dungeon with an entrance added and with its location standardized"
                       [x y z _]
                       (cond (some #{0 6} [y z])
                               :bedrock
-                            (some #{1 5} [y z])
+                            (= y 1)
+                              :sandstone
+                            (some #{1 5} [z y])
                               :stone-bricks
                             (and (= [3 2] [y z])
                                  (< 2 x (+ 3 (count signs))))

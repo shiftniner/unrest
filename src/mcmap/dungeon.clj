@@ -1,5 +1,6 @@
 (ns mcmap.dungeon
   (:use mcmap.core
+        mcmap.blocks
         mcmap.srand
         mcmap.cavern
         mcmap.octree))
@@ -327,6 +328,8 @@ traveling through the hallway, as [hallway xd yd zd]"
            hall-fn (fn [w y]
                      (cond (some #{0 6} [w y])
                              :ground
+                           (= y 1)
+                             :sandstone
                            (some #{1 5} [w y])
                              (mc-block :moss-brick)
                            :else
