@@ -107,11 +107,16 @@ the map view in minutor)"
             (map #(apply lineup :z :center (reverse %))
                  dungeon-vectors))))
 
-(defn surround
-  "Takes a dungeon and a zone element and returns a single-box dungeon
-containing the given dungeon, bounded by walls one block thick made of
-the given zone element; coordinates are preserved"
-  ([dungeon ze]
+(defn surround-fn
+  "Takes a dungeon and a function of seven arguments (three
+coordinates, params, and three dimensions of the surrounding box)
+returning a zone element and returns a single-box dungeon containing
+the given dungeon, bounded by walls one block thick made of zone
+elements determined by the function; coordinates of the given dungeon
+are preserved"
+  ([dungeon f]
+     (surround-fn dungeon f :air))
+  ([dungeon f fill]
      (let [min-x (dungeon-min-x dungeon)
            min-y (dungeon-min-y dungeon)
            min-z (dungeon-min-z dungeon)
@@ -124,20 +129,31 @@ the given zone element; coordinates are preserved"
              (f params)
              (deliver p
                       (p-gen-mcmap-zone
-                       (+ x-size 2) (+ y-size 2) (+ z-size 2)
+                       x-size y-size z-size
                        (fn [x y z]
                          (if (or (#{0 (dec x-size)} x)
                                  (#{0 (dec y-size)} y)
                                  (#{0 (dec z-size)} z))
-                           ze
+                           (f x y z params x-size y-size z-size)
                            (or (maybe-dungeon-lookup dungeon
                                                      (+ x min-x -1)
                                                      (+ y min-y -1)
                                                      (+ z min-z -1))
-                               :air)))))))
+                               fill)))))))
          {:x0 (dec min-x), :y0 (dec min-y), :z0 (dec min-z)
           :xd x-size,      :yd y-size,      :zd z-size
           :zone p}])))
+
+(defn surround
+  "Takes a dungeon and a zone element and returns a single-box dungeon
+containing the given dungeon, bounded by walls one block thick made of
+the given zone element; coordinates are preserved"
+  ([dungeon ze]
+     (surround-fn dungeon (fn [_ _ _ _ _ _ _] ze)))
+  ([dungeon ze fill]
+     (surround-fn dungeon
+                  (fn [_ _ _ _ _ _ _] ze)
+                  fill)))
 
 (defn dungeon-replace
   "Takes two dungeons, returning a dungeon of the same shape as the
