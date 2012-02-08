@@ -70,3 +70,11 @@ should all be longs"
                         (>= n max-val)))
              (recur)
              n))))))
+
+(defn sranditem
+  "Returns an item from the given vector chosen at random"
+  ([v seed & salts]
+     (let [index (int (apply srand (count v)
+                             seed salts))]
+       (v index))))
+
