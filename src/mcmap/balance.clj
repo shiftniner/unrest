@@ -9,13 +9,15 @@
       :gold-armor        [11.75 (/ 0.56)]
       :leather-armor     [8.5   (/ 0.72)]
               ; [relative durability, shirts provided by diamond armor]
-      :helmet            [1 3/2]
-      :chestplate        [1 4]
-      :leggings          [1 3]
-      :boots             [1 3/2]})
+      :helmet            [2 3/2]
+      :chestplate        [2 4]
+      :leggings          [2 3]
+      :boots             [2 3/2]})
 
 (def +materials+ ["diamond" "iron" "chainmail" "gold" "leather"])
 (def +armor-pieces+ ["helmet" "chestplate" "leggings" "boots"])
+
+(def +max-stack-size+ 64)
 
 (def +durabilities+
      {:bow                     385
@@ -164,14 +166,15 @@ enchantment"
 
 (defn item-power
   "Given an item, returns the power of that item"
-  ([item]
+  ([params item]
      (if (keyword? item)
-       (item-power {:type item})
+       (item-power params {:type item})
        (let [{item-type :type
               enchants  :ench
               damage    :damage
               num       :count}
              item
+             power-map  (or (:power-map params) power-map)
              base-power (power-map item-type)
              durability (+durabilities+ item-type)
              dur-frac (if durability
@@ -200,7 +203,9 @@ level (regardless of any damage it might have already had)"
                     0)]
        (assoc item :damage damage))))
 
-(let [all-items (apply vector (keys power-map))]
+(let [all-items (apply vector (keys power-map))
+      swords (apply vector (filter #(.endsWith (str %) "-sword")
+                                   all-items))]
   (defn get-item
     "Takes params, a seed, and salts, and returns a single unenchanted
 item less powerful than (:reward params), along with new-params,
@@ -208,12 +213,16 @@ as [new-params item]"
     ([params seed & salts]
        (let [reward (:reward params)]
          (loop [i 0]
-           (let [item (apply sranditem all-items seed (concat salts [i 1]))
+           (let [items (if (> 0.25 (apply srand 1 seed
+                                          (concat salts [i 5])))
+                         swords
+                         all-items)
+                 item (apply sranditem items seed (concat salts [i 1]))
                  item (if (< 1/2 (apply srand 1 seed (concat salts [i 2])))
                         (damage-item item (apply srand 1 seed
                                                  (concat salts [i 3])))
                         item)
-                 power (item-power item)]
+                 power (item-power params item)]
              (cond (< power reward)
                    [(assoc params :reward (- reward power))
                     item]
@@ -222,16 +231,135 @@ as [new-params item]"
                                              :arrow :gunpowder]
                                   seed (concat salts [i 4]))]
                    :else
-                   (recur (inc i)))))))))
+                   (recur (inc i))))))))
+  (let [pickaxes (filter #(.endsWith (str %) "-pickaxe")
+                         all-items)
+        boots (filter #(.endsWith (str %) "-boots")
+                      all-items)
+        helmets (cons :leather-cap
+                      (filter #(.endsWith (str %) "-helmet")
+                              all-items))
+        armor (concat boots helmets [:leather-pants :leather-tunic]
+                      (filter #(.endsWith (str %) "-chestplate")
+                              all-items)
+                      (filter #(.endsWith (str %) "-leggings")
+                              all-items))
+        armor?   (apply hash-set armor)
+        boots?   (apply hash-set boots)
+        helmet?  (apply hash-set helmets)
+        sword?   (apply hash-set swords)
+        pickaxe? (apply hash-set pickaxes)
+        bow?     #{:bow}]
+    (defn available-enchants
+      "Takes an item and returns a vector of available enchantments
+that can be applied to the item (which may include enchantments not
+available in vanilla Minecraft for that item), and have not already
+been applied to it"
+      ([item]
+         (let [item-type (if (keyword? item) item (:type item))
+               possible-enchants
+                 (concat (when (armor? item-type)
+                           [:protection :fire-protection
+                            :blast-protection
+                            :projectile-protection
+                            :unbreaking ; XXX TEST THIS
+                            ])
+                         (when (boots? item-type)
+                           [:feather-falling])
+                         (when (helmet? item-type)
+                           [:respiration :aqua-affinity])
+                         (when (sword? item-type)
+                           [:sharpness :smite :bane-of-arthropods
+                            :knockback :fire-aspect :looting
+                            :unbreaking])
+                         (when (bow? item-type)
+                           [:power :punch :flame :infinity
+                            :unbreaking :knockback :sharpness :smite
+                            :bane-of-arthropods :knockback :fire-aspect
+                            :looting])
+                         (when (pickaxe? item-type)
+                           [:efficiency :silk-touch :unbreaking
+                            :fortune :sharpness :smite
+                            :bane-of-arthropods
+                            :knockback :fire-aspect :looting]))
+               applied-enchants (when (map? item)
+                                  (map :type (:ench item)))
+               applied-enchant? (apply hash-set applied-enchants)
+               applied-enchant? (cond (applied-enchant? :silk-touch)
+                                        (conj applied-enchant? :fortune)
+                                      (applied-enchant? :fortune)
+                                        (conj applied-enchant? :silk-touch)
+                                        :else applied-enchant?)]
+           (filter (comp not applied-enchant?)
+                   possible-enchants))))))
+
+(def max-enchant-level
+     (apply hash-map
+       (apply concat
+         (concat
+           (map #(do [% 10])
+                [:protection :fire-protection :feather-falling
+                 :blast-protection :projectile-protection
+                 :respiration :sharpness :smite :bane-of-arthropods
+                 :knockback :fire-aspect :looting :power :punch
+                 :efficiency :unbreaking :fortune])
+           (map #(do [% 1])
+                [:aqua-affinity :flame :infinity :silk-touch])))))
+
+(defn add-enchant
+  "Returns the given item with the given enchantment added"
+  ([item enchantment level]
+     (let [item (if (keyword? item)
+                  {:type item}
+                  item)
+           item (if (:ench item)
+                  item
+                  (assoc item :ench []))]
+       (assoc item
+         :ench (conj (:ench item)
+                     {:type enchantment
+                      :level level})))))
 
 (defn powerup-item
   "Takes params, an item, and a seed and salts and either increases
 the count of the item and/or adds enchantments to it to
 approach (params :reward); returns [new-params new-item]"
   ([params item seed & salts]
-     
-     ;; XXX
-     ))
+     (let [item (if (keyword? item) {:type item} item)
+           orig-p (item-power params item)
+           reward (:reward params)]
+       (if (> 0.5 (apply srand 1 seed (concat salts [1])))
+         (let [n (min (inc (int (/ reward orig-p)))
+                      +max-stack-size+)]
+           [(assoc params :reward (- reward (* orig-p (dec n))))
+            (assoc item :count n)])
+         (loop [salt2 1
+                item item
+                new-params params
+                randroll 1]
+           (if (> 0.5 randroll)
+             [new-params item]
+             (let [enchants (available-enchants item)]
+               (if (not (seq enchants))
+                 [params item]
+                 (let [enchantment (apply sranditem (vec enchants)
+                                          seed (concat salts [salt2 1]))
+                       level (int (apply srand
+                                         (max-enchant-level enchantment)
+                                         seed (concat salts [salt2 2])))
+                       powered-item (add-enchant item enchantment level)
+                       new-power (item-power params powered-item)
+                       power-added (- new-power orig-p)
+                       [new-reward item]
+                         (if (and (pos? level)
+                                  (< power-added reward))
+                           [(- reward power-added) powered-item]
+                           [(:reward new-params) item])]
+                   (recur (inc salt2)
+                          item
+                          (assoc new-params :reward new-reward)
+                          (apply srand 1 seed
+                                 (concat salts [salt2 3]))))))))))))
 
 (defn get-items
   "Returns multiple, possibly enchanted items adding up to less
@@ -241,12 +369,22 @@ than (:reward params) in total power"
                     (fn [state n]
                       (let [ [new-params item]
                              (apply get-item state seed
-                                    (concat salts [n]))]
+                                    (concat salts [n 1]))]
                         (assoc new-params
                           :items (conj (:items state)
                                        item))))
                     (assoc params :items [])
                     (range n-items))
-           ;; XXX - powerup-items here
-           ]
+           items (:items results)
+           results (reduce
+                    (fn [state n]
+                      (let [item (items n)
+                            [new-params pow-item]
+                              (apply powerup-item state item seed
+                                     (concat salts [n 2]))]
+                        (assoc new-params
+                          :items (conj (:items state)
+                                       pow-item))))
+                    (assoc results :items [])
+                    (range n-items))]
        results)))
