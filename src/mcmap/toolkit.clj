@@ -99,7 +99,7 @@ punched in the dungeon), entrance sign text, and a seed, and returns a
 dungeon with an entrance added and with its location standardized"
   ([dungeon [depth ey ez] text seed]
      (let [aligned-dungeon (translate-dungeon dungeon
-                                              0 (- 3 ey) (- ez))
+                                              0 (- 2 ey) (- ez))
            hole-punch (fnbox depth 7 7
                         [x y z _]
                         (cond (some #{0 6} [y z])

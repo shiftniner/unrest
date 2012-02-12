@@ -18,7 +18,7 @@
          (surround :nether-brick)
          (surround :bedrock)
          (surround :ground)
-         (add-entrance [3 2 0]
+         (add-entrance [3 1 0]
                        ["" "Hello," "Dungeon"]
                        (reseed seed 2)))))
 
