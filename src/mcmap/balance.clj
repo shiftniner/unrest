@@ -152,7 +152,8 @@
            :red-apple       [(+ 2   2.4) +food-value+]
            :golden-apple    [(+ 2  24)   +food-value+]
            :rotten-flesh    [(+ 2   0.8) (* 0.2 +food-value+)]
-           :spider-eye      [(+ 1   0.8) (* 1/2 +food-value+)])
+           :spider-eye      [(+ 1   0.8) (* 1/2 +food-value+)]
+           :arrow           [0.1  5])
       potions (mapcat
                (fn [ [item power]]
                  [item [1 power]])
@@ -291,7 +292,7 @@ enchantment"
               num       :count}
              item
              power-map  (or (:power-map params) power-map)
-             base-power (power-map item-type)
+             base-power (or (power-map item-type) [0.1 0.1])
              durability (+durabilities+ item-type)
              dur-frac (if durability
                         (- 1 (/ (or damage 0)
@@ -336,7 +337,7 @@ as [new-params item]"
            (let [item-type-roll (apply srand 1 seed
                                        (concat salts [i 5]))
                  items (cond (> 0.2 item-type-roll)
-                             swords
+                             (conj swords :bow)
                              (> 0.4 item-type-roll)
                              foods
                              :else
@@ -351,8 +352,7 @@ as [new-params item]"
                    [(assoc params :reward (- reward power))
                     item]
                    (< reward 0.5)
-                   [params (apply sranditem [:string :spider-eye :bone
-                                             :arrow :gunpowder]
+                   [params (apply sranditem [:string :bone :gunpowder]
                                   seed (concat salts [i 4]))]
                    :else
                    (recur (inc i))))))))
@@ -468,9 +468,9 @@ approach (params :reward); returns [new-params new-item]"
                  [params item]
                  (let [enchantment (apply sranditem (vec enchants)
                                           seed (concat salts [salt2 1]))
-                       level (int (apply srand
-                                         (max-enchant-level enchantment)
-                                         seed (concat salts [salt2 2])))
+                       level (inc (int (apply srand
+                                              (max-enchant-level enchantment)
+                                              seed (concat salts [salt2 2]))))
                        powered-item (add-enchant item enchantment level)
                        new-power (item-power params powered-item)
                        power-added (- new-power orig-p)
