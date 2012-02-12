@@ -30,42 +30,48 @@
                                             50 0]
                                            seed x y z 2)))))))))
 
+(defn prize-chest-items
+  "Returns random contents for a prize chest"
+  ([params seed]
+     (let [n-items (inc (* 2 (int (srand 14 seed 1))))
+           bad-n-items (-> n-items (- 3) (/ 6))
+           n-items (if (and (integer? bad-n-items)
+                            (pos? bad-n-items))
+                     (+ n-items (if (> 0.5 (srand 1 seed 2))
+                                  2 -2))
+                     n-items)
+           n-items (if (or (= 25 n-items)
+                           (= 29 n-items))
+                     27
+                     n-items)
+           items (cond (= n-items 1)
+                       (best-items params
+                                   (map #(get-items params n-items
+                                                    seed 3 %)
+                                        (range 5)))
+                       (= n-items 3)
+                       (best-items params
+                                   (map #(get-items params n-items
+                                                    seed 3 %)
+                                        (range 2)))
+                       :else
+                       (get-items params n-items seed 3))]
+       (sort (comparator #(> (item-power params %1)
+                             (item-power params %2)))
+             items))))
+
 (defn prize-chest
   "Returns a teensy dungeon consisting of a prize chest"
   ([seed]
      (fnbox 1 1 1 [_ _ _ params]
-       (let [n-items (inc (* 2 (int (srand 14 seed 1))))
-             bad-n-items (-> n-items (- 3) (/ 6))
-             n-items (if (and (integer? bad-n-items)
-                              (pos? bad-n-items))
-                       (+ n-items (if (> 0.5 (srand 1 seed 2))
-                                    2 -2))
-                       n-items)
-             n-items (if (or (= 25 n-items)
-                             (= 29 n-items))
-                       27
-                       n-items)
-             items (cond (= n-items 1)
-                           (best-items params
-                                       (map #(get-items params n-items
-                                                        seed 3 %)
-                                            (range 5)))
-                         (= n-items 3)
-                           (best-items params
-                                       (map #(get-items params n-items
-                                                        seed 3 %)
-                                            (range 2)))
-                         :else
-                           (get-items params n-items seed 3))
-             items (sort (comparator #(> (item-power params %1)
-                                         (item-power params %2)))
-                         items)
-             items (map balance-item-to-inventory-item items)]
+       (let [items (or (:prize params)
+                       (prize-chest-items params seed))
+             inv-list (map balance-item-to-inventory-item items)]
          (mc-block :chest
                    :items
                    (inventory-list
                     (map #(assoc %1 :slot %2)
-                         items
+                         inv-list
                          [13, 14 12, 4 22, 15 11, 5 3 23 21, 16 10,
                           6 2 24 20, 17 9, 7 1 25 19, 8 0 26 18])))))))
 
@@ -93,7 +99,7 @@ punched in the dungeon), entrance sign text, and a seed, and returns a
 dungeon with an entrance added and with its location standardized"
   ([dungeon [depth ey ez] text seed]
      (let [aligned-dungeon (translate-dungeon dungeon
-                                              0 (- ey) (- ez))
+                                              0 (- 3 ey) (- ez))
            hole-punch (fnbox depth 7 7
                         [x y z _]
                         (cond (some #{0 6} [y z])
@@ -131,5 +137,5 @@ dungeon with an entrance added and with its location standardized"
                    entrance
                    (dungeon-replace aligned-dungeon
                                     hole-punch))
-           (translate-dungeon 0 3 3)))))
+           (translate-dungeon 0 0 3)))))
 
