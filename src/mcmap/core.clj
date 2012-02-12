@@ -465,9 +465,10 @@ TAG_Compound called \"tag\", which can be used as a property on an
 inventory item"
   ([enchs]
      (tag-compound "tag"
-        (tag-list "ench" 10
-                  (map #(tag-compound (tag-short "id" (:id %))
-                                      (tag-short "lvl" (:lvl %))))))))
+        [ (tag-list "ench" 10
+                    (map #(tag-compound [ (tag-short "id" (:id %))
+                                          (tag-short "lvl" (:lvl %))])
+                         enchs))])))
 
 (defn inventory-list
   "Takes a seq of items defined as {:id block-or-item-id, :damage

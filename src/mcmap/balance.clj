@@ -523,6 +523,36 @@ collection"
                                                  (repeat params) %2))))
                   items-seqs))))
 
+(let [enchant-ids
+      {:protection                      0
+       :fire-protection                 1
+       :feather-falling                 2
+       :blast-protection                3
+       :projectile-protection           4
+       :respiration                     5
+       :aqua-affinity                   6
+       :sharpness                       16
+       :smite                           17
+       :bane-of-arthropods              18
+       :knockback                       19
+       :fire-aspect                     20
+       :looting                         21
+       :efficiency                      32
+       :silk-touch                      33
+       :unbreaking                      34
+       :fortune                         35
+       :power                           48
+       :punch                           49
+       :flame                           50
+       :infinity                        51}]
+  (defn convert-enchantment
+    "Takes a single enchantment as would be added to an item by
+add-enchant, and returns the same enchantment in the format expected
+by inventory-list"
+    ([ench]
+       {:id (enchant-ids (:type ench))
+        :lvl (:level ench)})))
+
 (defn balance-item-to-inventory-item
   "Takes an item as would be returned by get-item or get-items, and
 returns an item compatible with the inventory-list function"
@@ -541,7 +571,11 @@ returns an item compatible with the inventory-list function"
                         0))
            count (or (and (map? item)
                           (:count item))
-                     1)]
+                     1)
+           ench (when (and (map? item)
+                           (:ench item))
+                  (map convert-enchantment (:ench item)))]
        {:id item-id
         :damage damage
-        :count count})))
+        :count count
+        :ench ench})))
