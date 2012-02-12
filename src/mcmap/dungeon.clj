@@ -500,6 +500,10 @@ placed-hallway]; throws an exception if placement failed"
        [placed-dungeon placed-hallway])))
 
 (defn non-intersecting-dunhalls
+  "Takes a seq of dungeon/hallway pairs -- ideally a lazy and fairly
+long but NOT infinite seq -- and returns a lazy seq of dunhalls that
+do not intersect with each other by filtering out those that overlap
+with earlier-returned dunhalls"
   ([dunhalls size]
      (non-intersecting-dunhalls dunhalls nil (octree size 8)))
   ([dunhalls _ returned]

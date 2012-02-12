@@ -4,7 +4,9 @@
 ;;; CAUTION: I threw this together pretty quickly on a seat-of-the-
 ;;; pants design, so it is probably deeply flawed as a PRNG, but it
 ;;; seems to produce at least superficially decent-looking results
-;;; when used correctly.
+;;; when used correctly.  (And in fact I have found that consecutive
+;;; outputs of #(srand 1 s1...sN %) for any series of seeds and salts
+;;; s1...sN have a slight but statistically significant correlation.)
 
 ;;; Correct usage is to generate pseudorandom sequences by
 ;;; incrementing a salt, NOT by using value n as the seed to produce

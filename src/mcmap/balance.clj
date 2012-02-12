@@ -1,5 +1,6 @@
 (ns mcmap.balance
-  (:use mcmap.srand))
+  (:use mcmap.srand
+        mcmap.blocks))
 
 (def metaarmor
               ; [relative durability, relative damage survivable]
@@ -18,6 +19,7 @@
 (def +armor-pieces+ ["helmet" "chestplate" "leggings" "boots"])
 
 (def +max-stack-size+ 64)
+(def +food-value+ 3)
 
 (def +durabilities+
      {:bow                     385
@@ -99,8 +101,15 @@
                                        :iron-boots 4 :bucket 3)
                   :leather (alt-val pm :leather-cap 5 :leather-tunic 8
                                     :leather-pants 7 :leather-boots 4)
+                  ;; Crafting, and therefore wood, is now overpowered,
+                  ;; since mobs drop iron.  I picked 100 as an
+                  ;; arbitrary fairly-large number; once you craft a
+                  ;; workbench you can make 100 buckets or chestplates
+                  ;; or swords before getting bored with the game.
                   :wood-plank (alt-val pm :wood-sword 2.5
-                                       :bow 3/2))
+                                       :bow 3/2 :bucket 4/100
+                                       :iron-chestplate 4/100
+                                       :iron-sword 4/100))
              pm (assoc pm
                   :gold-block    [1 (* 9 (power pm :gold-ingot))]
                   :diamond-block [1 (* 9 (power pm :diamond   ))]
@@ -120,8 +129,115 @@
            :gold-pickaxe    [3.3   4]
            :wood-pickaxe    [6     3]
            :bucket          [2000  4]
-           :bow             [38.5  4.5])]
-  (def power-map (derive-material-vals pm)))
+           :bow             [38.5  4.5]
+           :tnt             [0.1   20]
+           :flint-and-steel [6.5   4]
+           :ice             [1     100]
+           :redstone        [3     1]
+           :button          [10    5]
+           :wood-pressure-plate [5 5]
+           :bread           [(+ 2.5 6)   +food-value+]
+           :cake            [(+ 6   2.4) +food-value+]
+           :cookie          [(+ 0.5 0.2) +food-value+]
+           :melon-slice     [(+ 1   1.2) +food-value+]
+           :mushroom-soup   [(+ 4   9.6) +food-value+]
+           :raw-chicken     [(+ 1   1.2) (* 0.7 +food-value+)]
+           :cooked-chicken  [(+ 3   7.2) +food-value+]
+           :raw-beef        [(+ 1.5 1.8) +food-value+]
+           :steak           [(+ 4  12.8) +food-value+]
+           :raw-porkchop    [(+ 1.5 1.8) +food-value+]
+           :cooked-porkchop [(+ 4  12.8) +food-value+]
+           :raw-fish        [(+ 1   1.2) +food-value+]
+           :cooked-fish     [(+ 2.5 6)   +food-value+]
+           :red-apple       [(+ 2   2.4) +food-value+]
+           :golden-apple    [(+ 2  24)   +food-value+]
+           :rotten-flesh    [(+ 2   0.8) (* 0.2 +food-value+)]
+           :spider-eye      [(+ 1   0.8) (* 1/2 +food-value+)])
+      potions (mapcat
+               (fn [ [item power]]
+                 [item [1 power]])
+               (concat
+                ;; Potions where all four combinations work
+                (mapcat (fn [ [base baseval]]
+                          [ [(keyword (str "potion-of-" base)) baseval]
+                            [(keyword (str "potion-of-" base "-ii"))
+                             (* 1.4 baseval)]
+                            [(keyword (str "ext-potion-of-" base))
+                             (* 2 baseval)]
+                            [(keyword (str "ext-potion-of-" base "-ii"))
+                             (* 2.8 baseval)]
+                            [(keyword (str "splash-potion-of-" base))
+                             baseval]
+                            [(keyword (str "splash-potion-of-" base
+                                           "-ii"))
+                             (* 1.4 baseval)]
+                            [(keyword (str "splash-ext-potion-of-" base))
+                             (* 2 baseval)]
+                            [(keyword (str "splash-ext-potion-of-" base
+                                           "-ii"))
+                             (* 2.8 baseval)]])
+                        [["regeneration" 150]
+                         ["swiftness" 90]
+                         ["strength" 100]])
+                ;; Potions that are only altered by time extension
+                (mapcat (fn [ [base baseval]]
+                          [ [(keyword (str "potion-of-" base)) baseval]
+                            [(keyword (str "ext-potion-of-" base))
+                             (* 2 baseval)]
+                            [(keyword (str "splash-potion-of-" base))
+                             baseval]
+                            [(keyword (str "splash-ext-potion-of-" base))
+                             (* 2 baseval)]])
+                        [["fire-resistance" 500]])
+                ;; Potions that are only altered by strengthening
+                (mapcat (fn [ [base baseval]]
+                          [ [(keyword (str "potion-of-" base)) baseval]
+                            [(keyword (str "potion-of-" base "-ii"))
+                             (* 2 baseval)]
+                            [(keyword (str "splash-potion-of-" base))
+                             baseval]
+                            [(keyword (str "splash-potion-of-" base
+                                           "-ii"))
+                             (* 2 baseval)]])
+                        [["healing" 250]])
+                ;; Splash-only (offensive) potions
+                (mapcat (fn [ [base baseval]]
+                          [ [(keyword (str "splash-potion-of-" base))
+                             baseval]
+                            [(keyword (str "splash-potion-of-" base
+                                           "-ii"))
+                             (* 1.4 baseval)]
+                            [(keyword (str "splash-ext-potion-of-" base))
+                             (* 2 baseval)]
+                            [(keyword (str "splash-ext-potion-of-" base
+                                           "-ii"))
+                             (* 2.8 baseval)]])
+                        [["poison" 80]])
+                ;; Splash-only (offensive) potions that are only
+                ;; altered by time extension
+                (mapcat (fn [ [base baseval]]
+                          [ [(keyword (str "splash-potion-of-" base))
+                             baseval]
+                            [(keyword (str "splash-ext-potion-of-" base))
+                             (* 2 baseval)]])
+                        [["weakness" 70]
+                         ["slowness" 50]])
+                ;; Splash-only (offensive) potions that are only
+                ;; altered by strengthening
+                (mapcat (fn [ [base baseval]]
+                          [ [(keyword (str "splash-potion-of-" base))
+                             baseval]
+                            [(keyword (str "splash-potion-of-" base
+                                           "-ii"))
+                             (* 2 baseval)]])
+                        [["harming" 100]])))
+      pm (apply assoc pm potions)]
+  ;; This adds ingots, diamonds, blocks, and leather, which are
+  ;; useless without a crafting table; I'm withholding crafting
+  ;; because mobs drop iron starting in MCr1.2, and much that can be
+  ;; crafted with iron is OP.
+  ;; (def power-map (derive-material-vals pm))
+  (def power-map pm))
 
 (defn enchant-value
   "Adjusts the given [longevity force] value for the given
@@ -205,7 +321,11 @@ level (regardless of any damage it might have already had)"
 
 (let [all-items (apply vector (keys power-map))
       swords (apply vector (filter #(.endsWith (str %) "-sword")
-                                   all-items))]
+                                   all-items))
+      foods [:bread :cake :cookie :melon-slice :mushroom-soup
+             :raw-chicken :cooked-chicken :raw-beef :steak
+             :raw-porkchop :cooked-porkchop :raw-fish :cooked-fish
+             :red-apple :golden-apple :rotten-flesh :spider-eye]]
   (defn get-item
     "Takes params, a seed, and salts, and returns a single unenchanted
 item less powerful than (:reward params), along with new-params,
@@ -213,10 +333,14 @@ as [new-params item]"
     ([params seed & salts]
        (let [reward (:reward params)]
          (loop [i 0]
-           (let [items (if (> 0.25 (apply srand 1 seed
-                                          (concat salts [i 5])))
-                         swords
-                         all-items)
+           (let [item-type-roll (apply srand 1 seed
+                                       (concat salts [i 5]))
+                 items (cond (> 0.2 item-type-roll)
+                             swords
+                             (> 0.4 item-type-roll)
+                             foods
+                             :else
+                             all-items)
                  item (apply sranditem items seed (concat salts [i 1]))
                  item (if (< 1/2 (apply srand 1 seed (concat salts [i 2])))
                         (damage-item item (apply srand 1 seed
@@ -258,38 +382,38 @@ been applied to it"
       ([item]
          (let [item-type (if (keyword? item) item (:type item))
                possible-enchants
-                 (concat (when (armor? item-type)
-                           [:protection :fire-protection
-                            :blast-protection
-                            :projectile-protection
-                            :unbreaking ; XXX TEST THIS
-                            ])
-                         (when (boots? item-type)
-                           [:feather-falling])
-                         (when (helmet? item-type)
-                           [:respiration :aqua-affinity])
-                         (when (sword? item-type)
-                           [:sharpness :smite :bane-of-arthropods
-                            :knockback :fire-aspect :looting
-                            :unbreaking])
-                         (when (bow? item-type)
-                           [:power :punch :flame :infinity
-                            :unbreaking :knockback :sharpness :smite
-                            :bane-of-arthropods :knockback :fire-aspect
-                            :looting])
-                         (when (pickaxe? item-type)
-                           [:efficiency :silk-touch :unbreaking
-                            :fortune :sharpness :smite
-                            :bane-of-arthropods
-                            :knockback :fire-aspect :looting]))
+               (concat (when (armor? item-type)
+                         [:protection :fire-protection
+                          :blast-protection
+                          :projectile-protection
+                          :unbreaking   ; XXX TEST THIS
+                          ])
+                       (when (boots? item-type)
+                         [:feather-falling])
+                       (when (helmet? item-type)
+                         [:respiration :aqua-affinity])
+                       (when (sword? item-type)
+                         [:sharpness :smite :bane-of-arthropods
+                          :knockback :fire-aspect :looting
+                          :unbreaking])
+                       (when (bow? item-type)
+                         [:power :punch :flame :infinity
+                          :unbreaking :knockback :sharpness :smite
+                          :bane-of-arthropods :knockback :fire-aspect
+                          :looting])
+                       (when (pickaxe? item-type)
+                         [:efficiency :silk-touch :unbreaking
+                          :fortune :sharpness :smite
+                          :bane-of-arthropods
+                          :knockback :fire-aspect :looting]))
                applied-enchants (when (map? item)
                                   (map :type (:ench item)))
                applied-enchant? (apply hash-set applied-enchants)
                applied-enchant? (cond (applied-enchant? :silk-touch)
-                                        (conj applied-enchant? :fortune)
+                                      (conj applied-enchant? :fortune)
                                       (applied-enchant? :fortune)
-                                        (conj applied-enchant? :silk-touch)
-                                        :else applied-enchant?)]
+                                      (conj applied-enchant? :silk-touch)
+                                      :else applied-enchant?)]
            (filter (comp not applied-enchant?)
                    possible-enchants))))))
 
@@ -387,4 +511,37 @@ than (:reward params) in total power"
                                        pow-item))))
                     (assoc results :items [])
                     (range n-items))]
-       results)))
+       (:items results))))
+
+(defn best-items
+  "Takes a collection of collections of items and returns the best
+collection"
+  ([params items-seqs]
+     (first (sort (comparator #(> (reduce + (map item-power
+                                                 (repeat params) %1))
+                                  (reduce + (map item-power
+                                                 (repeat params) %2))))
+                  items-seqs))))
+
+(defn balance-item-to-inventory-item
+  "Takes an item as would be returned by get-item or get-items, and
+returns an item compatible with the inventory-list function"
+  ([item]
+     (let [item-type (if (keyword? item)
+                       item
+                       (:type item))
+           mc-item (mc-item item-type)
+           item-id (if (coll? mc-item)
+                     (mc-item 0)
+                     mc-item)
+           damage (if (coll? mc-item)
+                    (mc-item 1)
+                    (or (and (map? item)
+                             (:damage item))
+                        0))
+           count (or (and (map? item)
+                          (:count item))
+                     1)]
+       {:id item-id
+        :damage damage
+        :count count})))

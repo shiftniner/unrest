@@ -94,8 +94,11 @@
               :diamond-block          57
               :ladder                 65
               :wall-sign              68
+              :wood-pressure-plate    72
               :redstone-torch-off     75
               :redstone-torch-on      76
+              :button                 77
+              :ice                    79
               :glowstone              89
               :redstone-repeater-off  93
               :redstone-repeater-on   94
@@ -105,25 +108,166 @@
              ze)
            (throw (RuntimeException. (str "Block ID unknown for " ze)))))))
 
-(defn mc-item
-  "Returns either an item ID, or [id damage], for the given inventory
-item"
-  ([type]
-     (or (case type
-               :arrow             262
-               :coal              263
-               :string            287
-               :leather           334
-               :redstone-repeater 356
-               :steak             364
-               nil)
-         (let [block (mc-block type)
-               dmg (when (map? block)
-                     (:datum block))]
-           (if dmg
-             [ (block-id block)
-               dmg]
-             (block-id block))))))
+(let [base-potions (map #(do [%1 %2])
+                        ["regeneration"
+                         "swiftness"
+                         "fire-resistance"
+                         "poison"
+                         "healing"
+                         "8198"
+                         "8199"
+                         "weakness"
+                         "strength"
+                         "slowness"
+                         "8203"
+                         "harming"]
+                        (iterate inc 8193))
+      potion-list (mapcat (fn [ [base baseval]]
+                            [ [(str "potion-of-" base) baseval]
+                              [(str "potion-of-" base "-ii") (+ baseval 32)]])
+                          base-potions)
+      potion-list (mapcat (fn [ [base baseval]]
+                            [ [base baseval]
+                              [(str "ext-" base) (+ baseval 64)]])
+                          potion-list)
+      potion-list (mapcat (fn [ [base baseval]]
+                            [ [base baseval]
+                              [(str "splash-" base) (+ baseval 8192)]])
+                          potion-list)
+      potion-keyvals (mapcat (fn [ [base baseval]]
+                               [(keyword base) baseval])
+                             potion-list)
+      potions (apply hash-map potion-keyvals)]
+  (defn mc-item
+    "Returns either an item ID, or [id damage], for the given
+inventory item"
+    ([type]
+       (or (case type
+                 :flint-and-steel       259
+                 :red-apple             260
+                 :bow                   261
+                 :arrow                 262
+                 :coal                  263
+                 :diamond               264
+                 :iron-ingot            265
+                 :gold-ingot            266
+                 :iron-sword            267
+                 :wood-sword            268
+                 :wood-pickaxe          270
+                 :stone-sword           272
+                 :stone-pickaxe         274
+                 :diamond-sword         276
+                 :diamond-pickaxe       278
+                 :stick                 280
+                 :bowl                  281
+                 :mushroom-soup         282
+                 :gold-sword            283
+                 :gold-pickaxe          285
+                 :string                287
+                 :feather               288
+                 :gunpowder             289
+                 :wheat                 296
+                 :bread                 297
+                 :leather-cap           298
+                 :leather-helmet        298
+                 :leather-tunic         299
+                 :leather-chestplate    299
+                 :leather-pants         300
+                 :leather-leggings      300
+                 :leather-boots         301
+                 :chainmail-helmet      302
+                 :chainmail-chestplate  303
+                 :chainmail-leggings    304
+                 :chainmail-boots       305
+                 :iron-helmet           306
+                 :iron-chestplate       307
+                 :iron-leggings         308
+                 :iron-boots            309
+                 :diamond-helmet        310
+                 :diamond-chestplate    311
+                 :diamond-leggings      312
+                 :diamond-boots         313
+                 :gold-helmet           314
+                 :gold-chestplate       315
+                 :gold-leggings         316
+                 :gold-boots            317
+                 :flint                 318
+                 :raw-porkchop          319
+                 :cooked-porkchop       320
+                 :painting              321
+                 :golden-apple          322
+                 :sign                  323
+                 :wood-door             324
+                 :bucket                325
+                 :water-bucket          326
+                 :lava-bucket           327
+                 :minecart              328
+                 :saddle                329
+                 :iron-door             330
+                 :redstone              331
+                 :snowball              332
+                 :boat                  333
+                 :leather               334
+                 :milk-bucket           335
+                 :slimeball             341
+                 :minecart-with-chest   342
+                 :minecart-with-furnace 343
+                 :chicken-egg           344
+                 :compass               345
+                 :fishing-rod           346
+                 :clock                 347
+                 :glowstone-dust        348
+                 :raw-fish              349
+                 :cooked-fish           350
+                 :bone                  352
+                 :sugar                 353
+                 :cake                  354
+                 :bed                   355
+                 :redstone-repeater     356
+                 :cookie                357
+                 :shears                359
+                 :melon-slice           360
+                 :raw-beef              363
+                 :steak                 364
+                 :raw-chicken           365
+                 :cooked-chicken        366
+                 :rotten-flesh          367
+                 :ender-pearl           368
+                 :blaze-rod             369
+                 :ghast-tear            370
+                 :gold-nugget           371
+                 :nether-wart           372
+                 :potion                373
+                 :glass-bottle          374
+                 :spider-eye            375
+                 :fermented-spider-eye  376
+                 :blaze-powder          377
+                 :magma-cream           378
+                 :brewing-stand         379
+                 :cauldron              380
+                 :eye-of-ender          381
+                 :glistering-melon      382
+                 :13-disc               2256
+                 :cat-disc              2257
+                 :blocks-disc           2258
+                 :chirp-disc            2259
+                 :far-disc              2260
+                 :mall-disc             2261
+                 :mellohi-disc          2262
+                 :stal-disc             2263
+                 :strad-disc            2264
+                 :ward-disc             2265
+                 :11-disc               2266
+                 nil)
+           (if-let [potion-damage (potions type)]
+             [(mc-item :potion) potion-damage])
+           (let [block (mc-block type)
+                 dmg (when (map? block)
+                       (:datum block))]
+             (if dmg
+               [ (block-id block)
+                 dmg]
+               (block-id block)))))))
 
 (defn sign-wrap-text
   "Takes a single string or a seq of strings and/or keywords (:newsign

@@ -3,7 +3,8 @@
         mcmap.blocks
         mcmap.dungeon
         mcmap.srand
-        mcmap.layout))
+        mcmap.layout
+        mcmap.balance))
 
 ;;; XXX I probably need some way of controlling which mobs are allowed
 ;;; to appear; e.g., for a map where blaze rods are an objective.  The
@@ -31,13 +32,42 @@
 
 (defn prize-chest
   "Returns a teensy dungeon consisting of a prize chest"
-  ([]
+  ([seed]
      (fnbox 1 1 1 [_ _ _ params]
-            (mc-block :chest
-                      :items
-                      (inventory-list
-                       [{:id (mc-item :coal)
-                         :slot 13}])))))
+       (let [n-items (inc (* 2 (int (srand 14 seed 1))))
+             bad-n-items (-> n-items (- 3) (/ 6))
+             n-items (if (and (integer? bad-n-items)
+                              (pos? bad-n-items))
+                       (+ n-items (if (> 0.5 (srand 1 seed 2))
+                                    2 -2))
+                       n-items)
+             n-items (if (or (= 25 n-items)
+                             (= 29 n-items))
+                       27
+                       n-items)
+             items (cond (= n-items 1)
+                           (best-items params
+                                       (map #(get-items params n-items
+                                                        seed 3 %)
+                                            (range 5)))
+                         (= n-items 3)
+                           (best-items params
+                                       (map #(get-items params n-items
+                                                        seed 3 %)
+                                            (range 2)))
+                         :else
+                           (get-items params n-items seed 3))
+             items (sort (comparator #(> (item-power params %1)
+                                         (item-power params %2)))
+                         items)
+             items (map balance-item-to-inventory-item items)]
+         (mc-block :chest
+                   :items
+                   (inventory-list
+                    (map #(assoc %1 :slot %2)
+                         items
+                         [13, 14 12, 4 22, 15 11, 5 3 23 21, 16 10,
+                          6 2 24 20, 17 9, 7 1 25 19, 8 0 26 18])))))))
 
 (defn format-signs
   "Given a :face direction, some text (see sign-wrap-text for format
