@@ -25,7 +25,7 @@ by then fn"
                               (fn [x y z]
                                 (f x y z params)))))
         {:x0 (int (/ x-size -2))
-         :y0 (int (/ y-size -2))
+         :y0 0
          :z0 (int (/ z-size -2))
          :xd x-size, :yd y-size, :zd z-size
          :zone zone}])))
@@ -125,8 +125,8 @@ are preserved"
            z-size (+ 2 (dungeon-z-extent dungeon))
            p (promise)]
        [ (fn [params]
-           (let [f (first dungeon)]
-             (f params)
+           (let [render (first dungeon)]
+             (render params)
              (deliver p
                       (p-gen-mcmap-zone
                        x-size y-size z-size
