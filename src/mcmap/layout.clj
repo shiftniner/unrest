@@ -101,7 +101,14 @@ vertically around y=0, and makes them a single dungeon"
   "Takes any number of vectors of dungeons and arranges them in a
 table, each row being arranged from south to north, and the rows being
 ordered from west to east (such that the arrangement of code matches
-the map view in minutor)"
+the map view in minutor) -- note that columns are not aligned across
+rows; only rows are aligned
+
+    W
+  [...]
+S [...] N
+  [...]
+    E"
   ([& dungeon-vectors]
      (apply lineup :x :center
             (map #(apply lineup :z :center (reverse %))
@@ -196,3 +203,23 @@ intersect"
                      (rest dungeon))))
              boxes))))
 
+(defn rand-prize
+  "Takes a dungeon and returns a dungeon that will contain only random
+contents in prize-chests, ignoring (:prize params)"
+  ([dungeon]
+     (cons (fn [params]
+             ( (first dungeon)
+               (dissoc params :prize)))
+           (rest dungeon))))
+
+(defn reward
+  "Takes a dungeon, an operator, and subsequent arguments, and returns
+a dungeon generated with its params' :reward value replaced
+with (apply operator (:reward params) subsequent-arguments)"
+  ([dungeon op & args]
+     (cons (fn [params]
+             ( (first dungeon)
+               (assoc params :reward
+                      (apply op (:reward params)
+                             args))))
+           (rest dungeon))))
