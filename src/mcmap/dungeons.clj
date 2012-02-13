@@ -13,7 +13,7 @@
      (-> (stack (htable [(pad 7 2 19)]
                         [(spawners 5 5 5 (reseed seed 1))]
                         [(pad 6 2 19)]
-                        [(prize-chest (reseed seed 3))])
+                        [(prize-chest :east (reseed seed 3))])
                 (pad 19 14 19))
          (surround :nether-brick)
          (surround :bedrock)

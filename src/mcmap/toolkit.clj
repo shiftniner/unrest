@@ -63,11 +63,14 @@
 (defn prize-chest
   "Returns a teensy dungeon consisting of a prize chest"
   ([seed]
+     (prize-chest nil seed))
+  ([face seed]
      (fnbox 1 1 1 [_ _ _ params]
        (let [items (or (:prize params)
                        (prize-chest-items params seed))
              inv-list (map balance-item-to-inventory-item items)]
          (mc-block :chest
+                   :face face
                    :items
                    (inventory-list
                     (map #(assoc %1 :slot %2)
@@ -117,9 +120,9 @@ dungeon with an entrance added and with its location standardized"
                             (dungeon-min-x hole-punch))
                          0
                          0)
-           ;; XXX - no signs, no difficulty-signifying material
            signs (format-signs :north text)
            entrance-length (+ 6 (count signs))
+           ;; XXX - no difficulty-signifying material
            entrance (fnbox entrance-length 7 7
                       [x y z _]
                       (cond (some #{0 6} [y z])
