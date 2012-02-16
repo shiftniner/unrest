@@ -634,7 +634,7 @@ reachable"
            dungeons (map first dunhalls)
            hallways (map second dunhalls)
            _ (doseq [d dungeons]
-               ( (first d) nil))
+               ( (first d) nil))        ; replace with render-dungeon
            _ (msg 3 (str "Got " (count dungeons) " dungeons"))
            _ (msg 3 "Placing dungeons and hallways ...")
            epic-zone (place-dungeons epic-zone dungeons hallways)
@@ -647,7 +647,7 @@ reachable"
                                              (cons ze neighbors))
                                    :bedrock
                                    ze)))
-           epic-zone (gen-mcmap-zone max-x max-z bedrock-generator)
+           epic-zone (p-gen-mcmap-zone max-x max-z bedrock-generator)
            _ (msg 3 "Adding creamy middle ...")
            x-bound (dec max-x)
            z-bound (dec max-z)
