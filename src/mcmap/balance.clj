@@ -386,8 +386,7 @@ been applied to it"
                          [:protection :fire-protection
                           :blast-protection
                           :projectile-protection
-                          :unbreaking   ; XXX TEST THIS
-                          ])
+                          :unbreaking])
                        (when (boots? item-type)
                          [:feather-falling])
                        (when (helmet? item-type)
