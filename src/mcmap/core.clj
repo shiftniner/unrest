@@ -6,9 +6,12 @@
            java.text.SimpleDateFormat
            java.util.Date))
 
+(set! *warn-on-reflection* true)
+
 (def +region-side+ (* 16 32))
 (def +chunk-side+ 16)
 (def +chunk-height+ 128)
+(def +byte-buffer-concat-threshold+ 64)
 
 (defn zone-x-size
   ([zone]
@@ -241,42 +244,68 @@ contains at least one block"
   "Given a seq of bytes (or ints between -128 and 255; values over 127
 will be folded), returns a byte buffer"
   ([bs]
-     (ByteBuffer/wrap
-        (into-array Byte/TYPE
-                    (map #(if (> % 127)
-                            (bit-xor % -256)
-                            %)
-                         bs)))))
+     ;; XXX try adding a lazy-seq here; see if it's faster
+     (let [ba (into-array Byte/TYPE
+                          (map #(if (> % 127)
+                                  (bit-xor % -256)
+                                  %)
+                               bs))]
+       (list (count ba)
+             (ByteBuffer/wrap ba)))))
 
 (defn concat-bytes
   "Takes any number of byte buffers and concatenates them into a
 single byte buffer"
+  ;; XXX try a recursive approach to concatenate more buffers?
   ([& byte-buffers]
-     (byte-buffer (mapcat #(.array ^ByteBuffer %)
-                          byte-buffers))))
+     (if (= 1 (count byte-buffers))
+       byte-buffers
+       (let [buffer-length-sums (reductions +
+                                            (map first byte-buffers))
+             num-short-buffers
+               (count (take-while
+                         (partial > +byte-buffer-concat-threshold+)
+                         buffer-length-sums))
+             short-buffers (take num-short-buffers byte-buffers)
+             long-buffers (drop num-short-buffers byte-buffers)
+             new-len (last buffer-length-sums)
+             new-buffers (cond (= 0 num-short-buffers)
+                               nil
+                               (= 1 num-short-buffers)
+                               (rest (first short-buffers))
+                               :else
+                               (rest (byte-buffer
+                                      (mapcat #(.array ^ByteBuffer %)
+                                              (mapcat rest short-buffers)))))
+             new-buffers (concat new-buffers
+                                 (mapcat rest long-buffers))]
+         (cons new-len new-buffers)))))
 
 (defn byte-buffer-size
   "Returns the length in bytes of the given byte buffer"
   ([b]
-     (count (seq (.array ^ByteBuffer b)))))
+     (first b)))
 
 (defn write-file
   "Writes the given byte buffer to the given filename"
-  ([^String filename ^ByteBuffer byte-buffer]
+  ([^String filename byte-buffer]
      (with-open [out (FileOutputStream. filename)]
-       (.write ^FileOutputStream out (.array byte-buffer)))))
+       (doseq [^ByteBuffer bb (rest byte-buffer)]
+         (.write ^FileOutputStream out (.array bb))))))
 
 (defn zlib-compress
   "Returns a byte buffer containing a zlib compressed version of the
 data in the given byte buffer"
   ([buf]
-     (let [bs (.array ^ByteBuffer buf)
-           out (byte-array (count bs))
-           c (doto (Deflater.)
-               (.setInput bs)
-               (.finish))
-           c-len (.deflate c out)]
-       (byte-buffer (take c-len out)))))
+     (let [out (byte-array (first buf))
+           c (Deflater.)]
+       (doseq [^ByteBuffer bb (rest buf)]
+         (.setInput c (.array bb))
+         (.deflate c out))
+       (.finish c)
+       (.deflate c out)
+       (let [c-len (.getBytesWritten c)]
+         (list c-len (byte-buffer (take c-len out)))))))
 
 (defn utf8-bytes
   ([s]
