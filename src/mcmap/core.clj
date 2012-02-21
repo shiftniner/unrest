@@ -305,7 +305,7 @@ data in the given byte buffer"
        (.finish c)
        (.deflate c out)
        (let [c-len (.getBytesWritten c)]
-         (list c-len (byte-buffer (take c-len out)))))))
+         (byte-buffer (take c-len out))))))
 
 (defn utf8-bytes
   ([s]
