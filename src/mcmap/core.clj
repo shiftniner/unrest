@@ -255,6 +255,29 @@ single byte buffer"
      (byte-buffer (mapcat #(.array ^ByteBuffer %)
                           byte-buffers))))
 
+(defn byte-buffer-size
+  "Returns the length in bytes of the given byte buffer"
+  ([b]
+     (count (seq (.array ^ByteBuffer b)))))
+
+(defn write-file
+  "Writes the given byte buffer to the given filename"
+  ([^String filename ^ByteBuffer byte-buffer]
+     (with-open [out (FileOutputStream. filename)]
+       (.write ^FileOutputStream out (.array byte-buffer)))))
+
+(defn zlib-compress
+  "Returns a byte buffer containing a zlib compressed version of the
+data in the given byte buffer"
+  ([buf]
+     (let [bs (.array ^ByteBuffer buf)
+           out (byte-array (count bs))
+           c (doto (Deflater.)
+               (.setInput bs)
+               (.finish))
+           c-len (.deflate c out)]
+       (byte-buffer (take c-len out)))))
+
 (defn utf8-bytes
   ([s]
      (.getBytes ^String s "UTF-8")))
@@ -495,18 +518,6 @@ in a Furnace, Chest, Trap, Cauldron, or Minecart (with chest)"
                    y (range (zone-y-size zone))]
                [ (zone-lookup zone x y z) (+ x0 x) y (+ z0 z) ]))))
 
-(defn zlib-compress
-  "Returns a byte buffer containing a zlib compressed version of the
-data in the given byte buffer"
-  ([buf]
-     (let [bs (.array ^ByteBuffer buf)
-           out (byte-array (count bs))
-           c (doto (Deflater.)
-               (.setInput bs)
-               (.finish))
-           c-len (.deflate c out)]
-       (byte-buffer (take c-len out)))))
-
 (let [date-formatter (SimpleDateFormat. "yyyy-MM-dd HH:mm:ss.SSS - ")]
   (defn msg
     ;; XXX Make this print only if current *msg-level* >= level.  I.e.,
@@ -567,11 +578,6 @@ where each chunk is {:x <chunk-x> :z <chunk-z> :data <byte-buffer>"
              (for [chunk-x (range 32) chunk-z (range 32)
                    :when (chunk-in-zone? block-zone x z chunk-x chunk-z)]
                [chunk-x chunk-z])))))
-
-(defn byte-buffer-size
-  "Returns the length in bytes of the given byte buffer"
-  ([b]
-     (count (seq (.array ^ByteBuffer b)))))
 
 (defn locations
   "Returns a seq of chunk file locations and sector counts (in 4KiB
@@ -879,12 +885,6 @@ extracted from that zone, in Minecraft beta .mcr format"
        (concat-bytes (locations-to-bytes locs)
                      (timestamps chunks)
                      (place-chunks chunks locs)))))
-
-(defn write-file
-  "Writes the given byte buffer to the given filename"
-  ([^String filename ^ByteBuffer byte-buffer]
-     (with-open [out (FileOutputStream. filename)]
-       (.write ^FileOutputStream out (.array byte-buffer)))))
 
 (defn map-exercise-1
   "Returns the .mcr binary data for a single region made up of

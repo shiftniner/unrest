@@ -1,5 +1,6 @@
 (ns mcmap.cavern
   (:use mcmap.core
+        mcmap.blocks
         mcmap.srand))
 
 (def ^:dynamic *min-spiral-radius* 8)
