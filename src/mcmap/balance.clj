@@ -339,12 +339,16 @@ as [new-params item]"
          (loop [i 0]
            (let [item-type-roll (apply srand 1 seed
                                        (concat salts [i 5]))
-                 items (cond (> 0.2 item-type-roll)
-                             (conj swords :bow)
+                 items (cond (> i 100)
+                               all-items
+                             (:reward-list params)
+                               (:reward-list params)
+                             (> 0.2 item-type-roll)
+                               (conj swords :bow)
                              (> 0.4 item-type-roll)
-                             foods
+                               foods
                              :else
-                             all-items)
+                               all-items)
                  item (apply sranditem items seed (concat salts [i 1]))
                  item (if (< 1/2 (apply srand 1 seed (concat salts [i 2])))
                         (damage-item item (apply srand 1 seed
