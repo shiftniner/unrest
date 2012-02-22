@@ -11,7 +11,7 @@
 (def +region-side+ (* 16 32))
 (def +chunk-side+ 16)
 (def +chunk-height+ 128)
-(def +byte-buffer-concat-threshold+ 64)
+(def +byte-buffer-concat-threshold+ 16)
 
 (defn zone-x-size
   ([zone]
