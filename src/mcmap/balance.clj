@@ -123,7 +123,7 @@
            :stone-sword     [13.2  4]
            :wood-sword      [6     3]
            :gold-sword      [3.3   3]
-           :diamond-pickaxe [156.2 2]
+           :diamond-pickaxe [156.2 200]
            :iron-pickaxe    [25.1  500/4]
            :stone-pickaxe   [13.2  600/5]
            :wood-pickaxe    [6     600/5]
