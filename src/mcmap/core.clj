@@ -297,15 +297,30 @@ single byte buffer"
   "Returns a byte buffer containing a zlib compressed version of the
 data in the given byte buffer"
   ([buf]
-     (let [out (byte-array (first buf))
+     (let [input-len (first buf)
+           out (byte-array input-len)
            c (Deflater.)]
-       (doseq [^ByteBuffer bb (rest buf)]
-         (.setInput c (.array bb))
-         (.deflate c out))
-       (.finish c)
-       (.deflate c out)
-       (let [c-len (.getBytesWritten c)]
-         (byte-buffer (take c-len out))))))
+       (loop [in-count input-len
+              in-bufs (rest buf)
+              out-pos 0]
+         (if (or (pos? in-count)
+                 (not (.needsInput c)))
+           (if (and (.needsInput c)
+                    (pos? in-count))
+             (let [new-array (.array ^ByteBuffer (first in-bufs))]
+               (.setInput c new-array 0 (count new-array))
+               (when (= in-count (count new-array))
+                 (.finish c))
+               (recur (- in-count (count new-array))
+                      (rest in-bufs)
+                      out-pos))
+             (let [comp-count (.deflate c out out-pos
+                                        (- input-len out-pos))]
+               (recur in-count
+                      in-bufs
+                      (+ out-pos comp-count))))
+           (let [out-len (.getBytesWritten c)]
+             (byte-buffer (take out-len out))))))))
 
 (defn utf8-bytes
   ([s]
