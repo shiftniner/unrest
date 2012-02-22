@@ -123,12 +123,12 @@
            :stone-sword     [13.2  4]
            :wood-sword      [6     3]
            :gold-sword      [3.3   3]
-           :diamond-pickaxe [156.2 20]
-           :iron-pickaxe    [25.1  10]
-           :stone-pickaxe   [13.2  5]
-           :gold-pickaxe    [3.3   4]
-           :wood-pickaxe    [6     3]
-           :bucket          [2000  4]
+           :diamond-pickaxe [156.2 2]
+           :iron-pickaxe    [25.1  500/4]
+           :stone-pickaxe   [13.2  600/5]
+           :wood-pickaxe    [6     600/5]
+           :gold-pickaxe    [3.3   600/5]
+           :bucket          [300   400]
            :bow             [38.5  4.5]
            :tnt             [0.1   20]
            :flint-and-steel [6.5   4]
@@ -153,7 +153,10 @@
            :golden-apple    [(+ 2  24)   +food-value+]
            :rotten-flesh    [(+ 2   0.8) (* 0.2 +food-value+)]
            :spider-eye      [(+ 1   0.8) (* 1/2 +food-value+)]
-           :arrow           [0.1  5])
+           :arrow           [0.1  5]
+           :ladder          [0.2  50]
+           :vines           [0.1  150]
+           :sandstone       [0.1  100])
       potions (mapcat
                (fn [ [item power]]
                  [item [1 power]])
