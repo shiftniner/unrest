@@ -509,9 +509,9 @@ than (:reward params) in total power"
            results (reduce
                     (fn [state n]
                       (let [item (items n)
-                            reward-adjust (if (< n (dec (count items)))
-                                            (/ (:reward state) 2)
-                                            0)
+                            reward-adjust (* (/ (inc n)
+                                                (count items))
+                                             (:reward state))
                             state (assoc state
                                     :reward (- (:reward state)
                                                reward-adjust))
