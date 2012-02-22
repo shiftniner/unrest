@@ -103,6 +103,7 @@
               :redstone-repeater-off  93
               :redstone-repeater-on   94
               :stone-bricks           98
+              :vines                 106
               :nether-brick          112
               }
              ze)
