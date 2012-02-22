@@ -509,12 +509,20 @@ than (:reward params) in total power"
            results (reduce
                     (fn [state n]
                       (let [item (items n)
+                            reward-adjust (if (< n (dec (count items)))
+                                            (/ (:reward state) 2)
+                                            0)
+                            state (assoc state
+                                    :reward (- (:reward state)
+                                               reward-adjust))
                             [new-params pow-item]
                               (apply powerup-item state item seed
                                      (concat salts [n 2]))]
                         (assoc new-params
                           :items (conj (:items state)
-                                       pow-item))))
+                                       pow-item)
+                          :reward (+ (:reward new-params)
+                                     reward-adjust))))
                     (assoc results :items [])
                     (range n-items))]
        (:items results))))
