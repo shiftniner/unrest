@@ -164,22 +164,35 @@ in {:layered-cave-params (cp-seq cp-seq ...) form}"
            ground-cap-x-slope (/ 40 x-max)
            ground-cap-z-slope (/ 40 z-max)]
        (fn [x y z]
-         (cond (or (zero? x) (zero? z) (= x-bound x) (= z-bound z))
-                 :bedrock
-               (and (> y 125)
-                    (> y (+ 125 (distance-2d-sloped
-                                    x z x-start z-start 2/31 2/31))))
-                 :air
-               (and (> y 121)
-                    (> y (- 138 (distance-2d-sloped
+         (let [sloping-cap (distance-2d-sloped
                                     x z x-start z-start
                                     ground-cap-x-slope
-                                    ground-cap-z-slope))))
-                 :ground
-               (in-cave? x y z)
-                 :air
-               :else
-                 :ground)))))
+                                    ground-cap-z-slope)]
+           (cond (or (zero? x) (zero? z) (= x-bound x) (= z-bound z))
+                   :bedrock
+                 (and (> y 125)
+                      (> y (+ 125 (distance-2d-sloped
+                                   x z x-start z-start 2/31 2/31))))
+                   :air
+                 (and (> y 121)
+                      (> y (- 138 sloping-cap)))
+                   :ground
+                 (and (> y 120)
+                      (> y (- 137 sloping-cap))
+                      (in-cave? x y z)
+                      (not (in-cave? x (dec y) z)))
+                   :ground
+                 (and (> y 118)
+                      (> y (- 135 sloping-cap))
+                      (< y 127)
+                      (in-cave? x y z)
+                      (not (in-cave? x (dec y) z))
+                      (not (in-cave? x (inc y) z)))
+                   :ground
+                 (in-cave? x y z)
+                   :air
+                 :else
+                   :ground))))))
 
 (defn generic-map-maker
   ([x-chunks z-chunks generator]
@@ -519,7 +532,7 @@ except for caves with openings near the middle."
                                              (cons ze neighbors))
                                    :bedrock
                                    ze)))
-           epic-zone (gen-mcmap-zone max-x max-z bedrock-generator)
+           epic-zone (p-gen-mcmap-zone max-x max-z bedrock-generator)
            _ (msg 3 "Adding creamy middle ...")
            x-bound (dec max-x)
            z-bound (dec max-z)
