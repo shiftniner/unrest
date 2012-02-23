@@ -78,6 +78,8 @@
               :dirt                    3
               :cobble                  4
               :bedrock                 7
+              :water-flow              8
+              :water-source            9
               :lava-flow              10
               :lava-source            11
               :sand                   12
