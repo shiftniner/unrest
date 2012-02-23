@@ -287,7 +287,7 @@ enchantment"
              :efficiency
              [longevity (* force (+ 1 (/ level 2)))]
              :silk-touch
-             [longevity (* force 10)]
+             [longevity (* force 1.5)]
              :unbreaking
              [(* longevity (inc level)) force]
              :fortune
