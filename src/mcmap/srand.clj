@@ -135,12 +135,13 @@ good entropy on Mac OS X and Linux -- needs to be tested in Windows"
            finish (+ start (long (* secs 1000000000)))]
        (take-while (fn [_] (< (System/nanoTime) finish))
          (map (comp hash bits-to-int)
-              (partition 256
+              (partition 128
                          (map #(bit-and 1 (mod (apply - %) 3))
                               (partition 2 1
-                                (for [n (range)]
-                                  (do (Thread/sleep 0)
-                                      (System/nanoTime)))))))))))
+                                (pmap (fn [_]
+                                        (Thread/sleep 0)
+                                        (System/nanoTime))
+                                      (range))))))))))
 
 (defn choose-random-seed
   "Returns a 48-bit seed chosen at random in such a way as to
