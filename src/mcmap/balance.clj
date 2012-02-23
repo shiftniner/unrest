@@ -156,7 +156,16 @@
            :arrow           [0.1  5]
            :ladder          [0.2  50]
            :vines           [0.1  150]
-           :sandstone       [0.1  100])
+           :sandstone       [0.1  100]
+           :pumpkin         [10   1100]
+           :nether-brick    [0.1  200]
+           :glowstone       [1    170]
+           :jack-o-lantern  [10   2500]
+           :sand            [10   2800]
+           :gravel          [5    3000]
+           :stone-bricks    [0.1  190]
+           :dirt            [10   900]
+           :glass           [0.1  50])
       potions (mapcat
                (fn [ [item power]]
                  [item [1 power]])

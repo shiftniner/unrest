@@ -75,10 +75,13 @@
                      (:type ze)))
        (or ( {:air                     0
               :stone                   1
+              :dirt                    3
               :cobble                  4
               :bedrock                 7
               :lava-flow              10
               :lava-source            11
+              :sand                   12
+              :gravel                 13
               :wood                   17
               :glass                  20
               :sandstone              24
@@ -99,7 +102,9 @@
               :redstone-torch-on      76
               :button                 77
               :ice                    79
+              :pumpkin                86
               :glowstone              89
+              :jack-o-lantern         91
               :redstone-repeater-off  93
               :redstone-repeater-on   94
               :stone-bricks           98
