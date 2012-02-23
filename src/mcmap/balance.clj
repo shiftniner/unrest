@@ -303,11 +303,20 @@ enchantment"
                         1)
              adjusted-power (if enchants
                               (reduce enchant-value base-power enchants)
-                              base-power)]
-         (apply *
-                (or num 1)
-                dur-frac
-                adjusted-power)))))
+                              base-power)
+             [adjusted-time adjusted-strength] adjusted-power
+             ;; diminishing returns from extremely long-lived items
+             adjusted-time (* 250.0 (Math/atan (/ adjusted-time 250.0)))
+             ;; diminishing returns from huge numbers of long-lived
+             ;; items
+             num (or num 1)
+             num (let [num-adjust-factor (/ 1500.0 adjusted-time)]
+                   (* num-adjust-factor (Math/atan (/ num
+                                                      num-adjust-factor))))]
+         (* num
+            dur-frac
+            adjusted-time
+            adjusted-strength)))))
 
 (defn damage-item
   "Takes an item and a damage fraction, 0 meaning undamaged and 1
@@ -460,9 +469,12 @@ approach (params :reward); returns [new-params new-item]"
            reward (:reward params)]
        (if (> 0.5 (apply srand 1 seed (concat salts [1])))
          (let [n (min (inc (int (/ reward orig-p)))
-                      +max-stack-size+)]
-           [(assoc params :reward (- reward (* orig-p (dec n))))
-            (assoc item :count n)])
+                      +max-stack-size+)
+               new-item (assoc item :count n)
+               value-gain (- (item-power params item)
+                             (item-power params new-item))]
+           [(assoc params :reward (- reward value-gain))
+            new-item])
          (loop [salt2 1
                 item item
                 new-params params
