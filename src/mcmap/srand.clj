@@ -6,7 +6,10 @@
 ;;; seems to produce at least superficially decent-looking results
 ;;; when used correctly.  (And in fact I have found that consecutive
 ;;; outputs of #(srand 1 s1...sN %) for any series of seeds and salts
-;;; s1...sN have a slight but statistically significant correlation.)
+;;; s1...sN have a slight but statistically significant correlation.
+;;; I intend not to fix this, because the results still look more than
+;;; good enough for my purposes, and I have already picked out some
+;;; epic-cave-network seeds I like.)
 
 ;;; Correct usage is to generate pseudorandom sequences by
 ;;; incrementing a salt, NOT by using value n as the seed to produce
@@ -19,6 +22,8 @@
 ;;; sequences by recursively reseeding.
 
 (def +seed-max+ (bit-shift-left 1 48))
+
+(def entropy-pool (java.security.SecureRandom.))
 
 (defn- srand-1-long
   ([seed]
@@ -79,4 +84,79 @@ should all be longs"
      (let [index (int (apply srand (count v)
                              seed salts))]
        (v index))))
+
+;;; The below functions are for generating non-deterministic random
+;;; seeds; there is no need to preserve results, so any flaws in the
+;;; algorithm may be corrected.
+
+(defn add-entropy-ints
+  "Takes a seq of ints or longs and adds their entropy to the entropy
+pool"
+  ([is]
+     (doseq [i is]
+       (.setSeed entropy-pool (long i)))))
+
+(defn bits-to-int
+  "Takes a seq of bits and returns the unsigned integer represented by
+that big-endian seq"
+  ([bs]
+     (reduce (fn [i b]
+               (+' b (*' 2 i)))
+             bs)))
+
+(defn bytes-to-int
+  "Takes a seq of bytes and returns the signed integer represented by
+that big-endian seq"
+  ([bs]
+     (reduce (fn [i b]
+               (+' (bit-and b 255)
+                   (*' 256 i)))
+             bs)))
+
+(defn read-urandom-bytes
+  "Takes a number of bytes to read, n, and if the host OS has a
+/dev/urandom file, reads n bytes from /dev/urandom and converts them
+to a signed integer; if there is no /dev/urandom, always returns 0"
+  ([n]
+     (let [f (java.io.File. "/dev/urandom")]
+       (if (.exists f)
+         (with-open [fis (java.io.FileInputStream. f)]
+           (let [ba (byte-array n)]
+             (.read fis ba)
+             (bytes-to-int (seq ba))))
+         0))))
+
+(defn scheduler-entropy
+  "Takes a number of seconds and gathers scheduler entropy for that many
+seconds, returning a seq of unpredictable ints"
+  ([secs]
+     (let [start (System/nanoTime)
+           finish (+ start (long (* secs 1000000000)))]
+       (take-while (fn [_] (< (System/nanoTime) finish))
+         (map (comp hash bits-to-int)
+              (partition 256
+                         (map #(bit-and 1 (mod (apply - %) 3))
+                              (partition 2 1
+                                (for [n (range)]
+                                  (do (Thread/sleep 0)
+                                      (System/nanoTime)))))))))))
+
+(defn choose-random-seed
+  "Returns a 48-bit seed chosen at random in such a way as to
+be (hopefully) hard to guess, such that a YouTube LPer could use a
+seed as returned by this function and not need to worry about a viewer
+guessing the seed and posting spoilers"
+  ([]
+     (add-entropy-ints
+      (list* (hash (Object.))
+             (hash (Object.))
+             (hash (System/getProperties))
+             (hash (Object.))
+             (hash (Object.))
+             (read-urandom-bytes 8)
+             (read-urandom-bytes 8)
+             (read-urandom-bytes 8)
+             (read-urandom-bytes 8)
+             (scheduler-entropy 0.2)))
+     (bytes-to-int (.generateSeed entropy-pool 6))))
 
