@@ -291,7 +291,7 @@ enchantment"
              :unbreaking
              [(* longevity (inc level)) force]
              :fortune
-             [longevity (* force (+ 1 (/ level 10)))]))))
+             [longevity (* force (+ 1 (/ level 1000)))]))))
 
 (defn item-power
   "Given an item, returns the power of that item"
