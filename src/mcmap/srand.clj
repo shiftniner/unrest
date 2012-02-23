@@ -127,8 +127,9 @@ to a signed integer; if there is no /dev/urandom, always returns 0"
          0))))
 
 (defn scheduler-entropy
-  "Takes a number of seconds and gathers scheduler entropy for that many
-seconds, returning a seq of unpredictable ints"
+  "Takes a number of seconds and gathers scheduler entropy for that
+many seconds, returning a seq of unpredictable ints; known to produce
+good entropy on Mac OS X and Linux -- needs to be tested in Windows"
   ([secs]
      (let [start (System/nanoTime)
            finish (+ start (long (* secs 1000000000)))]
@@ -157,6 +158,8 @@ guessing the seed and posting spoilers"
              (read-urandom-bytes 8)
              (read-urandom-bytes 8)
              (read-urandom-bytes 8)
-             (scheduler-entropy 0.2)))
+             (concat (scheduler-entropy 0.2)
+                     [(hash (Object.))
+                      (hash (Object.))])))
      (bytes-to-int (.generateSeed entropy-pool 6))))
 
