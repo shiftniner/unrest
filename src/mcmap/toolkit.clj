@@ -33,29 +33,19 @@
 (defn prize-chest-items
   "Returns random contents for a prize chest"
   ([params seed]
-     (let [n-items (inc (* 2 (int (srand 14 seed 1))))
-           bad-n-items (-> n-items (- 3) (/ 6))
-           n-items (if (and (integer? bad-n-items)
-                            (pos? bad-n-items))
-                     (+ n-items (if (> 0.5 (srand 1 seed 2))
-                                  2 -2))
-                     n-items)
-           n-items (if (or (= 25 n-items)
-                           (= 29 n-items))
-                     27
-                     n-items)
-           items (cond (= n-items 1)
-                       (best-items params
-                                   (map #(get-items params n-items
-                                                    seed 3 %)
-                                        (range 5)))
-                       (= n-items 3)
-                       (best-items params
-                                   (map #(get-items params n-items
-                                                    seed 3 %)
-                                        (range 2)))
-                       :else
-                       (get-items params n-items seed 3))]
+     (let [many-items (map #(get-items params (rand-item-count seed 1 %)
+                                       seed 2 %)
+                           (range 100))
+           half-reward (/ (:reward params) 2)
+           low-reward-items (take-while #(> (nth % 1) half-reward)
+                                        many-items)
+           good-enough-items (take (inc (count low-reward-items))
+                                   many-items)
+           lowest-leftover-reward (apply min (map #(nth % 1)
+                                                  good-enough-items))
+           items (ffirst (filter #(= lowest-leftover-reward
+                                     (nth % 1))
+                                 good-enough-items))]
        (sort (comparator #(> (item-power params %1)
                              (item-power params %2)))
              items))))

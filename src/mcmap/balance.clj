@@ -514,7 +514,8 @@ approach (params :reward); returns [new-params new-item]"
 
 (defn get-items
   "Returns multiple, possibly enchanted items adding up to less
-than (:reward params) in total power"
+than (:reward params) in total power, and the leftover unused :reward
+value"
   ([params n-items seed & salts]
      (let [results (reduce
                     (fn [state n]
@@ -546,7 +547,25 @@ than (:reward params) in total power"
                                      reward-adjust))))
                     (assoc results :items [])
                     (range n-items))]
-       (:items results))))
+       [ (:items results)
+         (:reward results)])))
+
+(defn rand-item-count
+  ([seed & salts]
+     (let [n-items (inc (* 2 (int (apply srand 14 seed
+                                         (concat salts [1])))))
+           bad-n-items (-> n-items (- 3) (/ 6))
+           n-items (if (and (integer? bad-n-items)
+                            (pos? bad-n-items))
+                     (+ n-items (if (> 0.5 (apply srand 1 seed
+                                                  (concat salts [2])))
+                                  2 -2))
+                     n-items)
+           n-items (if (or (= 25 n-items)
+                           (= 29 n-items))
+                     27
+                     n-items)]
+       n-items)))
 
 (defn best-items
   "Takes a collection of collections of items and returns the best
