@@ -480,8 +480,8 @@ approach (params :reward); returns [new-params new-item]"
          (let [n (min (inc (int (/ reward orig-p)))
                       +max-stack-size+)
                new-item (assoc item :count n)
-               value-gain (- (item-power params item)
-                             (item-power params new-item))]
+               value-gain (- (item-power params new-item)
+                             (item-power params item))]
            [(assoc params :reward (- reward value-gain))
             new-item])
          (loop [salt2 1
@@ -531,8 +531,8 @@ value"
            results (reduce
                     (fn [state n]
                       (let [item (items n)
-                            reward-adjust (* (/ (inc n)
-                                                (count items))
+                            reward-adjust (* (- 1 (/ (inc n)
+                                                     (count items)))
                                              (:reward state))
                             state (assoc state
                                     :reward (- (:reward state)
