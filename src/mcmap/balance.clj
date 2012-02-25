@@ -157,7 +157,11 @@
            :vines           [0.1  150]
            :ice             [0.1  1000]
            :sandstone       [0.1  100]
-           :pumpkin         [10   1100]
+           ;; Reusable blocks get a durability of 100, and then a
+           ;; factor of 10 is shifted from durability to power to
+           ;; account for the fact that blocks are useful in much
+           ;; greater quantities than armor and weapons
+           :pumpkin         [10   2500]
            :nether-brick    [0.1  200]
            :glowstone       [1    170]
            :jack-o-lantern  [10   2500]
