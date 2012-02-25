@@ -366,7 +366,7 @@ as [new-params item]"
                              (:reward-list params)
                                (:reward-list params)
                              (> 0.2 item-type-roll)
-                               (conj swords :bow)
+                               (conj swords :bow :arrow :arrow)
                              (> 0.4 item-type-roll)
                                foods
                              :else
