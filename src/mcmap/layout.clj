@@ -212,14 +212,30 @@ contents in prize-chests, ignoring (:prize params)"
                (dissoc params :prize)))
            (rest dungeon))))
 
+(defn modify-params-fn
+  "Takes a dungeon and a fn f, and returns a dungeon generated with
+params as the result of (f params)"
+  ([dungeon f]
+     (cons (fn [params]
+             ( (first dungeon)
+               (f params)))
+           (rest dungeon))))
+
+(defmacro modify-params
+  "Wraps a single dungeon generation call, modifying the params that
+will be passed to that dungeon generator"
+  ([dungeon [binding & body]]
+     (apply #'modify-params dungeon binding body))
+  ([dungeon binding & body]
+     `(modify-params-fn ~dungeon
+                        (fn ~binding ~@body))))
+
 (defn reward
   "Takes a dungeon, an operator, and subsequent arguments, and returns
 a dungeon generated with its params' :reward value replaced
 with (apply operator (:reward params) subsequent-arguments)"
   ([dungeon op & args]
-     (cons (fn [params]
-             ( (first dungeon)
-               (assoc params :reward
-                      (apply op (:reward params)
-                             args))))
-           (rest dungeon))))
+     (modify-params dungeon [params]
+       (assoc params :reward
+              (apply op (:reward params)
+                     args)))))
