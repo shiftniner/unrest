@@ -407,6 +407,24 @@ data in the given byte buffer"
                    (tag-int (bit-and (dec (bit-shift-left 1 32))
                                      n)))))
 
+(defn tag-float
+  "Returns a binary-formatted TAG_Float"
+  ([tag-name f]
+     (concat-bytes (byte-buffer [5])
+                   (tag-string tag-name)
+                   (tag-float f)))
+  ([f]
+     (tag-int (Float/floatToIntBits f))))
+
+(defn tag-double
+  "Returns a binary-formatted TAG_Double"
+  ([tag-name d]
+     (concat-bytes (byte-buffer [6])
+                   (tag-string tag-name)
+                   (tag-double d)))
+  ([d]
+     (tag-long (Double/doubleToLongBits d))))
+
 (defn tag-byte-array
   "Returns a binary-formatted TAG_Byte_Array"
   ;; This does not appear as part of the payload of any other type, so
@@ -495,6 +513,33 @@ tagged data"
            x (range (zone-x-size height-zone))]
        (zone-lookup height-zone x 0 z))))
 
+(defn enchantment
+  "Takes a seq of enchantments in {:id n, :lvl n} form and returns a
+TAG_Compound called \"tag\", which can be used as a property on an
+inventory item"
+  ([enchs]
+     (tag-compound "tag"
+        [ (tag-list "ench" 10
+                    (map #(tag-compound [ (tag-short "id" (:id %))
+                                          (tag-short "lvl" (:lvl %))])
+                         enchs))])))
+
+(defn inventory-list
+  "Takes a seq of items defined as {:id block-or-item-id, :damage
+n, :count n, :slot n, (and optionally :ench (enchantment ...))} and
+returns a seq of UTAG_Compounds, suitable for use as the :items slot
+in a Furnace, Chest, Trap, Cauldron, or Minecart (with chest)"
+  ([items]
+     (map #(tag-compound
+             (list*
+               (tag-short "id"     (:id     %))
+               (tag-short "Damage" (or (:damage %) 0))
+               (tag-byte  "Count"  (or (:count  %) 1))
+               (tag-byte  "Slot"   (:slot   %))
+               (if-let [ench (:ench %)]
+                 [ (enchantment ench) ])))
+          items)))
+
 (defn tile-entity
   ([ [ze x y z] ]
      (when (map? ze)
@@ -526,37 +571,119 @@ tagged data"
                        (tag-int "z" z)
                        additional-fields))])))))
 
-(defn enchantment
-  "Takes a seq of enchantments in {:id n, :lvl n} form and returns a
-TAG_Compound called \"tag\", which can be used as a property on an
-inventory item"
-  ([enchs]
-     (tag-compound "tag"
-        [ (tag-list "ench" 10
-                    (map #(tag-compound [ (tag-short "id" (:id %))
-                                          (tag-short "lvl" (:lvl %))])
-                         enchs))])))
-
-(defn inventory-list
-  "Takes a seq of items defined as {:id block-or-item-id, :damage
-n, :count n, :slot n, (and optionally :ench (enchantment ...))} and
-returns a seq of UTAG_Compounds, suitable for use as the :items slot
-in a Furnace, Chest, Trap, Cauldron, or Minecart (with chest)"
-  ([items]
-     (map #(tag-compound
-             (list*
-               (tag-short "id"     (:id     %))
-               (tag-short "Damage" (or (:damage %) 0))
-               (tag-byte  "Count"  (or (:count  %) 1))
-               (tag-byte  "Slot"   (:slot   %))
-               (if-let [ench (:ench %)]
-                 [ (enchantment ench) ])))
-          items)))
-
 (defn tile-entities
-  "Returns a seq of TAG_Compounds"
+  "Returns a seq of TAG_Compounds defining the tile entities within
+the given zone"
   ([zone x0 z0]
      (mapcat tile-entity
+             (for [x (range (zone-x-size zone))
+                   z (range (zone-z-size zone))
+                   y (range (zone-y-size zone))]
+               [ (zone-lookup zone x y z) (+ x0 x) y (+ z0 z) ]))))
+
+(def mob-entity-name
+     {:blaze "Blaze"
+      :cave-spider "CaveSpider"
+      :chicken "Chicken"
+      :cow "Cow"
+      :creeper "Creeper"
+      :ender-dragon "EnderDragon"
+      :enderman "Enderman"
+      :ghast "Ghast"
+      :lava-slime "LavaSlime"
+      :mushroom-cow "MushroomCow"
+      :ozelot "Ozelot"
+      :pig "Pig"
+      :pig-zombie "PigZombie"
+      :sheep "Sheep"
+      :silverfish "Silverfish"
+      :skeleton "Skeleton"
+      :slime "Slime"
+      :snow-man "SnowMan"
+      :spider "Spider"
+      :squid "Squid"
+      :villager "Villager"
+      :wolf "Wolf"
+      :zombie "Zombie"})
+
+(defn mob-extra-fields
+  ([type ent]
+     (case type
+           :pig
+           [(tag-byte "Saddle"  (if (:saddle  ent) 1 0))]
+           :sheep
+           [(tag-byte "Sheared" (if (:sheared ent) 1 0))
+            (tag-byte "Color" (or (:color-num ent)
+                                  (if (:color ent)
+                                    (+color+ (:color ent))
+                                    0)))]
+           :creeper
+           [(tag-byte "powered" (if (:powered ent) 1 0))]
+           :slime
+           [(tag-int "Size" (or (:size ent) 1))]
+           :wolf
+           [(tag-string "Owner" (or (:owner ent) ""))
+            (tag-byte "Sitting" (if (:sitting ent) 1 0))
+            (tag-byte "Angry"   (if (:angry   ent) 1 0))]
+           :pig-zombie
+           [(tag-short "Anger" (or (:anger ent) 0))]
+           :enderman
+           (if-let [ce (:carried ent)]
+             [(tag-short "carried" (block-id ce))
+              (tag-short "carriedData" (:datum ce))])
+           ;; default:
+           nil)))
+
+(defn entity
+  "Returns nil, or a collection containing zero or more (any number)
+of entities contained within the given block"
+  ([ [ze x y z] ]
+     (when-let [ents (:ents ze)]
+       (for [ent ents]
+         (let [t (:type ent)
+               fields
+                 (case t
+                       (:blaze :cave-spider :chicken :cow :creeper
+                        :ender-dragon :enderman :ghast :lava-slime
+                        :mushroom-cow :ozelot :pig :pig-zombie :sheep
+                        :silverfish :skeleton :slime :snow-man :spider
+                        :squid :villager :wolf :zombie)
+                       (list* (mob-entity-name t)
+                              (tag-short "AttackTime"
+                                         (or (:attack-time ent) 0))
+                              (tag-short "DeathTime"
+                                         (or (:death-time ent) 0))
+                              (tag-short "Health"
+                                         (or (:health ent) 0))
+                              (tag-short "HurtTime"
+                                         (or (:hurt-time ent) 0))
+                              (mob-extra-fields t ent)))]
+           (let [ [id & additional-fields] fields]
+             [ (tag-compound
+                (list* (tag-string "id" id)
+                       (tag-list "Pos" 6
+                                 (+ x (or (:xd ent) 0.0))
+                                 (+ y (or (:yd ent) 0.0))
+                                 (+ z (or (:zd ent) 0.0)))
+                       (tag-list "Motion" 6
+                                 (or (:vx ent) 0.0)
+                                 (or (:vy ent) 0.0)
+                                 (or (:vz ent) 0.0))
+                       (tag-list "Rotation" 5
+                                 (or (:yaw ent) 0.0)
+                                 (or (:pitch ent) 0.0))
+                       (tag-float "FallDistance"
+                                  (or (:fall-distance ent) 0.0))
+                       (tag-short "Fire" (or (:fire ent) 0))
+                       (tag-short "Air"  (or (:air  ent) 0))
+                       (tag-byte "OnGround" (if (:on-ground ent) 1 0))
+                       additional-fields))]))))))
+
+(defn entities
+  "Returns a seq of TAG_Compounds defining the entities within the
+given zone"
+  ([zone x0 z0]
+     (mapcat entity
              (for [x (range (zone-x-size zone))
                    z (range (zone-z-size zone))
                    y (range (zone-y-size zone))]
@@ -600,7 +727,8 @@ in a Furnace, Chest, Trap, Cauldron, or Minecart (with chest)"
                                         (block-light-bytes light-subzone))
                         (tag-byte-array "HeightMap"
                                         (height-map-bytes height-subzone))
-                        (tag-list "Entities" 10 [])
+                        (tag-list "Entities" 10
+                                  (entities blocks x0 z0))
                         (tag-list "TileEntities" 10
                                   (tile-entities blocks x0 z0))
                         (tag-list "TileTicks" 10 [])
