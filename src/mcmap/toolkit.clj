@@ -69,6 +69,15 @@ using :reward-list if present"
                          [13, 14 12, 4 22, 15 11, 5 3 23 21, 16 10,
                           6 2 24 20, 17 9, 7 1 25 19, 8 0 26 18])))))))
 
+(defn supply-chest-series
+  "Takes an integer N and returns the series [x, 2x, 3x, ... Nx]
+with sum 1"
+  ([n]
+     (let [denom (reduce + (range (inc n)))]
+       (map /
+            (range 1 (inc n))
+            (repeat denom)))))
+
 (defn supply-chest
   "Returns a 1x1x1 dungeon consisting of a prize chest, ignoring
 any :prize"
