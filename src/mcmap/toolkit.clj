@@ -31,7 +31,8 @@
                                            seed x y z 2)))))))))
 
 (defn prize-chest-items
-  "Returns random contents for a prize chest"
+  "Returns random contents for a prize chest, ignoring :prize but
+using :reward-list if present"
   ([params seed]
      (let [many-items (map #(get-items params (rand-item-count seed 1 %)
                                        seed 2 %)
@@ -67,6 +68,15 @@
                          inv-list
                          [13, 14 12, 4 22, 15 11, 5 3 23 21, 16 10,
                           6 2 24 20, 17 9, 7 1 25 19, 8 0 26 18])))))))
+
+(defn supply-chest
+  "Returns a 1x1x1 dungeon consisting of a prize chest, ignoring
+any :prize"
+  ([seed]
+     (supply-chest nil seed))
+  ([face seed]
+     (modify-params (prize-chest face seed) [p]
+       (dissoc p :prize))))
 
 (defn format-signs
   "Given a :face direction, some text (see sign-wrap-text for format
