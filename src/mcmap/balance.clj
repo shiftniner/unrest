@@ -321,7 +321,10 @@ enchantment"
              ;; diminishing returns from extremely long-lived items
              adjusted-time (* 250.0 (Math/atan (/ adjusted-time 250.0)))
              ;; diminishing returns from huge numbers of long-lived
-             ;; items
+             ;; items; the same atan isn't applied to num*durability,
+             ;; since a single long-lived item is easier to lose and
+             ;; therefore not as likely to last as long as four items
+             ;; with 1/4 the durability
              num (or num 1)
              num (let [num-adjust-factor (/ 1500.0 adjusted-time)]
                    (* num-adjust-factor (Math/atan (/ num
