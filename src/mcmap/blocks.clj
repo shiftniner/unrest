@@ -45,25 +45,49 @@
                                  :lava-source]
                                 (repeat 1)))))
 
+(def +color+
+     {:white 0
+      :orange 1
+      :magenta 2
+      :light-blue 3
+      :yellow 4
+      :lime 5
+      :pink 6
+      :gray 7
+      :light-gray 8
+      :cyan 9
+      :purple 10
+      :blue 11
+      :brown 12
+      :green 13
+      :red 14
+      :black 15})
+
+(defn- block-colors
+  "Returns cases for mc-block covering all 16 Minecraft colors for the
+given kind of block"
+  ([kind]
+     (mapcat (fn [color-key]
+               [(keyword (str (name color-key)
+                              "-" kind))
+                {:type (keyword kind)
+                 :datum (+color+ color-key)}])
+             (keys +color+))))
+
 (defn mc-block
   "Returns the specified block in mcmap's internal data format"
   ([type]
-     (case type
-           :blue-wool    {:type :wool :datum 0xB}
-           :yellow-wool  {:type :wool :datum 0x4}
-           (:white-wool :wool)
-                         {:type :wool :datum 0x0}
-           :wood         {:type :wood :datum 0x0}
-           :spruce       {:type :wood :datum 0x1}
-           :birch        {:type :wood :datum 0x2}
-           :south-ladder {:type :ladder :face :south}
-           :north-ladder {:type :ladder :face :north}
-           :east-ladder  {:type :ladder :face :east}
-           :west-ladder  {:type :ladder :face :west}
-           :moss-brick    {:type :stone-bricks :datum 0x1}
-           :cracked-brick {:type :stone-bricks :datum 0x2}
-           ;; default:
-           type))
+     #=(eval
+        (list*
+         'case 'type
+         :wood          {:type :wood :datum 0x0}
+         :spruce        {:type :wood :datum 0x1}
+         :birch         {:type :wood :datum 0x2}
+         :moss-brick    {:type :stone-bricks :datum 0x1}
+         :cracked-brick {:type :stone-bricks :datum 0x2}
+         (concat (block-colors "wool")
+                 ;; default:
+                 ['type]))))
   ([type & extra-data]
      (apply hash-map :type type extra-data)))
 

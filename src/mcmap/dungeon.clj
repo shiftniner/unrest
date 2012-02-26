@@ -598,7 +598,7 @@ out of region 0,0 and used for playtesting dungeons"
                     (cond (< y 64)
                             (mc-block :stone)
                           (= [x z] [8 8])
-                            (mc-block :south-ladder)
+                            {:type :ladder :face :south}
                           (= [x z] [8 9])
                             (mc-block :cobble)
                           (= [x z] [7 8])
