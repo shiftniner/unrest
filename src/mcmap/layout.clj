@@ -3,27 +3,17 @@
         mcmap.dungeon
         mcmap.srand))
 
-;;; Number of blocks per z slice at which it is worthwhile to use
-;;; p-gen-mcmap-zone instead of gen-mcmap-zone.  XXX 400 is a wild
-;;; guess; experiment.
-(def +size-at-which-pmap-faster+ 400)
-
 (defn fnbox-fn
   "Given x, y, and z sizes, and a fn of x, y, z, and params, returns a
 dungeon centered at 0,0,0 with the given size and contents determined
 by then fn"
   ([x-size y-size z-size f]
-     (let [zone (promise)
-           generator (if (and (> x-size 1)
-                              (> (* y-size z-size)
-                                 +size-at-which-pmap-faster+))
-                       p-gen-mcmap-zone
-                       gen-mcmap-zone)]
+     (let [zone (promise)]
        [(fn [params]
           (deliver zone
-                   (generator x-size y-size z-size
-                              (fn [x y z]
-                                (f x y z params)))))
+                   (gen-mcmap-zone x-size y-size z-size
+                                   (fn [x y z]
+                                     (f x y z params)))))
         {:x0 (int (/ x-size -2))
          :y0 0
          :z0 (int (/ z-size -2))
@@ -135,7 +125,7 @@ are preserved"
            (let [render (first dungeon)]
              (render params)
              (deliver p
-                      (p-gen-mcmap-zone
+                      (gen-mcmap-zone
                        x-size y-size z-size
                        (fn [x y z]
                          (if (or (#{0 (dec x-size)} x)
@@ -184,15 +174,9 @@ intersect"
                              x0 (:x0 orig-box)
                              y0 (:y0 orig-box)
                              z0 (:z0 orig-box)
-                             orig-zone @(:zone orig-box)
-                             generator
-                               (if (and (> x-size 1)
-                                        (> (* y-size z-size)
-                                           +size-at-which-pmap-faster+))
-                                 p-gen-mcmap-zone
-                                 gen-mcmap-zone)]
+                             orig-zone @(:zone orig-box)]
                          (deliver p
-                           (generator x-size y-size z-size
+                           (gen-mcmap-zone x-size y-size z-size
                              (fn [x y z]
                                (or (maybe-dungeon-lookup overlay-dungeon
                                                          (+ x x0)

@@ -1,7 +1,8 @@
 (ns mcmap.unrest
   (:use mcmap.core
         mcmap.cavern
-        mcmap.srand))
+        mcmap.srand
+        mcmap.blocks))
 
 ;;; Replace this with a function of local difficulty later
 (def +max-cavern-light+ 10)
@@ -35,7 +36,7 @@
                                              (cons ze neighbors))
                                    :bedrock
                                    ze)))
-           epic-zone (p-gen-mcmap-zone max-x max-z bedrock-generator)
+           epic-zone (gen-mcmap-zone max-x max-z bedrock-generator)
            _ (msg 3 "Adding creamy middle ...")
            x-bound (dec max-x)
            z-bound (dec max-z)

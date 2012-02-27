@@ -12,6 +12,10 @@
 (def +chunk-side+ 16)
 (def +chunk-height+ 128)
 (def +byte-buffer-concat-threshold+ 16)
+;;; Number of blocks per z slice at which it is worthwhile to use
+;;; p-gen-mcmap-zone instead of gen-mcmap-zone.  XXX 400 is a wild
+;;; guess; experiment.
+(def +size-at-which-pmap-faster+ 400)
 
 (defn zone-x-size
   ([zone]
@@ -40,21 +44,27 @@ specified size"
   ([x-size z-size f]
      (gen-mcmap-zone x-size +chunk-height+ z-size f))
   ([x-size y-size z-size f]
-     (vec (for [x (range x-size)]
-            (vec (for [z (range z-size)]
-                   (vec (for [y (range y-size)]
-                          (f x y z)))))))))
+     (if (and (> x-size 1)
+              (> (* y-size z-size)
+                 +size-at-which-pmap-faster+))
+       (vec (pmap #(vec (for [z (range z-size)]
+                        (vec (for [y (range y-size)]
+                               (f % y z)))))
+                (range x-size)))
+       (vec (for [x (range x-size)]
+              (vec (for [z (range z-size)]
+                     (vec (for [y (range y-size)]
+                            (f x y z))))))))))
 
 (defn p-gen-mcmap-zone
   "Takes x and z dimensions, and a function of x y and z returning a
 block, and returns a zone of the specified size"
   ([x-size z-size f]
-     (p-gen-mcmap-zone x-size +chunk-height+ z-size f))
+     (msg -100 "deprecated fn p-gen-mcmap-zone called")
+     (gen-mcmap-zone x-size z-size f))
   ([x-size y-size z-size f]
-     (vec (pmap #(vec (for [z (range z-size)]
-                        (vec (for [y (range y-size)]
-                               (f % y z)))))
-                (range x-size)))))
+     (msg -100 "deprecated fn p-gen-mcmap-zone called")
+     (gen-mcmap-zone x-size y-size z-size f)))
 
 (defn- rising-mcmap-column
   ([x z y-size f]
@@ -119,9 +129,9 @@ specified size"
                 x-size z-size y-size
                 (fn [x y z prev]
                   (f x z y prev)))]
-       (p-gen-mcmap-zone x-size y-size z-size
-                         (fn [x y z]
-                           (zone-lookup tmp-zone x z y))))))
+       (gen-mcmap-zone x-size y-size z-size
+                       (fn [x y z]
+                         (zone-lookup tmp-zone x z y))))))
 
 (defn northward-recursive-gen-mcmap-zone
   "Takes x and z dimensions (or x, y, and z dimensions), and a
@@ -138,9 +148,9 @@ specified size"
                 x-size z-size y-size
                 (fn [x y z prev]
                   (f x z y prev)))]
-       (p-gen-mcmap-zone x-size y-size z-size
-                         (fn [x y z]
-                           (zone-lookup tmp-zone x z y))))))
+       (gen-mcmap-zone x-size y-size z-size
+                       (fn [x y z]
+                         (zone-lookup tmp-zone x z y))))))
 
 ;;; TODO these next two are most in need of rewriting for better
 ;;; performance.
@@ -160,9 +170,9 @@ specified size"
                 y-size x-size z-size
                 (fn [x y z prev]
                   (f y x z prev)))]
-       (p-gen-mcmap-zone x-size y-size z-size
-                         (fn [x y z]
-                           (zone-lookup tmp-zone y x z))))))
+       (gen-mcmap-zone x-size y-size z-size
+                       (fn [x y z]
+                         (zone-lookup tmp-zone y x z))))))
 
 (defn westward-recursive-gen-mcmap-zone
   "Takes x and z dimensions (or x, y, and z dimensions), and a
@@ -179,9 +189,9 @@ specified size"
                 y-size x-size z-size
                 (fn [x y z prev]
                   (f y x z prev)))]
-       (p-gen-mcmap-zone x-size y-size z-size
-                         (fn [x y z]
-                           (zone-lookup tmp-zone y x z))))))
+       (gen-mcmap-zone x-size y-size z-size
+                       (fn [x y z]
+                         (zone-lookup tmp-zone y x z))))))
 
 (defn maybe-zone-lookup
   "Like zone-lookup, but returns nil if the coordinates are out of
@@ -1028,7 +1038,7 @@ block, returns an mcmap complete with computed light levels"
                (str "Illegal map dimensions: " x-size "x" z-size
                     "; must be multiples of 16"))))
      (let [_ (msg 1 "Placing blocks ...")
-           block-zone (p-gen-mcmap-zone x-size z-size f)
+           block-zone (gen-mcmap-zone x-size z-size f)
            _ (msg 1 "Mapping opaque and transparent blocks ...")
            opacity-zone (gen-mcmap-zone x-size z-size
                           (fn [x y z]

@@ -155,9 +155,9 @@ the zone with the dungeons placed in it"
                                   (oct-assoc-box oct box))
                                 hallway-tree
                                 (mapcat rest hallways))]
-       (p-gen-mcmap-zone (zone-x-size zone)
-                         (zone-y-size zone)
-                         (zone-z-size zone)
+       (gen-mcmap-zone (zone-x-size zone)
+                       (zone-y-size zone)
+                       (zone-z-size zone)
          (fn [x y z]
            (let [ze (zone-lookup zone x y z)]
              (if-let [hze (and (not= ze :air)
@@ -260,7 +260,7 @@ no :zone"
      (let [in-x (zone-x-size zone)
            in-y (zone-y-size zone)
            in-z (zone-z-size zone)]
-       (p-gen-mcmap-zone in-z in-y in-x
+       (gen-mcmap-zone in-z in-y in-x
          (fn [x y z]
            (rotate-block 1 (zone-lookup zone z y (dec (- in-z x)))))))))
 
@@ -269,7 +269,7 @@ no :zone"
      (let [in-x (zone-x-size zone)
            in-y (zone-y-size zone)
            in-z (zone-z-size zone)]
-       (p-gen-mcmap-zone in-x in-y in-z
+       (gen-mcmap-zone in-x in-y in-z
          (fn [x y z]
            (rotate-block 2
                          (zone-lookup zone
@@ -282,7 +282,7 @@ no :zone"
      (let [in-x (zone-x-size zone)
            in-y (zone-y-size zone)
            in-z (zone-z-size zone)]
-       (p-gen-mcmap-zone in-z in-y in-x
+       (gen-mcmap-zone in-z in-y in-x
          (fn [x y z]
            (rotate-block 3 (zone-lookup zone (dec (- in-x z)) y x)))))))
 
@@ -647,7 +647,7 @@ reachable"
                                              (cons ze neighbors))
                                    :bedrock
                                    ze)))
-           epic-zone (p-gen-mcmap-zone max-x max-z bedrock-generator)
+           epic-zone (gen-mcmap-zone max-x max-z bedrock-generator)
            _ (msg 3 "Adding creamy middle ...")
            x-bound (dec max-x)
            z-bound (dec max-z)

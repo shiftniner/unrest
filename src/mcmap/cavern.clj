@@ -432,7 +432,7 @@ except for caves with openings near the middle."
                        generator (epic-cave-generator
                                     caves max-x max-z start-x start-z)
                        _ (msg 3 "Carving ...")
-                       zone (p-gen-mcmap-zone max-x max-z generator)]
+                       zone (gen-mcmap-zone max-x max-z generator)]
                    [zone start-x start-z])
                (>= i (count caves))
                  (let [more-to-get (inc (int (/ n-caves 3)))]
@@ -532,7 +532,7 @@ except for caves with openings near the middle."
                                              (cons ze neighbors))
                                    :bedrock
                                    ze)))
-           epic-zone (p-gen-mcmap-zone max-x max-z bedrock-generator)
+           epic-zone (gen-mcmap-zone max-x max-z bedrock-generator)
            _ (msg 3 "Adding creamy middle ...")
            x-bound (dec max-x)
            z-bound (dec max-z)
