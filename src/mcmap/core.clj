@@ -12,10 +12,11 @@
 (def +chunk-side+ 16)
 (def +chunk-height+ 128)
 (def +byte-buffer-concat-threshold+ 16)
-;;; Number of blocks per z slice at which it is worthwhile to use
-;;; p-gen-mcmap-zone instead of gen-mcmap-zone.  XXX 400 is a wild
-;;; guess; experiment.
-(def +size-at-which-pmap-faster+ 400)
+;;; Number of blocks per z slice at which it is worthwhile to use pmap
+;;; instead of for in gen-mcmap-zone.  XXX 400 is a wild guess;
+;;; experiment.
+(def ^:dynamic *size-at-which-pmap-faster* 400)
+(def Infinity (- (Math/log 0)))
 
 (defn zone-x-size
   ([zone]
@@ -40,13 +41,14 @@
 (defn gen-mcmap-zone
   "Takes x and z dimensions (or x, y, and z dimensions), and a
 function of x y and z returning a block, and returns a zone of the
-specified size"
+specified size; typically uses pmap, so if thread-local bindings to
+dynamic variables must be preserved, use ct-gen-mcmap-zone"
   ([x-size z-size f]
      (gen-mcmap-zone x-size +chunk-height+ z-size f))
   ([x-size y-size z-size f]
      (if (and (> x-size 1)
               (> (* y-size z-size)
-                 +size-at-which-pmap-faster+))
+                 *size-at-which-pmap-faster*))
        (vec (pmap #(vec (for [z (range z-size)]
                         (vec (for [y (range y-size)]
                                (f % y z)))))
@@ -55,6 +57,15 @@ specified size"
               (vec (for [z (range z-size)]
                      (vec (for [y (range y-size)]
                             (f x y z))))))))))
+
+(defn ct-gen-mcmap-zone
+  "Like gen-mcmap-zone, but guaranteed to evaluate completely within
+the current thread (\"CT\") to allow the use of (binding ...)"
+  ([x-size z-size f]
+     (ct-gen-mcmap-zone x-size +chunk-height+ z-size f))
+  ([x-size y-size z-size f]
+     (binding [*size-at-which-pmap-faster* Infinity]
+       (gen-mcmap-zone x-size y-size z-size f))))
 
 (defn p-gen-mcmap-zone
   "Takes x and z dimensions, and a function of x y and z returning a
