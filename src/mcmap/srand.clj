@@ -85,6 +85,14 @@ should all be longs"
                              seed salts))]
        (v index))))
 
+(defn sshuffle
+  "Shuffles the given collection using the given seed and salts"
+  ([v seed & salts]
+     (let [r (Random. (salt-seed seed salts))
+           al (java.util.ArrayList. ^java.util.Collection v)]
+       (java.util.Collections/shuffle al r)
+       (clojure.lang.RT/vector (.toArray al)))))
+
 ;;; The below functions are for generating non-deterministic random
 ;;; seeds; there is no need to preserve results, so any flaws in the
 ;;; algorithm may be corrected.
