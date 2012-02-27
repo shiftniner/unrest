@@ -634,6 +634,16 @@ the given zone"
            ;; default:
            nil)))
 
+(defn full-health
+  ([mob-entity]
+     (case (:type mob-entity)
+           ;; todo: distinguish between tamed and wild animals
+           (:chicken :cow :ozelot :pig :sheep :snow-man :squid
+            :villager :wolf)
+           10
+           ;; default - all hostile mobs:
+           20)))
+
 (defn entity
   "Returns nil, or a collection containing zero or more (any number)
 of entities contained within the given block"
@@ -654,30 +664,34 @@ of entities contained within the given block"
                               (tag-short "DeathTime"
                                          (or (:death-time ent) 0))
                               (tag-short "Health"
-                                         (or (:health ent) 0))
+                                         (or (:health ent)
+                                             (full-health ent)))
                               (tag-short "HurtTime"
                                          (or (:hurt-time ent) 0))
-                              (mob-extra-fields t ent)))]
-           (let [ [id & additional-fields] fields]
-             [ (tag-compound
-                (list* (tag-string "id" id)
-                       (tag-list "Pos" 6
-                                 (+ x (or (:xd ent) 0.0))
-                                 (+ y (or (:yd ent) 0.0))
-                                 (+ z (or (:zd ent) 0.0)))
-                       (tag-list "Motion" 6
-                                 (or (:vx ent) 0.0)
-                                 (or (:vy ent) 0.0)
-                                 (or (:vz ent) 0.0))
-                       (tag-list "Rotation" 5
-                                 (or (:yaw ent) 0.0)
-                                 (or (:pitch ent) 0.0))
-                       (tag-float "FallDistance"
-                                  (or (:fall-distance ent) 0.0))
-                       (tag-short "Fire" (or (:fire ent) 0))
-                       (tag-short "Air"  (or (:air  ent) 0))
-                       (tag-byte "OnGround" (if (:on-ground ent) 1 0))
-                       additional-fields))]))))))
+                              (mob-extra-fields t ent)))
+               [id & additional-fields] fields]
+           (tag-compound
+            (list* (tag-string "id" id)
+                   (tag-list "Pos" 6
+                      (map tag-double
+                           [(+ x (or (:xd ent) 0.0))
+                            (+ y (or (:yd ent) 0.0))
+                            (+ z (or (:zd ent) 0.0))]))
+                   (tag-list "Motion" 6
+                      (map tag-double
+                           [(or (:vx ent) 0.0)
+                            (or (:vy ent) 0.0)
+                            (or (:vz ent) 0.0)]))
+                   (tag-list "Rotation" 5
+                      (map tag-float
+                           [(or (:yaw ent) 0.0)
+                            (or (:pitch ent) 0.0)]))
+                   (tag-float "FallDistance"
+                              (or (:fall-distance ent) 0.0))
+                   (tag-short "Fire" (or (:fire ent) 0))
+                   (tag-short "Air"  (or (:air  ent) 0))
+                   (tag-byte "OnGround" (if (:on-ground ent) 1 0))
+                   additional-fields)))))))
 
 (defn entities
   "Returns a seq of TAG_Compounds defining the entities within the
@@ -1205,3 +1219,23 @@ and fills the chests with speed splash potions for testing speedy mobs"
      (map-exercise-4 2 2))
   ([filename x-chunks z-chunks]
      (write-file filename (map-exercise-4 x-chunks z-chunks))))
+
+(defn map-exercise-5
+  "Makes a one-chunk world with stone below y=64 and a single mob
+at [8 65 8]"
+  ([]
+     (let [generator (fn [x y z]
+                       (cond (= [x y z] [8 65 8])
+                               (mc-block :air
+                                         :ents
+                                         [{:type :creeper
+                                           :powered true
+                                           ;:death-time -400
+                                           }])
+                             (< y 64)
+                               (mc-block :stone)
+                             :else
+                               (mc-block :air)))]
+       (mcmap-to-mcr-binary (gen-mcmap 16 16 generator)
+                            0 0))))
+
