@@ -3,7 +3,8 @@
         mcmap.blocks
         mcmap.srand
         mcmap.cavern
-        mcmap.octree))
+        mcmap.octree
+        mcmap.util))
 
 (def +dungeon-placement-retries+ 1000)
 
@@ -615,8 +616,8 @@ out of region 0,0 and used for playtesting dungeons"
                             0 0))))
 
 (defn dungeon-exercise-2
-  "Creates an epic cave network and puts a dungeon in it someplace
-reachable"
+  "Creates an epic cave network and puts a dungeon (or several
+dungeons) in it someplace reachable"
   ([seed]
      (let [chunks 16
            max-x (* chunks +chunk-side+)
