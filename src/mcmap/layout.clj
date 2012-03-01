@@ -80,6 +80,12 @@ alignment :center"
        (apply merge-dungeons
               (map translator dungeons deltas)))))
 
+(defn align
+  "Like lineup, but takes only one dungeon as the first argument, for
+  convenience with the -> macro"
+  ([dungeon axis alignment]
+     (lineup axis alignment dungeon)))
+
 (defn stack
   "Takes any number of dungeons and stacks them (the dungeons, not
 their constituent boxes) bottom-to-top, centering the result
