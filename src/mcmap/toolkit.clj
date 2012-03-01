@@ -162,10 +162,11 @@ dungeon with an entrance added and with its location standardized"
       "gold block"
       "diamond block"])
 
-(def +victory-labels (concat +wool-color-labels+ +ore-block-labels+))
+(def +victory-labels+ (concat +wool-color-labels+ +ore-block-labels+))
 
 (defn victory-monument
-  "Returns a victory monument dungeon"
+  "Given a collection of block type labels, returns a victory monument
+  dungeon"
   ([labels]
      (let [signs (format-signs :south (mapcat (fn [t] ["" t :newsign])
                                               (reverse labels)))]
