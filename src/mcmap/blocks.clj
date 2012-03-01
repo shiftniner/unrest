@@ -36,7 +36,8 @@
                                  :iron-block
                                  :diamond-block
                                  :stone-bricks
-                                 :nether-brick]
+                                 :nether-brick
+                                 :obsidian]
                                 (repeat 255))
                     (interleave [:piston-target
                                  :water-flow
@@ -63,6 +64,11 @@
       :red 14
       :black 15})
 
+(def +color-array+
+     (apply assoc
+            (vec (repeat 16 nil))
+            (reverse (apply concat +color+))))
+
 (defn- block-colors
   "Returns cases for mc-block covering all 16 Minecraft colors for the
 given kind of block"
@@ -80,9 +86,9 @@ given kind of block"
      #=(eval
         (list*
          'case 'type
-         :wood          {:type :wood :datum 0x0}
-         :spruce        {:type :wood :datum 0x1}
-         :birch         {:type :wood :datum 0x2}
+;         :wood          {:type :wood :datum 0x0}
+;         :spruce        {:type :wood :datum 0x1}
+;         :birch         {:type :wood :datum 0x2}
          :moss-brick    {:type :stone-bricks :datum 0x1}
          :cracked-brick {:type :stone-bricks :datum 0x2}
          (concat (block-colors "wool")
@@ -108,13 +114,16 @@ given kind of block"
               :lava-source            11
               :sand                   12
               :gravel                 13
-              :wood                   17
+;              :wood                   17
               :glass                  20
               :sandstone              24
               :wool                   35
               :piston-target          36
               :iron-block             42
+              :tnt                    46
               :moss-stone             48
+              :obsidian               49
+              :torch                  50
               :fire                   51
               :mob-spawner            52
               :monster-spawner        52
