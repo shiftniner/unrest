@@ -151,3 +151,40 @@ dungeon with an entrance added and with its location standardized"
                                     hole-punch))
            (translate-dungeon 0 0 3)))))
 
+
+(def +wool-color-labels+
+     (map #(.replaceAll (str (name %) " wool")
+                        "-" " ")
+          +color-array+))
+
+(def +ore-block-labels+
+     ["iron block"
+      "gold block"
+      "diamond block"])
+
+(def +victory-labels (concat +wool-color-labels+ +ore-block-labels+))
+
+(defn victory-monument
+  "Returns a victory monument dungeon"
+  ([labels]
+     (let [signs (format-signs :south (mapcat (fn [t] ["" t :newsign])
+                                              (reverse labels)))]
+       (stack (box (+ 4 (count signs))
+                   1 5 :obsidian)
+              (fnbox (+ 2 (count signs))
+                     1 3
+                 [x y z _]
+                 (if (or (> z 0)
+                         (= x 0)
+                         (= x (inc (count signs))))
+                   :glass
+                   :torch))
+              (-> (count signs)
+                  (fnbox 1 1
+                     [x y z _]
+                     (get signs x))
+                  (surround-fn
+                   (fn [x y z _ x-max _ _]
+                     (cond (#{0 (dec x-max)} x) :glass
+                           (= z 2) :glass
+                           :else :air))))))))
