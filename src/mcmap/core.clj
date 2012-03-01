@@ -1,10 +1,9 @@
 (ns mcmap.core
-  (:use mcmap.blocks)
+  (:use mcmap.blocks
+        mcmap.util)
   (:import java.nio.ByteBuffer
            java.util.zip.Deflater
-           java.io.FileOutputStream
-           java.text.SimpleDateFormat
-           java.util.Date))
+           java.io.FileOutputStream))
 
 (set! *warn-on-reflection* true)
 
@@ -723,14 +722,6 @@ given zone"
                    z (range (zone-z-size zone))
                    y (range (zone-y-size zone))]
                [ (zone-lookup zone x y z) (+ x0 x) y (+ z0 z) ]))))
-
-(let [date-formatter (SimpleDateFormat. "yyyy-MM-dd HH:mm:ss.SSS - ")]
-  (defn msg
-    ;; XXX Make this print only if current *msg-level* >= level.  I.e.,
-    ;; higher level implies chattier, less important messages.
-    ([level & atoms]
-       (let [time-str (.format date-formatter (Date.))]
-         (println (apply str time-str atoms))))))
 
 (defn extract-chunk
   "Returns a binary chunk {:x <chunk-x> :z <chunk-z> :data
