@@ -91,6 +91,7 @@ given kind of block"
 ;         :birch         {:type :wood :datum 0x2}
          :moss-brick    {:type :stone-bricks :datum 0x1}
          :cracked-brick {:type :stone-bricks :datum 0x2}
+         :old-tnt       {:type :tnt :datum 0x1}
          (concat (block-colors "wool")
                  ;; default:
                  ['type]))))
