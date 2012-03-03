@@ -4,7 +4,8 @@
         mcmap.srand
         mcmap.cavern
         mcmap.octree
-        mcmap.util))
+        mcmap.util
+        mcmap.dungeons))
 
 (def +dungeon-placement-retries+ 1000)
 
@@ -353,6 +354,12 @@ traveling through the hallway, as [hallway xd yd zd]"
        [ [(fn [params])
           {:x0 x0, :y0 0, :z0 z0,
            :xd x-dim, :yd y-dim, :zd z-dim,
+           :axis (case orientation
+                       (0 2) :x
+                       (1 3) :z)
+           :range (case orientation
+                        (0 1) (range len)
+                        (2 3) (range (dec len) -1 -1))
            :zone (atom zone)}]
          xd yd zd])))
 
@@ -499,6 +506,46 @@ placed-hallway]; throws an exception if placement failed"
                                              (+ dun-z hz))
            placed-hallway (translate-dungeon hallway dun-x dun-y dun-z)]
        [placed-dungeon placed-hallway])))
+
+(defn pick-dungeon-place
+  "Takes too many arguments: a zone, a seed, a function that takes a
+  zone, seed, and salts and returns a place from which a hallway may
+  originate, a function that takes a block and returns whether or not
+  a dungeon can occupy that block, a function of a seed and salts that
+  returns a hallway, a function of a zone and a seq of seqs of blocks
+  that returns true if the path defined by that seq is an acceptable
+  hallway, a vector of possible dungeon names, and extra args to pass
+  to the dungeon generator; and returns a vector of a placed dungeon
+  and a placed hallway, or nil if placement failed too many times"
+  ([zone seed entrance-finder dungeon-accepter hall-chooser
+    hall-accepter d-names dg-args]
+     (loop [salt 0]
+       (when (< salt +dungeon-placement-retries+)
+         (let [dungeon-name (sranditem d-names seed salt 1)]
+           (if-let* [ [ex ey ez eo] (entrance-finder zone seed salt 2)
+                      [hall hx hy hz] (hall-chooser eo seed salt)
+                      _ (hall-accepter zone
+                                       (sequence-hallway-slices
+                                          hall hx hy hz))
+                      dungeon (apply get-dungeon dungeon-name (+ ey hy)
+                                     (reseed seed salt 3)
+                                     dg-args)
+                      _ (every? #(dungeon-accepter
+                                      (apply maybe-zone-lookup
+                                             zone %))
+                                (dungeon-filling-seq dungeon eo
+                                                     (+ ex hx)
+                                                     (+ ey hy)
+                                                     (+ ez hz)))]
+              (let [placed-dungeon (translate-dungeon
+                                    (rotate-dungeon dungeon eo)
+                                    (+ ex hx)
+                                    (+ ey hy)
+                                    (+ ez hz))
+                    placed-hallway (translate-dungeon hallway
+                                                      ex ey ez)]
+                [placed-dungeon placed-hallway])
+              (recur (inc salt))))))))
 
 (defn non-intersecting-dunhalls
   "Takes a seq of dungeon/hallway pairs -- ideally a lazy and fairly

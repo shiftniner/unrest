@@ -32,3 +32,29 @@
        (let [time-str (.format date-formatter (Date.))]
          (println (apply str time-str atoms))))))
 
+(defmacro if-let*
+  "bindings => (binding-form test)*
+
+  If all tests are true, evaluates with each binding-form bound to the
+  value of its respective test; if not, yields else"
+  ([bindings then]
+     `(if-let* ~bindings ~then nil))
+  ([bindings then else]
+     (when (= 1 (mod (count bindings)
+                     2))
+       (throw (IllegalArgumentException.
+               (str "if-let* requires an even number of forms in"
+                    " binding vector"))))
+     (let [false-sym (gensym "falseval__")]
+       (letfn [(expand-if-lets
+                ([form tst & more]
+                   `(if-let [~form ~tst]
+                      ~(apply expand-if-lets more)
+                      ~false-sym))
+                ([form]
+                   form))]
+         `(let [~false-sym (Object.)
+                result# ~(apply expand-if-lets (concat bindings [then]))]
+            (if (= result# ~false-sym)
+              ~else
+              result#))))))
