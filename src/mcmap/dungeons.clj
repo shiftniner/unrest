@@ -97,7 +97,9 @@
   "Returns a vector of keywords naming all dungeons of the given
   type"
   ([t]
-     (+dungeon-type-map+ t)))
+     (+dungeon-type-map+ t))
+  ([t1 t2 & ts]
+     (vec (mapcat get-dungeons (list* t1 t2 ts)))))
 
 (defn get-dungeon
   "Given a dungeon name (keyword), a y coordinate, a seed, and any
