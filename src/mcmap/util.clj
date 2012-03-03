@@ -35,8 +35,8 @@
 (defmacro if-let*
   "bindings => (binding-form test)*
 
-  If all tests are true, evaluates with each binding-form bound to the
-  value of its respective test; if not, yields else"
+  If all tests are true, evaluates then with each binding-form bound
+  to the value of its respective test; if not, yields else"
   ([bindings then]
      `(if-let* ~bindings ~then nil))
   ([bindings then else]
@@ -58,3 +58,26 @@
             (if (= result# ~false-sym)
               ~else
               result#))))))
+
+(defmacro pfor
+  "Parallelized list comprehension.  Takes a vector of one or more
+  binding-form/collection-expr pairs, each followed by zero or more
+  modifiers, and yields a lazy parallel sequence of evaluations of
+  expr.  Collections are iterated in a nested fashion, rightmost
+  fastest, and nested coll-exprs can refer to bindings created in
+  prior binding-forms.  Supported modifiers are: :let [binding-form
+  expr ...], :while test, :when test.
+
+  (take 10 (pfor [y (range)
+                  x (range)
+                  :while (> y x)]
+              (doseq
+               (clojure-contrib.combinatorics/permutations (range x y)))))"
+  ([seq-exprs body-expr]
+     (let [symbols (filter symbol? (take-nth 2 seq-exprs))]
+       (if (= 1 (count symbols))
+         (let [sym (first symbols)]
+           `(pmap (fn [~sym] ~body-expr)
+                  (for ~seq-exprs ~sym)))
+         `(pmap (fn [ [~@symbols] ] ~body-expr)
+                (for ~seq-exprs [~@symbols]))))))
