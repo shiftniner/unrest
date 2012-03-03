@@ -153,9 +153,9 @@ good entropy on Mac OS X and Linux -- needs to be tested in Windows"
 
 (defn choose-random-seed
   "Returns a 48-bit seed chosen at random in such a way as to
-be (hopefully) hard to guess, such that a YouTube LPer could use a
-seed as returned by this function and not need to worry about a viewer
-guessing the seed and posting spoilers"
+  be (hopefully) hard to guess, so that a YouTube LPer could use a
+  seed returned by this function and not need to worry about a viewer
+  guessing the seed and posting spoilers"
   ([]
      (add-entropy-ints
       (list* (hash (Object.))
