@@ -1,6 +1,7 @@
 (ns mcmap.layout
   (:use mcmap.core
-        mcmap.dungeon
+        mcmap.util
+        mcmap.dungeon.build
         mcmap.srand))
 
 (defn fnbox-fn

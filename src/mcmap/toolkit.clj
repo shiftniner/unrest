@@ -1,7 +1,8 @@
 (ns mcmap.toolkit
   (:use mcmap.core
+        mcmap.util
         mcmap.blocks
-        mcmap.dungeon
+        mcmap.dungeon.build
         mcmap.srand
         mcmap.layout
         mcmap.balance))
