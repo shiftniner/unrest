@@ -6,8 +6,8 @@
 
 (defn fnbox-fn
   "Given x, y, and z sizes, and a fn of x, y, z, and params, returns a
-dungeon centered at 0,0,0 with the given size and contents determined
-by then fn"
+  dungeon centered at 0,0,0 with the given size and contents
+  determined by then fn"
   ([x-size y-size z-size f]
      (let [zone (promise)]
        [(fn [params]
@@ -25,15 +25,16 @@ by then fn"
 ;;; and "fn".
 (defmacro fnbox
   "Given x, y, and z sizes, a binding vector for x, y, z, and params,
-and code, returns a dungeon centered at 0,0,0 with the given size and
-with contents determined by evaluating the code at each coordinate"
+  and code, returns a dungeon centered at 0,0,0 with the given size
+  and with contents determined by evaluating the code at each
+  coordinate"
   ([x-size y-size z-size binding-vector & body]
      `(fnbox-fn ~x-size ~y-size ~z-size
                (fn ~binding-vector ~@body))))
 
 (defn box
   "Returns a dungeon centered at 0,0,0 and filled with the given zone
-element; default size is 1x1x1"
+  element; default size is 1x1x1"
   ([ze]
      (box 1 1 1 ze))
   ([x-size y-size z-size ze]
@@ -46,7 +47,7 @@ element; default size is 1x1x1"
 
 (defn merge-dungeons
   "Takes any number of dungeons and returns a single dungeon with the
-same boxes"
+  same boxes"
   ([& dungeons]
      (let [fns (map first dungeons)
            boxes (mapcat rest dungeons)]
@@ -57,10 +58,10 @@ same boxes"
 
 (defn lineup
   "Takes an axis, an alignment, and any number of dungeons and lines
-them up along the axis, not altering their positions on the other two
-axes, aligning the entire thing such that all coordinates are >0 for
-alignment :high, <0 for alignment :low, and centered around =0 for
-alignment :center"
+  them up along the axis, not altering their positions on the other
+  two axes, aligning the entire thing such that all coordinates are >0
+  for alignment :high, <0 for alignment :low, and centered around =0
+  for alignment :center"
   ([axis alignment & dungeons]
      (let [ [translator dungeon-extent dungeon-min-axis]
             ({:x [#(translate-dungeon %1 %2 0 0)
@@ -89,23 +90,23 @@ alignment :center"
 
 (defn stack
   "Takes any number of dungeons and stacks them (the dungeons, not
-their constituent boxes) bottom-to-top, centering the result
-vertically around y=0, and makes them a single dungeon"
+  their constituent boxes) bottom-to-top, centering the result
+  vertically around y=0, and makes them a single dungeon"
   ([& dungeons]
      (apply lineup :y :high dungeons)))
 
 (defn htable
   "Takes any number of vectors of dungeons and arranges them in a
-table, each row being arranged from south to north, and the rows being
-ordered from west to east (such that the arrangement of code matches
-the map view in minutor) -- note that columns are not aligned across
-rows; only rows are aligned
+  table, each row being arranged from south to north, and the rows
+  being ordered from west to east (such that the arrangement of code
+  matches the map view in minutor) -- note that columns are not
+  aligned across rows; only rows are aligned
 
-    W
-  [...]
-S [...] N
-  [...]
-    E"
+      W
+    [...]
+  S [...] N
+    [...]
+      E"
   ([& dungeon-vectors]
      (apply lineup :x :center
             (map #(apply lineup :z :center (reverse %))
@@ -113,11 +114,11 @@ S [...] N
 
 (defn surround-fn
   "Takes a dungeon and a function of seven arguments (three
-coordinates, params, and three dimensions of the surrounding box)
-returning a zone element and returns a single-box dungeon containing
-the given dungeon, bounded by walls one block thick made of zone
-elements determined by the function; coordinates of the given dungeon
-are preserved"
+  coordinates, params, and three dimensions of the surrounding box)
+  returning a zone element and returns a single-box dungeon containing
+  the given dungeon, bounded by walls one block thick made of zone
+  elements determined by the function; coordinates of the given
+  dungeon are preserved"
   ([dungeon f]
      (surround-fn dungeon f :air))
   ([dungeon f fill]
@@ -150,8 +151,8 @@ are preserved"
 
 (defn surround
   "Takes a dungeon and a zone element and returns a single-box dungeon
-containing the given dungeon, bounded by walls one block thick made of
-the given zone element; coordinates are preserved"
+  containing the given dungeon, bounded by walls one block thick made
+  of the given zone element; coordinates are preserved"
   ([dungeon ze]
      (surround-fn dungeon (fn [_ _ _ _ _ _ _] ze)))
   ([dungeon ze fill]
@@ -161,8 +162,8 @@ the given zone element; coordinates are preserved"
 
 (defn dungeon-replace
   "Takes two dungeons, returning a dungeon of the same shape as the
-first, but with blocks from the second wherever the two dungeons
-intersect"
+  first, but with blocks from the second wherever the two dungeons
+  intersect"
   ([dungeon overlay-dungeon]
      (let [ps (repeatedly (dec (count dungeon))
                           promise)
@@ -194,9 +195,58 @@ intersect"
                      (rest dungeon))))
              boxes))))
 
+(defn dungeon-neighbors-of
+  "Returns a seq of up to six blocks adjacent to the given coordinates
+in the given zone"
+  ([dungeon x y z]
+     (lazy-seq
+      (filter identity
+              [(maybe-dungeon-lookup dungeon (inc x) y z)
+               (maybe-dungeon-lookup dungeon (dec x) y z)
+               (maybe-dungeon-lookup dungeon x (inc y) z)
+               (maybe-dungeon-lookup dungeon x (dec y) z)
+               (maybe-dungeon-lookup dungeon x y (inc z))
+               (maybe-dungeon-lookup dungeon x y (dec z))]))))
+
+(defn dungeon-map-neighbors
+  "Takes a dungeon and a fn of a block and a collection of its
+  neighbors and returns a dungeon made up of blocks returned by the
+  fn"
+  ([dungeon f]
+     (let [ps (repeatedly (dec (count dungeon))
+                          promise)
+           boxes (map assoc
+                      (rest dungeon)
+                      (repeat :zone)
+                      ps)]
+       (cons (fn [params]
+               ( (first dungeon) params)
+               (dorun
+                (map (fn [p orig-box]
+                       (let [x-size (:xd orig-box)
+                             y-size (:yd orig-box)
+                             z-size (:zd orig-box)
+                             x0 (:x0 orig-box)
+                             y0 (:y0 orig-box)
+                             z0 (:z0 orig-box)]
+                         (deliver p
+                           (gen-mcmap-zone x-size y-size z-size
+                             (fn [x y z]
+                               (f (maybe-dungeon-lookup dungeon
+                                                        (+ x x0)
+                                                        (+ y y0)
+                                                        (+ z z0))
+                                  (dungeon-neighbors-of dungeon
+                                                        (+ x x0)
+                                                        (+ y y0)
+                                                        (+ z z0))))))))
+                     ps
+                     (rest dungeon))))
+             boxes))))
+
 (defn rand-prize
   "Takes a dungeon and returns a dungeon that will contain only random
-contents in prize-chests, ignoring (:prize params)"
+  contents in prize-chests, ignoring (:prize params)"
   ([dungeon]
      (cons (fn [params]
              ( (first dungeon)
@@ -205,7 +255,7 @@ contents in prize-chests, ignoring (:prize params)"
 
 (defn modify-params-fn
   "Takes a dungeon and a fn f, and returns a dungeon generated with
-params as the result of (f params)"
+  params as the result of (f params)"
   ([dungeon f]
      (cons (fn [params]
              ( (first dungeon)
@@ -214,7 +264,7 @@ params as the result of (f params)"
 
 (defmacro modify-params
   "Wraps a single dungeon generation call, modifying the params that
-will be passed to that dungeon generator"
+  will be passed to that dungeon generator"
   ([dungeon [binding & body]]
      (apply #'modify-params dungeon binding body))
   ([dungeon binding & body]
@@ -223,10 +273,28 @@ will be passed to that dungeon generator"
 
 (defn reward
   "Takes a dungeon, an operator, and subsequent arguments, and returns
-a dungeon generated with its params' :reward value replaced
-with (apply operator (:reward params) subsequent-arguments)"
+  a dungeon generated with its params' :reward value replaced
+  with (apply operator (:reward params) subsequent-arguments)"
   ([dungeon op & args]
      (modify-params dungeon [params]
        (assoc params :reward
               (apply op (:reward params)
                      args)))))
+
+(defn pain
+  "Takes a dungeon, an operator, and subsequent arguments, and returns
+  a dungeon generated with its params' :pain value replaced
+  with (apply operator (:pain params) subsequent-arguments)"
+  ([dungeon op & args]
+     (modify-params dungeon [params]
+       (assoc params :pain
+              (apply op (:pain params)
+                     args)))))
+
+(defn strict-dungeon
+  "Takes a dungeon, renders it, forbidding the use of params, and
+  returns a dungeon that may be rendered repeatedly"
+  ([dungeon]
+     (render-dungeon dungeon #())
+     (cons (fn [_])
+           (rest dungeon))))
