@@ -70,7 +70,7 @@ using :reward-list if present"
                          [13, 14 12, 4 22, 15 11, 5 3 23 21, 16 10,
                           6 2 24 20, 17 9, 7 1 25 19, 8 0 26 18])))))))
 
-(defn supply-chest-series
+(defn unit-sum-series
   "Takes an integer N and returns the series [x, 2x, 3x, ... Nx]
 with sum 1"
   ([n]
