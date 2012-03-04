@@ -9,12 +9,12 @@
 ;;; mcmap.dungeons contains definitions of various dungeons.
 ;;; mcmap.dungeon contains code for placing dungeons in a map.
 
-(let [dungeon-type-match (fn dungeon-type-match
-                           ;; returns true if d either is, or is a
-                           ;; collection that contains, dtype
-                           ([dtype d]
-                              (some (partial = dtype)
-                                    (vec-if-not-coll d))))]
+(letfn [(dungeon-type-match
+         ;; returns true if d either is, or is a
+         ;; collection that contains, dtype
+         ([dtype d]
+            (some (partial = dtype)
+                  (vec-if-not-coll d))))]
   (defmacro defdungeons
     "Defines dungeons using the following syntax:
 
