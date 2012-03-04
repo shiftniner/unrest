@@ -195,6 +195,11 @@ reachable, or nil on failure"
                    :else
                      (throw (RuntimeException. "air-finder failed")))))))))
 
+(defn new-air-finder
+  ([zone seed & salts]
+     ( (air-finder zone)
+       (apply reseed seed salts) 0)))
+
 (defn place-dungeon-in-caves
   "Takes a zone and a seed and returns [placed-dungeon
 placed-hallway]; throws an exception if placement failed"
@@ -271,12 +276,13 @@ placed-hallway]; throws an exception if placement failed"
   "Takes too many arguments: a zone, a seed, a function that takes a
   zone, seed, and salts and returns a place from which a hallway may
   originate, a function that takes a block and returns whether or not
-  a dungeon can occupy that block, a function of a seed and salts that
-  returns a hallway, a function of a zone and a seq of seqs of blocks
-  that returns true if the path defined by that seq is an acceptable
-  hallway, a vector of possible dungeon names, and extra args to pass
-  to the dungeon generator; and returns a vector of a placed dungeon
-  and a placed hallway, or nil if placement failed too many times"
+  a dungeon can occupy that block, a function of an orientation, seed,
+  and salt that returns a hallway, a function of a zone and a seq of
+  seqs of blocks that returns true if the path defined by that seq is
+  an acceptable hallway, a vector of possible dungeon names, and extra
+  args to pass to the dungeon generator; and returns a vector of a
+  placed dungeon and a placed hallway, or nil if placement failed too
+  many times"
   ([zone seed entrance-finder dungeon-accepter hall-chooser
     hall-accepter d-names dg-args]
      (loop [salt 0]
@@ -286,7 +292,7 @@ placed-hallway]; throws an exception if placement failed"
                       [hall hx hy hz] (hall-chooser eo seed salt)
                       _ (hall-accepter zone
                                        (sequence-hallway-slices
-                                          hall hx hy hz))
+                                          hall ex ey ez))
                       dungeon (apply get-dungeon dungeon-name (+ ey hy)
                                      (reseed seed salt 3)
                                      dg-args)
@@ -442,6 +448,68 @@ dungeons) in it someplace reachable"
            hallways (map second dunhalls)
            _ (doseq [d dungeons]
                ( (first d) nil))        ; replace with render-dungeon
+           _ (msg 3 (str "Got " (count dungeons) " dungeons"))
+           _ (msg 3 "Placing dungeons and hallways ...")
+           epic-zone (place-dungeons epic-zone dungeons hallways)
+           _ (msg 3 "Adding bedrock ...")
+           bedrock-generator (fn [x y z]
+                               (let [ze (zone-lookup epic-zone x y z)
+                                     neighbors (neighbors-of epic-zone
+                                                             x y z)]
+                                 (if (every? #{:ground :bedrock}
+                                             (cons ze neighbors))
+                                   :bedrock
+                                   ze)))
+           epic-zone (gen-mcmap-zone max-x max-z bedrock-generator)
+           _ (msg 3 "Adding creamy middle ...")
+           x-bound (dec max-x)
+           z-bound (dec max-z)
+           generator (fn [x y z]
+                       (let [ze (zone-lookup epic-zone x y z)
+                             neighbors (neighbors-of epic-zone x y z)]
+                         (cond (or (zero? x) (zero? z)
+                                   (= x-bound x) (= z-bound z))
+                                 (mc-block :bedrock)
+                               :else
+                                 (case ze
+                                       :bedrock
+                                       (if (every? #(= :bedrock %)
+                                                   neighbors)
+                                         (mc-block :lava-source)
+                                         :bedrock)
+                                       :air (mc-block :air)
+                                       :ground (mc-block :sandstone)
+                                       ze))))]
+       (println "Start is x=" start-x " z=" start-z)
+       (generic-map-maker chunks chunks generator))))
+
+(defn dungeon-exercise-3
+  "Creates an epic cave network and puts a dungeon (or several
+dungeons) in it someplace reachable"
+  ([seed]
+     (let [chunks 16
+           max-x (* chunks +chunk-side+)
+           max-z (* chunks +chunk-side+)
+           [epic-zone start-x start-z]
+                 (epic-cave-network 15 max-x max-z seed)
+           _ (msg 3 "Finding dungeons ...")
+           excess-dunhalls (pmap pick-dungeon-place
+                                 (repeat epic-zone)
+                                 (map #(reseed seed %)
+                                      (range 1000))
+                                 (repeat new-air-finder)
+                                 (repeat #{:ground})
+                                 (repeat pick-hallway)
+                                 (repeat cave-hallway-accepter)
+                                 (repeat (get-dungeons :std))
+                                 (repeat nil))
+           excess-dunhalls (filter identity excess-dunhalls)
+           dunhalls (take 64 (non-intersecting-dunhalls excess-dunhalls
+                                                        max-x))
+           dungeons (map first dunhalls)
+           hallways (map second dunhalls)
+           _ (pmap render-dungeon dungeons
+                   (repeat {:pain 0.2 :reward 16000}))
            _ (msg 3 (str "Got " (count dungeons) " dungeons"))
            _ (msg 3 "Placing dungeons and hallways ...")
            epic-zone (place-dungeons epic-zone dungeons hallways)
