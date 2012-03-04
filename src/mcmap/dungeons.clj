@@ -107,7 +107,7 @@
                                  (reward * r2))])
                     short-wall
                     (htable [space-13]
-                            [space-5
+                            [(pad 1 5 7)
                              (-> (supply-chest :east (reseed seed 6))
                                  (reward * r1))])])
            (surround :wall)
