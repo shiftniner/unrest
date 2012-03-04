@@ -58,18 +58,25 @@
   reminiscent of the vanilla Minecraft dungeon"
   (:std
    hello-dungeon
-   (fn [_ seed]
-     (-> (stack (htable [(pad 7 2 19)]
-                        [(spawners 5 5 5 (reseed seed 1))]
-                        [(pad 6 2 19)]
-                        [(prize-chest :east (reseed seed 3))])
-                (pad 19 14 19))
-         (surround :nether-brick)
-         (surround :bedrock)
-         (surround :ground)
-         (add-entrance [3 1 0]
-                       ["" "Hello," "Dungeon"]
-                       (reseed seed 2)))))
+   (let [[r1 r2] (unit-sum-series 2)]
+     (fn [_ seed]
+       (-> (stack (htable [(pad 7 2 19)]
+                          [(pad 1 1 6)
+                           (spawners 5 5 5 (reseed seed 1))
+                           (pad 1 1 5)
+                           (-> (supply-chest :north (reseed seed 4))
+                               (reward * r1))]
+                          [(pad 6 2 19)]
+                          [(-> (prize-chest :east (reseed seed 3))
+                               (reward * r2))])
+                  (pad 19 14 19))
+           (surround :nether-brick)
+           (surround :bedrock)
+           (surround :ground)
+           (add-entrance [3 1 0]
+                         ["" "Hello," "Dungeon"]
+                         (reseed seed 2))))))
+
 
   "An inconvenient (especially on harder levels) victory monument
   room"
