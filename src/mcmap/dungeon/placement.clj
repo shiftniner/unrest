@@ -215,12 +215,57 @@ placed-hallway]; throws an exception if placement failed"
        [placed-dungeon placed-hallway])))
 
 (defn sequence-hallway-slices
-  "Returns a seq of slices of a hallway, each of which is a seq of
-  blocks.  The slices start from the entrance to the hallway and end
-  at the entrance to the dungeon."
+  "Takes a hallway, and coordinates for the entrance to the hallway,
+  and returns a seq of slices of the hallway, each of which is a seq
+  of [x y z] coordinates.  The slices start from the entrance to the
+  hallway and end at the entrance to the dungeon."
   ([hall hx hy hz]
-     ;; XXX
-     ))
+     (forcat [hsegment (rest hall)]
+       (let [hallway-slice
+             (case (:axis hsegment)
+                   :x (fn [x]
+                        (for [z (range (:zd hsegment))
+                              y (range (:yd hsegment))]
+                          [(+ x hx)
+                           (+ y hy)
+                           (+ z hz)]))
+                   :z (fn [z]
+                        (for [x (range (:xd hsegment))
+                              y (range (:yd hsegment))]
+                          [(+ x hx)
+                           (+ y hy)
+                           (+ z hz)])))]
+         (map hallway-slice (:range hsegment))))))
+
+(defn fully-increasing-count?
+  "Takes a seq of seqs and a function of one argument, and returns
+  true only if the first seq returns true for zero of its elements,
+  the final seq returns true for all of its elements, and each seq has
+  a number of items that returns true that is no less than the one
+  before it"
+  ([ss f]
+     (letfn [(check-count
+              ([n-s1 s1]
+                 (= n-s1 (count s1)))
+              ([n-s1 s1 s2 & ss]
+                 (let [n-s2 (count (filter f s2))]
+                   (and (<= n-s1 n-s2)
+                        (if (seq ss)
+                          (recur n-s2 s2 (first ss) (rest ss))
+                          (check-count n-s2 s2))))))]
+       (and (not-any? f (first ss))
+            (apply check-count 0 ss)))))
+
+(defn cave-hallway-accepter
+  "Takes a zone and a seq of hallway coordinate slices as returned by
+  sequence-hallway-slices, and returns true if the hallway starts in
+  air, passes into ground, and remains fully within the ground for the
+  remainder of its length"
+  ([zone coord-seqs]
+     (fully-increasing-count?
+         coord-seqs
+         (fn [ [x y z]]
+           (= :ground (maybe-zone-lookup zone x y z))))))
 
 (defn pick-dungeon-place
   "Takes too many arguments: a zone, a seed, a function that takes a
@@ -253,10 +298,10 @@ placed-hallway]; throws an exception if placement failed"
                                                      (+ ey hy)
                                                      (+ ez hz)))]
               (let [placed-dungeon (translate-dungeon
-                                    (rotate-dungeon dungeon eo)
-                                    (+ ex hx)
-                                    (+ ey hy)
-                                    (+ ez hz))
+                                      (rotate-dungeon dungeon eo)
+                                      (+ ex hx)
+                                      (+ ey hy)
+                                      (+ ez hz))
                     placed-hallway (translate-dungeon hall ex ey ez)]
                 [placed-dungeon placed-hallway])
               (recur (inc salt))))))))
