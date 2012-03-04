@@ -82,6 +82,45 @@
                          ["" "Hello," "Dungeon"]
                          (reseed seed 2))))))
 
+  "A zig-zagging hallway with one or more spawners in the center"
+  (:std
+   back-and-forth
+   (let [wall-n #(strict-dungeon (htable [(box % 5 3 :wall)]))
+         short-wall (wall-n 5)
+         long-wall  (wall-n 25)
+         space-5 (strict-dungeon (pad 1 5 5))
+         space-13 (strict-dungeon (pad 1 5 13))
+         [p1 p2 p3] (unit-sum-series 3)
+         [r1 r2] (unit-sum-series 2)]
+     (fn [_ seed]
+       (-> (htable [space-13 short-wall space-5]
+                   [(-> (spawners 5 5 5 (reseed seed 5))
+                        (pain * p3))
+                    long-wall
+                    (-> (spawners 5 5 5 (reseed seed 3))
+                        (pain * p2))
+                    long-wall
+                    (-> (spawners 5 5 5 (reseed seed 4))
+                        (pain * p1))]
+                   [(htable [space-5]
+                            [(-> (prize-chest :east (reseed seed 1))
+                                 (reward * r2))])
+                    short-wall
+                    (htable [space-13]
+                            [space-5
+                             (-> (supply-chest :east (reseed seed 6))
+                                 (reward * r1))])])
+           (surround :wall)
+           (dungeon-map-neighbors
+            (fn [b ns]
+              (cond (not= b :wall)    b
+                    (every? #{:wall} ns) :bedrock
+                    :else                :sandstone)))
+           (surround :bedrock)
+           (surround :ground)
+           (add-entrance [3 0 -8]
+                         ["" "Back and" "Forth"]
+                         (reseed seed 2))))))
 
   "An inconvenient (especially on harder levels) victory monument
   room"
