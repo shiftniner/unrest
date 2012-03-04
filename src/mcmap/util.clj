@@ -81,3 +81,21 @@
                   (for ~seq-exprs ~sym)))
          `(pmap (fn [ [~@symbols] ] ~body-expr)
                 (for ~seq-exprs [~@symbols]))))))
+
+(defn duplicates
+  "Returns a seq of all items that occur more than once in the given
+  collection; items that occur more than twice in s will be returned
+  more than once"
+  ([s]
+     (lazy-seq
+      ( (fn duplicates' [s seen]
+          (when (seq s)
+            (let [f (first s)
+                  r (rest s)]
+              (if (seen f)
+                (cons f
+                      (lazy-seq
+                       (duplicates' r seen)))
+                (recur r
+                       (conj seen f))))))
+        s #{} ))))

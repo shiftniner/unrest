@@ -32,6 +32,11 @@
     ([& dungeons]
        (let [dungeons (filter #(not (string? %)) dungeons)
              dungeon-types (distinct (mapcat? first dungeons))
+             names (map second dungeons)
+             _ (when-let [dup (first (duplicates names))]
+                 (throw (IllegalArgumentException.
+                         (str "Dungeon name " dup
+                              " encountered more than once"))))
              types-and-dungeons
                (forcat [dungeon-type dungeon-types]
                  [dungeon-type
