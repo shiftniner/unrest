@@ -119,6 +119,9 @@
   ([dungeon-name y seed & extra-args]
      (let [dungeon (+dungeon-map+ dungeon-name)
            f (:fn dungeon)]
+       (when-not dungeon
+         (throw (RuntimeException. (str "Dungeon " dungeon-name
+                                        "not found"))))
        (apply f y seed extra-args))))
 
 (defn hello-dungeon
