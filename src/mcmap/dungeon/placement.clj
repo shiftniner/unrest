@@ -185,11 +185,11 @@ reachable, or nil on failure"
                            air-check-seq)
                      (let [ [x-offset z-offset]
                               (case orientation
-                                    0 [0 0]
-                                    1 [7 0]
-                                    2 [0 7]
-                                    3 [0 0])]
-                       [(+ x0 x-offset) y0 (+ z0 z-offset) orientation])
+                                    0 [2 -1]
+                                    1 [6  2]
+                                    2 [3  6]
+                                    3 [-1 3])]
+                       [(+ x0 x-offset) (dec y0) (+ z0 z-offset) orientation])
                    (pos? salt2)
                      (recur (dec salt2))
                    :else
@@ -224,30 +224,32 @@ placed-hallway]; throws an exception if placement failed"
   and returns a seq of slices of the hallway, each of which is a seq
   of [x y z] coordinates.  The slices start from the entrance to the
   hallway and end at the entrance to the dungeon."
-  ([hall hx hy hz]
+  ([hall dx dy dz]
      (forcat [hsegment (rest hall)]
-       (let [hallway-slice
-             (case (:axis hsegment)
-                   :x (fn [x]
-                        (for [z (range (:zd hsegment))
-                              y (range (:yd hsegment))]
-                          [(+ x hx)
-                           (+ y hy)
-                           (+ z hz)]))
-                   :z (fn [z]
-                        (for [x (range (:xd hsegment))
-                              y (range (:yd hsegment))]
-                          [(+ x hx)
-                           (+ y hy)
-                           (+ z hz)])))]
+       (let [x0 (:x0 hsegment)
+             y0 (:y0 hsegment)
+             z0 (:z0 hsegment)
+             hallway-slice
+               (case (:axis hsegment)
+                     :x (fn [x]
+                          (for [z (range (:zd hsegment))
+                                y (range (:yd hsegment))]
+                            [(+ x dx x0)
+                             (+ y dy y0)
+                             (+ z dz z0)]))
+                     :z (fn [z]
+                          (for [x (range (:xd hsegment))
+                                y (range (:yd hsegment))]
+                            [(+ x dx x0)
+                             (+ y dy y0)
+                             (+ z dz z0)])))]
          (map hallway-slice (:range hsegment))))))
 
 (defn fully-increasing-count?
   "Takes a seq of seqs and a function of one argument, and returns
-  true only if the first seq returns true for zero of its elements,
-  the final seq returns true for all of its elements, and each seq has
-  a number of items that returns true that is no less than the one
-  before it"
+  true only if the final seq returns true for all of its elements, and
+  each seq has a number of items that returns true that is no less
+  than the one before it"
   ([ss f]
      (letfn [(check-count
               ([n-s1 s1]
@@ -258,8 +260,8 @@ placed-hallway]; throws an exception if placement failed"
                         (if (seq ss)
                           (recur n-s2 s2 (first ss) (rest ss))
                           (check-count n-s2 s2))))))]
-       (and (not-any? f (first ss))
-            (apply check-count 0 ss)))))
+       (let [n-s1 (count (filter f (first ss)))]
+         (apply check-count n-s1 ss)))))
 
 (defn cave-hallway-accepter
   "Takes a zone and a seq of hallway coordinate slices as returned by
@@ -290,9 +292,6 @@ placed-hallway]; throws an exception if placement failed"
          (let [dungeon-name (sranditem d-names seed salt 1)]
            (if-let* [ [ex ey ez eo] (entrance-finder zone seed salt 2)
                       [hall hx hy hz] (hall-chooser eo seed salt)
-                      _ (hall-accepter zone
-                                       (sequence-hallway-slices
-                                          hall ex ey ez))
                       dungeon (apply get-dungeon dungeon-name (+ ey hy)
                                      (reseed seed salt 3)
                                      dg-args)
@@ -302,7 +301,10 @@ placed-hallway]; throws an exception if placement failed"
                                 (dungeon-filling-seq dungeon eo
                                                      (+ ex hx)
                                                      (+ ey hy)
-                                                     (+ ez hz)))]
+                                                     (+ ez hz)))
+                      _ (hall-accepter zone
+                                       (sequence-hallway-slices
+                                        hall ex ey ez))]
               (let [placed-dungeon (translate-dungeon
                                       (rotate-dungeon dungeon eo)
                                       (+ ex hx)
@@ -506,10 +508,12 @@ dungeons) in it someplace reachable"
            excess-dunhalls (filter identity excess-dunhalls)
            dunhalls (take 64 (non-intersecting-dunhalls excess-dunhalls
                                                         max-x))
+           ;_ (doall dunhalls)
            dungeons (map first dunhalls)
            hallways (map second dunhalls)
-           _ (pmap render-dungeon dungeons
-                   (repeat {:pain 0.2 :reward 16000}))
+           _ (msg 3 "Rendering dungeons ...")
+           _ (dorun (pmap render-dungeon dungeons
+                          (repeat {:pain 0.2 :reward 16000})))
            _ (msg 3 (str "Got " (count dungeons) " dungeons"))
            _ (msg 3 "Placing dungeons and hallways ...")
            epic-zone (place-dungeons epic-zone dungeons hallways)
