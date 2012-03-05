@@ -185,6 +185,7 @@ given kind of block"
 inventory item"
     ([type]
        (or (case type
+                 :iron-pickaxe          257
                  :flint-and-steel       259
                  :red-apple             260
                  :bow                   261

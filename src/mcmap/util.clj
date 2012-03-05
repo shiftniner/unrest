@@ -32,6 +32,11 @@
        (let [time-str (.format date-formatter (Date.))]
          (println (apply str time-str atoms))))))
 
+(defn tmsg
+  ([& args]
+     (apply msg args)
+     true))
+
 (defmacro if-let*
   "bindings => (binding-form test)*
 
