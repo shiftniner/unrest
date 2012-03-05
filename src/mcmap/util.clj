@@ -76,7 +76,7 @@
   (take 10 (pfor [y (range)
                   x (range)
                   :while (> y x)]
-              (doseq
+              (doall
                (clojure-contrib.combinatorics/permutations (range x y)))))"
   ([seq-exprs body-expr]
      (let [symbols (filter symbol? (take-nth 2 seq-exprs))]
