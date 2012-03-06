@@ -768,6 +768,17 @@
                    :when (chunk-in-zone? block-zone x z chunk-x chunk-z)]
                [chunk-x chunk-z])))))
 
+(defn mcmap-to-anvil-chunks
+  "Returns a seq of chunks for the given mcmap and region coordinates,
+  where each chunk is {:x <chunk-x> :z <chunk-z> :data <byte-buffer>"
+  ([mcmap x z]
+     (let [block-zone (:block-zone mcmap)]
+       (pmap (fn [ [chunk-x chunk-z] ]
+               (extract-anvil-chunk mcmap x z chunk-x chunk-z))
+             (for [chunk-x (range 32) chunk-z (range 32)
+                   :when (chunk-in-zone? block-zone x z chunk-x chunk-z)]
+               [chunk-x chunk-z])))))
+
 (defn locations
   "Returns a seq of chunk file locations and sector counts (in 4KiB
   sectors) that will fit the given chunks; an optional second argument
@@ -1072,6 +1083,17 @@
   ([mcmap x z]
      (msg 1 "Extracting chunks for region " x "." z " ...")
      (let [chunks (mcmap-to-chunks mcmap x z)
+           locs (locations chunks)]
+       (concat-bytes (locations-to-bytes locs)
+                     (timestamps chunks)
+                     (place-chunks chunks locs)))))
+
+(defn mcmap-to-mca-binary
+  "Takes an mcmap and two region coordinates, and returns a region
+  extracted from that zone, in Minecraft Anvil .mca format"
+  ([mcmap x z]
+     (msg 1 "Extracting chunks for Anvil region " x "." z " ...")
+     (let [chunks (mcmap-to-anvil-chunks mcmap x z)
            locs (locations chunks)]
        (concat-bytes (locations-to-bytes locs)
                      (timestamps chunks)
