@@ -66,16 +66,6 @@
      (binding [*size-at-which-pmap-faster* Infinity]
        (gen-mcmap-zone x-size y-size z-size f))))
 
-(defn p-gen-mcmap-zone
-  "Takes x and z dimensions, and a function of x y and z returning a
-block, and returns a zone of the specified size"
-  ([x-size z-size f]
-     (msg -100 "deprecated fn p-gen-mcmap-zone called")
-     (gen-mcmap-zone x-size z-size f))
-  ([x-size y-size z-size f]
-     (msg -100 "deprecated fn p-gen-mcmap-zone called")
-     (gen-mcmap-zone x-size y-size z-size f)))
-
 (defn- rising-mcmap-column
   ([x z y-size f]
      (loop [y 1
