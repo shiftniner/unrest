@@ -242,15 +242,6 @@
                                    (+ %2 y0)
                                    (+ %3 z0)))))
 
-(defn block-ids
-  "Returns a seq of bytes with block IDs for the given zone; assumes
-  zone contains at least one block"
-  ([zone]
-     (for [x (range (zone-x-size zone))
-           z (range (zone-z-size zone))
-           y (range (zone-y-size zone))]
-       (block-id (zone-lookup zone x y z)))))
-
 (defn byte-buffer
   "Given a seq of bytes (or ints between -128 and 255; values over 127
   will be folded), returns a byte buffer"
@@ -489,33 +480,43 @@
                  0))
        0)))
 
-(defn block-data
-  "Returns a seq of bytes with extra block data for the given zone"
+(defn xzy-seq
   ([zone]
+     (for [x (range (zone-x-size zone))
+           z (range (zone-z-size zone))
+           y (range (zone-y-size zone))]
+       (zone-lookup zone x y z))))
+
+(defn yzx-seq
+  ([zone yrange]
+     (for [y yrange
+           z (range (zone-z-size zone))
+           x (range (zone-x-size zone))]
+       (zone-lookup zone x y z))))
+
+(defn block-ids
+  "Returns a seq of bytes with block IDs for the given seq of blocks"
+  ([zone-seq]
+     (map block-id zone-seq)))
+
+(defn block-data
+  "Returns a seq of bytes with extra block data for the given seq of
+  blocks"
+  ([zone-seq]
      (nybbles-to-bytes
-        (map block-datum
-             (for [x (range (zone-x-size zone))
-                   z (range (zone-z-size zone))
-                   y (range (zone-y-size zone))]
-               (zone-lookup zone x y z))))))
+        (map block-datum zone-seq))))
 
 (defn sky-light
-  "Returns a seq of bytes with sky light data for the given mcmap"
-  ([skylight-zone]
-     (nybbles-to-bytes
-        (for [x (range (zone-x-size skylight-zone))
-              z (range (zone-z-size skylight-zone))
-              y (range (zone-y-size skylight-zone))]
-          (zone-lookup skylight-zone x y z)))))
+  "Returns a seq of bytes with sky light data for the given seq of
+  precalculated skylight levels"
+  ([skylight-zone-seq]
+     (nybbles-to-bytes skylight-zone-seq)))
 
 (defn block-light-bytes
-  "Returns a seq of bytes with block light data for the given mcmap"
-  ([light-zone]
-     (nybbles-to-bytes
-        (for [x (range (zone-x-size light-zone))
-              z (range (zone-z-size light-zone))
-              y (range (zone-y-size light-zone))]
-          (zone-lookup light-zone x y z)))))
+  "Returns a seq of bytes with block light data for the given seq of
+  precalculated light levels"
+  ([light-zone-seq]
+     (nybbles-to-bytes light-zone-seq)))
 
 (defn height-map-bytes
   "Returns a seq of bytes of heightmap data for the given mcmap"
@@ -715,7 +716,7 @@
                [ (zone-lookup zone x y z) (+ x0 x) y (+ z0 z) ]))))
 
 (defn extract-chunk
-  "Returns a binary chunk {:x <chunk-x> :z <chunk-z> :data
+  "Returns a binary chunk {:x <chunk-x> :z <chunk-z> :compressed-data
   <byte-buffer>} at the given coordinates within the given mcmap"
   ([mcmap region-x region-z chunk-x chunk-z]
      (let [x0 (+ (* +region-side+ region-x)
@@ -735,13 +736,79 @@
            data (tag-compound ""
                   [ (tag-compound "Level"
                       [ (tag-byte-array "Blocks"
-                                        (block-ids blocks))
+                                        (block-ids (xzy-seq blocks)))
                         (tag-byte-array "Data"
-                                        (block-data blocks))
+                                        (block-data (xzy-seq blocks)))
                         (tag-byte-array "SkyLight"
-                                        (sky-light skylight-subzone))
+                                        (sky-light (xzy-seq
+                                                    skylight-subzone)))
                         (tag-byte-array "BlockLight"
+                                        (block-light-bytes
+                                         (xzy-seq light-subzone)))
+                        (tag-byte-array "HeightMap"
+                                        (height-map-bytes height-subzone))
+                        (tag-list "Entities" 10
+                                  (entities blocks x0 z0))
+                        (tag-list "TileEntities" 10
+                                  (tile-entities blocks x0 z0))
+                        (tag-list "TileTicks" 10 [])
+                        (tag-long "LastUpdate" 1)
+                        (tag-int "xPos" (/ x0 +chunk-side+))
+                        (tag-int "zPos" (/ z0 +chunk-side+))
+                        (tag-byte "TerrainPopulated" 1) ]) ])]
+       {:x chunk-x
+        :z chunk-z
+        :compressed-data (zlib-compress data)})))
+
+(defn anvil-sections
+  "Returns a seq of unnamed TAG_Compounds with sections of the chunk
+  described by the given sub-zone"
+  ([block-zone skylight-zone light-zone]
+     (for [y-section (range (/ block-zone 16))]
+       (let [yrange (range (* 16 y-section)
+                           (* 16 (inc y-section)))]
+         (tag-compound
+            [ (tag-int "Y" y-section)
+              (tag-byte-array "Blocks"
+                              (block-ids (yzx-seq block-zone yrange)))
+              (tag-byte-array "Data"
+                              (block-data (yzx-seq block-zone yrange)))
+              (tag-byte-array "SkyLight"
+                              (sky-light (yzx-seq skylight-zone yrange)))
+              (tag-byte-array "BlockLight"
+                              (block-light (yzx-seq light-zone yrange)))])))))
+
+(defn extract-anvil-chunk
+  "Returns a binary chunk {:x <chunk-x> :z <chunk-z> :compressed-data
+  <byte-buffer>} at the given coordinates within the given mcmap"
+  ([mcmap region-x region-z chunk-x chunk-z]
+     (let [x0 (+ (* +region-side+ region-x)
+                 (* +chunk-side+ chunk-x))
+           z0 (+ (* +region-side+ region-z)
+                 (* +chunk-side+ chunk-z))
+           [blocks skylight-subzone light-subzone]
+             (map #(sub-zone (% mcmap)
+                             x0 (+ x0 +chunk-side+)
+                             0 +chunk-height+
+                             z0 (+ z0 +chunk-side+))
+                  [:block-zone :skylight-zone :light-zone])
+           height-subzone (sub-zone (:height-zone mcmap)
+                                    x0 (+ x0 +chunk-side+)
+                                    0 1
+                                    z0 (+ z0 +chunk-side+))
+           data (tag-compound ""
+                  [ (tag-compound "Level"
+                      [ #_(tag-byte-array "Blocks"
+                                        (block-ids blocks))
+                        #_(tag-byte-array "Data"
+                                        (block-data blocks))
+                        #_(tag-byte-array "SkyLight"
+                                        (sky-light skylight-subzone))
+                        #_(tag-byte-array "BlockLight"
                                         (block-light-bytes light-subzone))
+                        (tag-list "Sections" 10
+                                  (anvil-sections blocks skylight-subzone
+                                                  light-subzone))
                         (tag-byte-array "HeightMap"
                                         (height-map-bytes height-subzone))
                         (tag-list "Entities" 10
