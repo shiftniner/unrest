@@ -39,9 +39,9 @@
 
 (defn gen-mcmap-zone
   "Takes x and z dimensions (or x, y, and z dimensions), and a
-function of x y and z returning a block, and returns a zone of the
-specified size; typically uses pmap, so if thread-local bindings to
-dynamic variables must be preserved, use ct-gen-mcmap-zone"
+  function of x y and z returning a block, and returns a zone of the
+  specified size; typically uses pmap, so if thread-local bindings to
+  dynamic variables must be preserved, use ct-gen-mcmap-zone"
   ([x-size z-size f]
      (gen-mcmap-zone x-size +chunk-height+ z-size f))
   ([x-size y-size z-size f]
@@ -59,7 +59,7 @@ dynamic variables must be preserved, use ct-gen-mcmap-zone"
 
 (defn ct-gen-mcmap-zone
   "Like gen-mcmap-zone, but guaranteed to evaluate completely within
-the current thread (\"CT\") to allow the use of (binding ...)"
+  the current thread (\"CT\") to allow the use of (binding ...)"
   ([x-size z-size f]
      (ct-gen-mcmap-zone x-size +chunk-height+ z-size f))
   ([x-size y-size z-size f]
@@ -90,9 +90,9 @@ block, and returns a zone of the specified size"
 
 (defn rising-recursive-gen-mcmap-zone
   "Takes x and z dimensions (or x, y, and z dimensions), and a
-function of x, y, z, and the result of calling the function on the
-next lower block (or nil for y=0), and returns a zone of the specified
-size"
+  function of x, y, z, and the result of calling the function on the
+  next lower block (or nil for y=0), and returns a zone of the
+  specified size"
   ([x-size z-size f]
      (rising-recursive-gen-mcmap-zone x-size +chunk-height+ z-size f))
   ([x-size y-size z-size f]
@@ -114,9 +114,9 @@ size"
 
 (defn falling-recursive-gen-mcmap-zone
   "Takes x and z dimensions (or x, y, and z dimensions), and a
-function of x, y, z, and the result of calling the function on the
-next higher block (or nil for y=max), and returns a zone of the
-specified size"
+  function of x, y, z, and the result of calling the function on the
+  next higher block (or nil for y=max), and returns a zone of the
+  specified size"
   ([x-size z-size f]
      (falling-recursive-gen-mcmap-zone x-size +chunk-height+ z-size f))
   ([x-size y-size z-size f]
@@ -126,9 +126,9 @@ specified size"
 
 (defn southward-recursive-gen-mcmap-zone
   "Takes x and z dimensions (or x, y, and z dimensions), and a
-function of x, y, z, and the result of calling the function on the
-next block to the north (or nil for z=0), and returns a zone of the
-specified size"
+  function of x, y, z, and the result of calling the function on the
+  next block to the north (or nil for z=0), and returns a zone of the
+  specified size"
   ([x-size z-size f]
      (southward-recursive-gen-mcmap-zone x-size +chunk-height+ z-size f))
   ([x-size y-size z-size f]
@@ -145,9 +145,9 @@ specified size"
 
 (defn northward-recursive-gen-mcmap-zone
   "Takes x and z dimensions (or x, y, and z dimensions), and a
-function of x, y, z, and the result of calling the function on the
-next block to the south (or nil for z=max), and returns a zone of the
-specified size"
+  function of x, y, z, and the result of calling the function on the
+  next block to the south (or nil for z=max), and returns a zone of
+  the specified size"
   ([x-size z-size f]
      (northward-recursive-gen-mcmap-zone x-size +chunk-height+ z-size f))
   ([x-size y-size z-size f]
@@ -167,9 +167,9 @@ specified size"
 
 (defn eastward-recursive-gen-mcmap-zone
   "Takes x and z dimensions (or x, y, and z dimensions), and a
-function of x, y, z, and the result of calling the function on the
-next block to the west (or nil for x=0), and returns a zone of the
-specified size"
+  function of x, y, z, and the result of calling the function on the
+  next block to the west (or nil for x=0), and returns a zone of the
+  specified size"
   ([x-size z-size f]
      (eastward-recursive-gen-mcmap-zone x-size +chunk-height+ z-size f))
   ([x-size y-size z-size f]
@@ -186,9 +186,9 @@ specified size"
 
 (defn westward-recursive-gen-mcmap-zone
   "Takes x and z dimensions (or x, y, and z dimensions), and a
-function of x, y, z, and the result of calling the function on the
-next block to the east (or nil for x=max), and returns a zone of the
-specified size"
+  function of x, y, z, and the result of calling the function on the
+  next block to the east (or nil for x=max), and returns a zone of the
+  specified size"
   ([x-size z-size f]
      (westward-recursive-gen-mcmap-zone x-size +chunk-height+ z-size f))
   ([x-size y-size z-size f]
@@ -205,7 +205,7 @@ specified size"
 
 (defn maybe-zone-lookup
   "Like zone-lookup, but returns nil if the coordinates are out of
-bounds instead of throwing an exception"
+  bounds instead of throwing an exception"
   ([zone x y z]
      (if (or (neg? x) (neg? y) (neg? z)
              (>= x (zone-x-size zone))
@@ -216,7 +216,7 @@ bounds instead of throwing an exception"
 
 (defn neighbors-of
   "Returns a seq of up to six blocks adjacent to the given coordinates
-in the given zone"
+  in the given zone"
   ([zone x y z]
      (lazy-seq
       (filter identity
@@ -229,7 +229,7 @@ in the given zone"
 
 (defn chunk-in-zone?
   "Returns true if and only if the given region and chunk coordinates
-include any part of the given zone"
+  include any part of the given zone"
   ([zone region-x region-z chunk-x chunk-z]
      (let [chunk-x0 (+ (* +region-side+ region-x)
                        (* +chunk-side+  chunk-x))
@@ -241,7 +241,8 @@ include any part of the given zone"
             (< chunk-z0 (zone-z-size zone))))))
 
 (defn sub-zone
-  "Returns a zone within the given zone, for the given coordinate ranges"
+  "Returns a zone within the given zone, for the given coordinate
+  ranges"
   ([zone x0 x1 y0 y1 z0 z1]
      (gen-mcmap-zone (- x1 x0)
                      (- y1 y0)
@@ -252,8 +253,8 @@ include any part of the given zone"
                                    (+ %3 z0)))))
 
 (defn block-ids
-  "Returns a seq of bytes with block IDs for the given zone; assumes zone
-contains at least one block"
+  "Returns a seq of bytes with block IDs for the given zone; assumes
+  zone contains at least one block"
   ([zone]
      (for [x (range (zone-x-size zone))
            z (range (zone-z-size zone))
@@ -262,7 +263,7 @@ contains at least one block"
 
 (defn byte-buffer
   "Given a seq of bytes (or ints between -128 and 255; values over 127
-will be folded), returns a byte buffer"
+  will be folded), returns a byte buffer"
   ([bs]
      ;; XXX try adding a lazy-seq here; see if it's faster
      (let [ba (into-array Byte/TYPE
@@ -275,7 +276,7 @@ will be folded), returns a byte buffer"
 
 (defn concat-bytes
   "Takes any number of byte buffers and concatenates them into a
-single byte buffer"
+  single byte buffer"
   ;; XXX try a recursive approach to concatenate more buffers?
   ([& byte-buffers]
      (if (= 1 (count byte-buffers))
@@ -315,7 +316,7 @@ single byte buffer"
 
 (defn zlib-compress
   "Returns a byte buffer containing a zlib compressed version of the
-data in the given byte buffer"
+  data in the given byte buffer"
   ([buf]
      (let [input-len (first buf)
            out (byte-array input-len)
@@ -457,7 +458,7 @@ data in the given byte buffer"
 
 (defn tag-list
   "Returns a binary-formatted TAG_List for the given type and seq of
-tagged data"
+  tagged data"
   ;; This does not appear as part of the payload of any other type, so
   ;; no short form is needed.
   ([tag-name tag-type s]
@@ -535,8 +536,8 @@ tagged data"
 
 (defn enchantment
   "Takes a seq of enchantments in {:id n, :lvl n} form and returns a
-TAG_Compound called \"tag\", which can be used as a property on an
-inventory item"
+  TAG_Compound called \"tag\", which can be used as a property on an
+  inventory item"
   ([enchs]
      (tag-compound "tag"
         [ (tag-list "ench" 10
@@ -546,9 +547,9 @@ inventory item"
 
 (defn inventory-list
   "Takes a seq of items defined as {:id block-or-item-id, :damage
-n, :count n, :slot n, (and optionally :ench (enchantment ...))} and
-returns a seq of UTAG_Compounds, suitable for use as the :items slot
-in a Furnace, Chest, Trap, Cauldron, or Minecart (with chest)"
+  n, :count n, :slot n, (and optionally :ench (enchantment ...))} and
+  returns a seq of UTAG_Compounds, suitable for use as the :items slot
+  in a Furnace, Chest, Trap, Cauldron, or Minecart (with chest)"
   ([items]
      (map #(tag-compound
              (list*
@@ -593,7 +594,7 @@ in a Furnace, Chest, Trap, Cauldron, or Minecart (with chest)"
 
 (defn tile-entities
   "Returns a seq of TAG_Compounds defining the tile entities within
-the given zone"
+  the given zone"
   ([zone x0 z0]
      (mapcat tile-entity
              (for [x (range (zone-x-size zone))
@@ -666,7 +667,7 @@ the given zone"
 
 (defn entity
   "Returns nil, or a collection containing zero or more (any number)
-of entities contained within the given block"
+  of entities contained within the given block"
   ([ [ze x y z] ]
      (when-let [ents (:ents ze)]
        (for [ent ents]
@@ -715,7 +716,7 @@ of entities contained within the given block"
 
 (defn entities
   "Returns a seq of TAG_Compounds defining the entities within the
-given zone"
+  given zone"
   ([zone x0 z0]
      (mapcat entity
              (for [x (range (zone-x-size zone))
@@ -725,7 +726,7 @@ given zone"
 
 (defn extract-chunk
   "Returns a binary chunk {:x <chunk-x> :z <chunk-z> :data
-<byte-buffer>} at the given coordinates within the given mcmap"
+  <byte-buffer>} at the given coordinates within the given mcmap"
   ([mcmap region-x region-z chunk-x chunk-z]
      (let [x0 (+ (* +region-side+ region-x)
                  (* +chunk-side+ chunk-x))
@@ -768,7 +769,7 @@ given zone"
 
 (defn mcmap-to-chunks
   "Returns a seq of chunks for the given mcmap and region coordinates,
-where each chunk is {:x <chunk-x> :z <chunk-z> :data <byte-buffer>"
+  where each chunk is {:x <chunk-x> :z <chunk-z> :data <byte-buffer>"
   ([mcmap x z]
      (let [block-zone (:block-zone mcmap)]
        (pmap (fn [ [chunk-x chunk-z] ]
@@ -779,8 +780,8 @@ where each chunk is {:x <chunk-x> :z <chunk-z> :data <byte-buffer>"
 
 (defn locations
   "Returns a seq of chunk file locations and sector counts (in 4KiB
-sectors) that will fit the given chunks; an optional second argument
-gives an offset (in sectors) at which to begin placing chunks"
+  sectors) that will fit the given chunks; an optional second argument
+  gives an offset (in sectors) at which to begin placing chunks"
   ([chunks]
      (locations chunks 2))              ; Leave room for timestamps
   ([chunks offset]
@@ -809,7 +810,7 @@ gives an offset (in sectors) at which to begin placing chunks"
 
 (defn locations-to-bytes
   "Returns a 4096-byte block of mcr chunk file locations for the given
-seq of locations"
+  seq of locations"
   ([locs]
      (let [pos-to-loc (apply hash-map
                              (mapcat (fn [loc]
@@ -833,7 +834,7 @@ seq of locations"
 
 (defn timestamps
   "Returns a 4096-byte block of timestamps sized appropriately for the
-number of chunks in the given seq of chunks"
+  number of chunks in the given seq of chunks"
   ([chunks]
      ;; encoding scheme is not documented in the wiki; why do we even
      ;; need chunk timestamps?  0 for everything should be safe.
@@ -870,7 +871,7 @@ number of chunks in the given seq of chunks"
 
 (defn place-chunks
   "Given seqs of chunks and locations, returns a byte buffer
-containing the chunks for an mcr file"
+  containing the chunks for an mcr file"
   ([chunks locs]
      (msg 1 "Placing chunks ...")
      (let [shifted-locs (cons {:offset 0, :count 2} locs)
@@ -888,14 +889,14 @@ containing the chunks for an mcr file"
 
 (defn opaque?
   "Returns true if the given block is at all opaque to light (which
-includes water and lava)"
+  includes water and lava)"
   ([ze]
      (pos? (block-opacity ze))))
 
 (defn map-height
   "Given a block zone and x and z coordinates, returns the y
-coordinate of the highest block at that x and z that receives the full
-light of the sun"
+  coordinate of the highest block at that x and z that receives the
+  full light of the sun"
   ([zone x z]
      (inc (or (first (filter #(opaque? (zone-lookup zone x % z))
                              (range (- +chunk-height+ 2)
@@ -904,7 +905,8 @@ light of the sun"
 
 (defn block-light
   "Given a block zone element, returns the base block light
-level (before spreading light from neighboring blocks) for that block"
+  level (before spreading light from neighboring blocks) for that
+  block"
   ([ze]
      (if (map? ze)
        (or (if-let [l (:force-nospread-light ze)]
@@ -919,8 +921,8 @@ level (before spreading light from neighboring blocks) for that block"
 
 (defn block-skylight
   "Given a block zone element, its coordinates, and a height map,
-returns the base sky light level (before spreading light from
-neighboring blocks) for that location"
+  returns the base sky light level (before spreading light from
+  neighboring blocks) for that location"
   ([ze x y z height-zone]
      (or (if (map? ze)
            (or (if-let [l (:force-nospread-skylight ze)]
@@ -935,7 +937,7 @@ neighboring blocks) for that location"
 
 (defn recalc-light
   "Recalculates light for one block based on its opacity and the light
-levels of all neighboring blocks"
+  levels of all neighboring blocks"
   ([cur-light total-opacity & neighbor-lights]
      (if (neg? cur-light)
        cur-light
@@ -949,7 +951,7 @@ levels of all neighboring blocks"
 
 (defn recalc-light-1
   "Recalculates light for one block based on its opacity and the light
-levels of ONE neighboring block"
+  levels of ONE neighboring block"
   ([cur-light total-opacity neighbor-light]
      (cond (neg? cur-light)
              cur-light
@@ -983,7 +985,7 @@ levels of ONE neighboring block"
 
 (defn translate-light-zone
   "Takes a light zone with values from -511 to 256, and returns a zone
-with Minecraft light values from 0 to 15"
+  with Minecraft light values from 0 to 15"
   ([light-zone]
      (gen-mcmap-zone (zone-x-size light-zone)
                      (zone-y-size light-zone)
@@ -1032,7 +1034,7 @@ with Minecraft light values from 0 to 15"
 
 (defn gen-mcmap
   "Given x and z sizes and a function of x y and z that returns a
-block, returns an mcmap complete with computed light levels"
+  block, returns an mcmap complete with computed light levels"
   ([x-size z-size f]
      (when (or (pos? (mod x-size 16))
                (pos? (mod z-size 16)))
@@ -1076,7 +1078,7 @@ block, returns an mcmap complete with computed light levels"
 
 (defn mcmap-to-mcr-binary
   "Takes an mcmap and two region coordinates, and returns a region
-extracted from that zone, in Minecraft beta .mcr format"
+  extracted from that zone, in Minecraft beta .mcr format"
   ([mcmap x z]
      (msg 1 "Extracting chunks for region " x "." z " ...")
      (let [chunks (mcmap-to-chunks mcmap x z)
@@ -1087,9 +1089,9 @@ extracted from that zone, in Minecraft beta .mcr format"
 
 (defn map-exercise-1
   "Returns the .mcr binary data for a single region made up of
-sandwiches of glowstone and air with columns of stone, or writes it to
-a file if given a filename; generates two chunks by two chunks if not
-given two dimension arguments"
+  sandwiches of glowstone and air with columns of stone, or writes it
+  to a file if given a filename; generates two chunks by two chunks if
+  not given two dimension arguments"
   ([x-chunks z-chunks]
      (let [generator (fn [x y z]
                        (if (and (zero? (mod z 4))
@@ -1140,7 +1142,7 @@ given two dimension arguments"
 
 (defn map-exercise-3
   "Like map-exercise-2, but replaces most of the glowstone with stone,
-and adds some blue and yellow wool and chests on the floors"
+  and adds some blue and yellow wool and chests on the floors"
   ([x-chunks z-chunks]
      (let [generator (fn [x y z]
                        (cond (> 0.001 (rand))
@@ -1181,7 +1183,8 @@ and adds some blue and yellow wool and chests on the floors"
 
 (defn map-exercise-4
   "Like map-exercise-3, but raises the ceilings, gets rid of the wool,
-and fills the chests with speed splash potions for testing speedy mobs"
+  and fills the chests with speed splash potions for testing speedy
+  mobs"
   ([x-chunks z-chunks]
      (let [generator (fn [x y z]
                        (cond (> 0.001 (rand))
@@ -1233,8 +1236,8 @@ and fills the chests with speed splash potions for testing speedy mobs"
      (write-file filename (map-exercise-4 x-chunks z-chunks))))
 
 (defn map-exercise-5
-  "Makes a one-chunk world with stone below y=64 and a single mob
-at [8 65 8]"
+  "Makes a one-chunk world with stone below y=64 and a single mob at
+  [8 65 8]"
   ([]
      (let [generator (fn [x y z]
                        (cond (= [x y z] [8 65 8])
