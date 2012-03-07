@@ -764,7 +764,7 @@
   "Returns a seq of unnamed TAG_Compounds with sections of the chunk
   described by the given sub-zone"
   ([block-zone skylight-zone light-zone]
-     (for [y-section (range (/ block-zone 16))]
+     (for [y-section (range (/ (zone-y-size block-zone) 16))]
        (let [yrange (range (* 16 y-section)
                            (* 16 (inc y-section)))]
          (tag-compound
@@ -776,7 +776,8 @@
               (tag-byte-array "SkyLight"
                               (sky-light (yzx-seq skylight-zone yrange)))
               (tag-byte-array "BlockLight"
-                              (block-light (yzx-seq light-zone yrange)))])))))
+                              (block-light-bytes
+                               (yzx-seq light-zone yrange)))])))))
 
 (defn extract-anvil-chunk
   "Returns a binary chunk {:x <chunk-x> :z <chunk-z> :compressed-data
@@ -1329,3 +1330,16 @@
        (mcmap-to-mcr-binary (gen-mcmap 16 16 generator)
                             0 0))))
 
+(defn map-exercise-6
+  "Makes a one-chunk world in mca format with stone below y=64 and a
+  block of gold at [8 65 8]"
+  ([]
+     (let [generator (fn [x y z]
+                       (cond (= [x y z] [8 65 8])
+                               (mc-block :gold-block)
+                             (< y 64)
+                               (mc-block :stone)
+                             :else
+                               (mc-block :air)))]
+       (mcmap-to-mca-binary (gen-mcmap 16 16 generator)
+                            0 0))))
