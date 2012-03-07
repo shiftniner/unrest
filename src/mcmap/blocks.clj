@@ -25,6 +25,7 @@
 (def +opacity+
      ;; XXX partial list for now
      (apply hash-map
+                                 ;; opaque
             (concat (interleave [:stone
                                  :wool
                                  :glowstone
@@ -37,8 +38,10 @@
                                  :diamond-block
                                  :stone-bricks
                                  :nether-brick
-                                 :obsidian]
+                                 :obsidian
+                                 :gold-block]
                                 (repeat 255))
+                                 ;; partially opaque
                     (interleave [:piston-target
                                  :water-flow
                                  :water-source
@@ -120,6 +123,7 @@ given kind of block"
               :sandstone              24
               :wool                   35
               :piston-target          36
+              :gold-block             41
               :iron-block             42
               :tnt                    46
               :moss-stone             48
