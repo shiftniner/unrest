@@ -1213,7 +1213,7 @@
                           (fn [x y z]
                             (block-opacity
                              (zone-lookup block-zone x y z))))
-           _ (msg 1 "Computing height map ...")
+           _ (msg 1 "Computing height and biome maps ...")
            height-zone (p-gen-mcmap-zone x-size 1 z-size
                          (fn [x _ z]
                            (map-height block-zone x z)))
@@ -1461,3 +1461,27 @@
                                (mc-block :air)))]
        (mcmap-to-mcr-binary (gen-mcmap 16 16 generator)
                             0 0))))
+
+(defn map-exercise-8
+  "Generates a 16x16 grid of 5x5 areas with each of the possible 256
+  biome types, each with a sign in the center containing the biome
+  number"
+  ([]
+     (let [generator (fn [x y z]
+                       (let [bx (quot x 5)
+                             bz (quot z 5)
+                             b (-> bx (* 16) (+ bz))]
+                         (cond (= y 127)
+                                 (mc-block :air :biome b)
+                               (= [2 64 2]
+                                  [(mod x 5) y (mod z 5)])
+                                 (mc-block :sign-post
+                                           :text ["" (str b)]
+                                           :face :north)
+                               (< y 64)
+                                 :stone
+                               :else
+                                 :air)))
+           mcmap (gen-mcmap 80 80 generator)]
+       (mcmap-to-mca-binary mcmap 0 0))))
+
