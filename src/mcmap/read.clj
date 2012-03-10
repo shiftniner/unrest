@@ -4,7 +4,8 @@
         mcmap.srand  ; XXX for bytes-to-int; move to util.clj
         mcmap.util)
   (:import java.nio.ByteBuffer
-           java.io.FileInputStream))
+           java.io.FileInputStream
+           java.util.zip.Inflater))
 
 ;;; Functions for reading existing Minecraft save files
 
@@ -94,3 +95,24 @@
            region-bytes
            locs-in-order)))))
 
+(defn zlib-decompress
+  "Takes a byte-buffer of zlib-compressed data and returns a
+  byte-buffer of uncompressed data"
+  ([b]
+     (zlib-decompress b 131072))
+  ([b maxlen]
+     (when (not= (count b) 2)
+       (throw (RuntimeException. (str "zlib-decompress currently"
+                                      " requires a single-object"
+                                      " byte-buffer"))))
+     (when (> maxlen #=(* 8 1024 1024))
+       (throw (RuntimeException. "max decompressed length exceeded")))
+     (let [inf (Inflater.)
+           ret (byte-array maxlen)
+           ret-len (do
+                     (.setInput inf (.array ^ByteBuffer (second b)))
+                     (.inflate inf ret))]
+       (.end inf)
+       (if (< ret-len maxlen)
+         (byte-buffer (take ret-len ret))
+         (recur b (* 4 maxlen))))))
