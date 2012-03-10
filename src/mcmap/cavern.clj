@@ -597,7 +597,9 @@ except for caves with openings near the middle."
                            (mc-block :bedrock)
                            (case ze
                                  :bedrock
-                                   (if (every? #(= :bedrock %) neighbors)
+                                   (if (and (> y (- max-y 10))
+                                            (every? #(= :bedrock %)
+                                                    neighbors))
                                      (mc-block :lava-source)
                                      :bedrock)
                                  :air (mc-block :air)
