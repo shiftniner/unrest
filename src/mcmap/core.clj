@@ -16,6 +16,7 @@
 ;;; experiment.
 (def ^:dynamic *size-at-which-pmap-faster* 400)
 (def Infinity (- (Math/log 0)))
+(def +default-biome+ 0)
 
 (defn zone-x-size
   ([zone]
@@ -64,6 +65,16 @@
      (ct-gen-mcmap-zone x-size +chunk-height+ z-size f))
   ([x-size y-size z-size f]
      (binding [*size-at-which-pmap-faster* Infinity]
+       (gen-mcmap-zone x-size y-size z-size f))))
+
+(defn p-gen-mcmap-zone
+  "Like gen-mcmap-zone, but guaranteed to try to spread the job across
+  threads; useful when generating relatively computationally intensive
+  flat zones that are functions of large 3-D zones"
+  ([x-size z-size f]
+     (ct-gen-mcmap-zone x-size +chunk-height+ z-size f))
+  ([x-size y-size z-size f]
+     (binding [*size-at-which-pmap-faster* 0]
        (gen-mcmap-zone x-size y-size z-size f))))
 
 (defn- rising-mcmap-column
@@ -384,6 +395,15 @@
      (byte-buffer [(bit-and 255 (bit-shift-right n 8))
                    (bit-and 255 n)])))
 
+(defn int-to-bytes
+  "Takes an int and returns the big-endian representation of that int
+  as a vector of four bytes"
+  ([n]
+     [(bit-shift-right n 24)
+      (bit-and 255 (bit-shift-right n 16))
+      (bit-and 255 (bit-shift-right n 8))
+      (bit-and 255 n)]))
+
 (defn tag-int
   "Returns a binary-formatted TAG_Int"
   ;; I should really copy fixnum-to-bytes-4 from the other project.  Maybe
@@ -393,10 +413,7 @@
                    (tag-string tag-name)
                    (tag-int n)))
   ([n]
-     (byte-buffer [(bit-shift-right n 24)
-                   (bit-and 255 (bit-shift-right n 16))
-                   (bit-and 255 (bit-shift-right n 8))
-                   (bit-and 255 n)])))
+     (byte-buffer (int-to-bytes n))))
 
 (defn tag-long
   "Returns a binary-formatted TAG_Long"
@@ -449,6 +466,16 @@
             (tag-byte tag-type)
             (tag-int (count s))
             s)))
+
+(defn tag-int-array
+  "Returns a binary-formatted TAG_Int_Array"
+  ;; This does not appear as part of the payload of any other type, so
+  ;; no short form is needed.
+  ([tag-name bs]
+     (concat-bytes (byte-buffer [11])
+                   (tag-string tag-name)
+                   (tag-int (count bs))
+                   (byte-buffer (mapcat int-to-bytes bs)))))
 
 (defn merge-nybbles
   ([ [a b] ]
@@ -518,12 +545,24 @@
   ([light-zone-seq]
      (nybbles-to-bytes light-zone-seq)))
 
-(defn height-map-bytes
-  "Returns a seq of bytes of heightmap data for the given mcmap"
+(defn flat-map-vals
+  "Returns a seq of bytes or ints of per-vertical-column data from the
+  given one-block-high zone"
+  ([zone]
+     (for [z (range (zone-z-size zone))
+           x (range (zone-x-size zone))]
+       (zone-lookup zone x 0 z))))
+
+(defn height-map-vals
+  "Returns a seq of bytes or ints of heightmap data for the given
+  heightmap zone"
   ([height-zone]
-     (for [z (range (zone-z-size height-zone))
-           x (range (zone-x-size height-zone))]
-       (zone-lookup height-zone x 0 z))))
+     (flat-map-vals height-zone)))
+
+(defn biome-bytes
+  "Returns a seq of bytes of biome data for the given biome zone"
+  ([biome-zone]
+     (flat-map-vals biome-zone)))
 
 (defn enchantment
   "Takes a seq of enchantments in {:id n, :lvl n} form and returns a
@@ -746,7 +785,7 @@
                                         (block-light-bytes
                                          (xzy-seq light-subzone)))
                         (tag-byte-array "HeightMap"
-                                        (height-map-bytes height-subzone))
+                                        (height-map-vals height-subzone))
                         (tag-list "Entities" 10
                                   (entities blocks x0 z0))
                         (tag-list "TileEntities" 10
@@ -756,6 +795,8 @@
                         (tag-int "xPos" (/ x0 +chunk-side+))
                         (tag-int "zPos" (/ z0 +chunk-side+))
                         (tag-byte "TerrainPopulated" 1) ]) ])]
+       (write-file (str "/tmp/mcr-chunk-data-" x0 "-" z0)
+                   data)
        {:x chunk-x
         :z chunk-z
         :compressed-data (zlib-compress data)})))
@@ -768,16 +809,16 @@
        (let [yrange (range (* 16 y-section)
                            (* 16 (inc y-section)))]
          (tag-compound
-            [ (tag-int "Y" y-section)
-              (tag-byte-array "Blocks"
-                              (block-ids (yzx-seq block-zone yrange)))
-              (tag-byte-array "Data"
+            [ (tag-byte-array "Data"
                               (block-data (yzx-seq block-zone yrange)))
               (tag-byte-array "SkyLight"
                               (sky-light (yzx-seq skylight-zone yrange)))
               (tag-byte-array "BlockLight"
                               (block-light-bytes
-                               (yzx-seq light-zone yrange)))])))))
+                               (yzx-seq light-zone yrange)))
+              (tag-byte "Y" y-section)
+              (tag-byte-array "Blocks"
+                              (block-ids (yzx-seq block-zone yrange)))])))))
 
 (defn extract-anvil-chunk
   "Returns a binary chunk {:x <chunk-x> :z <chunk-z> :compressed-data
@@ -790,37 +831,36 @@
            [blocks skylight-subzone light-subzone]
              (map #(sub-zone (% mcmap)
                              x0 (+ x0 +chunk-side+)
-                             0 +chunk-height+
+                             0  +chunk-height+
                              z0 (+ z0 +chunk-side+))
                   [:block-zone :skylight-zone :light-zone])
-           height-subzone (sub-zone (:height-zone mcmap)
-                                    x0 (+ x0 +chunk-side+)
-                                    0 1
-                                    z0 (+ z0 +chunk-side+))
+           [height-subzone biome-subzone]
+             (map #(sub-zone (% mcmap)
+                             x0 (+ x0 +chunk-side+)
+                             0  1
+                             z0 (+ z0 +chunk-side+))
+                  [:height-zone :biome-zone])
            data (tag-compound ""
                   [ (tag-compound "Level"
-                      [ #_(tag-byte-array "Blocks"
-                                        (block-ids blocks))
-                        #_(tag-byte-array "Data"
-                                        (block-data blocks))
-                        #_(tag-byte-array "SkyLight"
-                                        (sky-light skylight-subzone))
-                        #_(tag-byte-array "BlockLight"
-                                        (block-light-bytes light-subzone))
-                        (tag-list "Sections" 10
-                                  (anvil-sections blocks skylight-subzone
-                                                  light-subzone))
-                        (tag-byte-array "HeightMap"
-                                        (height-map-bytes height-subzone))
-                        (tag-list "Entities" 10
+                      [ (tag-list "Entities" 10
                                   (entities blocks x0 z0))
-                        (tag-list "TileEntities" 10
-                                  (tile-entities blocks x0 z0))
-                        (tag-list "TileTicks" 10 [])
+                        (tag-byte-array "Biomes"
+                                        (biome-bytes biome-subzone))
                         (tag-long "LastUpdate" 1)
                         (tag-int "xPos" (/ x0 +chunk-side+))
                         (tag-int "zPos" (/ z0 +chunk-side+))
-                        (tag-byte "TerrainPopulated" 1) ]) ])]
+                        (tag-list "TileEntities" 10
+                                  (tile-entities blocks x0 z0))
+                        (tag-byte "TerrainPopulated" 1)
+                        (tag-int-array "HeightMap"
+                                       (height-map-vals height-subzone))
+                        (tag-list "Sections" 10
+                                  (anvil-sections blocks skylight-subzone
+                                                  light-subzone))
+                        ;(tag-list "TileTicks" 10 [])
+                        ]) ])]
+       (write-file (str "/tmp/anv-chunk-data-" x0 "-" z0)
+                   data)
        {:x chunk-x
         :z chunk-z
         :compressed-data (zlib-compress data)})))
@@ -968,6 +1008,20 @@
                                     -1 -1)))
               -1))))
 
+(defn map-biome
+  "Given a block zone and x and z coordinates, returns the biome value
+  of the first block encountered that has a :biome attribute, or else
+  the default biome"
+  ([zone x z]
+     (let [height (zone-y-size zone)
+           biome-type (or (first
+                           (filter identity
+                                   (map #(:biome (zone-lookup zone x % z))
+                                        (range (dec height)
+                                               -1 -1))))
+                          +default-biome+)]
+       biome-type)))
+
 (defn block-light
   "Given a block zone element, returns the base block light
   level (before spreading light from neighboring blocks) for that
@@ -1114,9 +1168,12 @@
                             (block-opacity
                              (zone-lookup block-zone x y z))))
            _ (msg 1 "Computing height map ...")
-           height-zone (gen-mcmap-zone x-size 1 z-size
+           height-zone (p-gen-mcmap-zone x-size 1 z-size
                          (fn [x _ z]
                            (map-height block-zone x z)))
+           biome-zone (p-gen-mcmap-zone x-size 1 z-size
+                         (fn [x _ z]
+                           (map-biome block-zone x z)))
            light-zone (promise)
            skylight-zone (promise)
            _ (msg 1 "Starting block-source light calcs ...")
@@ -1139,7 +1196,8 @@
        {:block-zone block-zone
         :light-zone @light-zone
         :skylight-zone @skylight-zone
-        :height-zone height-zone})))
+        :height-zone height-zone
+        :biome-zone biome-zone})))
 
 (defn mcmap-to-mcr-binary
   "Takes an mcmap and two region coordinates, and returns a region
@@ -1332,6 +1390,20 @@
 
 (defn map-exercise-6
   "Makes a one-chunk world in mca format with stone below y=64 and a
+  block of diamond at [8 65 8]"
+  ([]
+     (let [generator (fn [x y z]
+                       (cond (= [x y z] [8 65 8])
+                               (mc-block :diamond-block)
+                             (< y 64)
+                               (mc-block :stone)
+                             :else
+                               (mc-block :air)))]
+       (mcmap-to-mca-binary (gen-mcmap 16 16 generator)
+                            0 0))))
+
+(defn map-exercise-7
+  "Makes a one-chunk world in mcr format with stone below y=64 and a
   block of gold at [8 65 8]"
   ([]
      (let [generator (fn [x y z]
@@ -1341,5 +1413,5 @@
                                (mc-block :stone)
                              :else
                                (mc-block :air)))]
-       (mcmap-to-mca-binary (gen-mcmap 16 16 generator)
+       (mcmap-to-mcr-binary (gen-mcmap 16 16 generator)
                             0 0))))
