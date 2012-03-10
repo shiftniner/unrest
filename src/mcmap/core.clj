@@ -504,6 +504,24 @@
                    (bit-or ( {:north 0x0 :east 0x1 :south 0x2 :west 0x3}
                              (:face ze))
                            (* 4 (:delay ze)))
+                   :sign-post
+                   ( {:north            0x0
+                      :north-northeast  0x1
+                      :northeast        0x2
+                      :east-northeast   0x3
+                      :east             0x4
+                      :east-southeast   0x5
+                      :southeast        0x6
+                      :south-southeast  0x7
+                      :south            0x8
+                      :south-southwest  0x9
+                      :southwest        0xA
+                      :west-southwest   0xB
+                      :west             0xC
+                      :west-northwest   0xD
+                      :northwest        0xE
+                      :north-northwest  0xF}
+                     (:face ze))
                  0))
        0)))
 
@@ -606,7 +624,7 @@
                        ["Chest"
                         (tag-list "Items" 10
                                   (:items ze))]
-                     :wall-sign
+                     (:wall-sign :sign-post)
                        ["Sign"
                         (tag-string "Text1" (-> ze :text (get 0) (or "")))
                         (tag-string "Text2" (-> ze :text (get 1) (or "")))

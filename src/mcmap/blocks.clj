@@ -135,6 +135,7 @@ given kind of block"
               :chest                  54
               :redstone-wire          55
               :diamond-block          57
+              :sign-post              63
               :ladder                 65
               :wall-sign              68
               :wood-pressure-plate    72
