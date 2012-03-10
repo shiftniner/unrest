@@ -114,10 +114,10 @@ computing twists."
 (defn optimize-cave-params
   "Takes cave-params as nested seqs; returns cave-params as a hash
 in {:layered-cave-params (cp-seq cp-seq ...) form}"
-  ([cave-params]
+  ([cave-params y-max]
      (let [flat-cp (flatten cave-params)
            cp-seqs (map filter-cave-params-by-y
-                        (range 128)
+                        (range y-max)
                         (repeat flat-cp))]
        {:layered-cave-params cp-seqs})))
 
@@ -158,7 +158,7 @@ in {:layered-cave-params (cp-seq cp-seq ...) form}"
                      (* z-dist z-dist))))))
 
 (defn epic-cave-generator
-  ([cave-params x-max z-max x-start z-start]
+  ([cave-params x-max y-max z-max x-start z-start]
      (let [in-cave? (in-cave?-fn cave-params)
            x-bound (dec x-max)
            z-bound (dec z-max)
@@ -171,21 +171,22 @@ in {:layered-cave-params (cp-seq cp-seq ...) form}"
                                     ground-cap-z-slope)]
            (cond (or (zero? x) (zero? z) (= x-bound x) (= z-bound z))
                    :bedrock
-                 (and (> y 125)
-                      (> y (+ 125 (distance-2d-sloped
-                                   x z x-start z-start 2/31 2/31))))
+                 (and (> y (- y-max 3))
+                      (> y (+ y-max -3
+                              (distance-2d-sloped
+                               x z x-start z-start 2/31 2/31))))
                    :air
-                 (and (> y 121)
-                      (> y (- 138 sloping-cap)))
+                 (and (> y (- y-max 7))
+                      (> y (- (+ y-max 10) sloping-cap)))
                    :ground
-                 (and (> y 120)
-                      (> y (- 137 sloping-cap))
+                 (and (> y (- y-max 8))
+                      (> y (- (+ y-max 9) sloping-cap))
                       (in-cave? x y z)
                       (not (in-cave? x (dec y) z)))
                    :ground
-                 (and (> y 118)
-                      (> y (- 135 sloping-cap))
-                      (< y 127)
+                 (and (> y (- y-max 10))
+                      (> y (- (+ y-max 7) sloping-cap))
+                      (< y (dec y-max))
                       (in-cave? x y z)
                       (not (in-cave? x (dec y) z))
                       (not (in-cave? x (inc y) z)))
@@ -204,6 +205,8 @@ in {:layered-cave-params (cp-seq cp-seq ...) form}"
 
 (defn random-cave
   ([x-max z-max seed]
+     (random-cave x-max +chunk-height+ z-max seed))
+  ([x-max y-max z-max seed]
      (loop [salt 0]
        (let [x0 (* x-max (srand 1 seed salt 1))
              z0 (* z-max (srand 1 seed salt 2))
@@ -219,7 +222,7 @@ in {:layered-cave-params (cp-seq cp-seq ...) form}"
            {:x0 x0
             :z0 z0
             :min-y 0
-            :max-y 128
+            :max-y y-max
             :radius radius
             :turn-rate (if (> 0.5 (srand 1 seed salt 4))
                          (- *turn-rate*) *turn-rate*)
@@ -309,10 +312,11 @@ cave-params for a single continuous twisting cave"
 
 (defn pick-centermost-cave
   "Returns [centermost-cave other-caves]"
-  ([caves max-x max-z]
+  ([caves max-x max-y max-z]
      (let [cx (/ max-x 2)
            cz (/ max-z 2)
-           top-points (map #((in-cave?-fn %) 127)
+           top-points (map #( (in-cave?-fn %)
+                              (dec max-y))
                            caves)
            dists-squared (map #(let [ {x :cave-x, z :cave-z} %
                                       dx (- x cx)
@@ -331,12 +335,12 @@ cave-params for a single continuous twisting cave"
                   (rest dists)))))))
 
 (defn find-closest-point
-  "Returns the y altitude between 20 and 100 where the two given caves
-are at their closest"
-  ([cave-params-1 cave-params-2]
+  "Returns the y altitude between 20 and (- y-max 28) where the two
+given caves are at their closest"
+  ([cave-params-1 cave-params-2 y-max]
      (let [in-cave?-1 (in-cave?-fn cave-params-1)
            in-cave?-2 (in-cave?-fn cave-params-2)
-           y-range (range 20 101)
+           y-range (range 20 (- y-max 27))
            points-1 (map #(let [{x :cave-x, z :cave-z}
                                 (in-cave?-1 %)]
                             [x z])
@@ -363,8 +367,8 @@ are at their closest"
   "Returns true only if the two given caves intersect; this function
 may sometimes generate false negatives, but will never generate false
 positives"
-  ([cave-params-1 cave-params-2]
-     (let [y (find-closest-point cave-params-1 cave-params-2)
+  ([cave-params-1 cave-params-2 y-max]
+     (let [y (find-closest-point cave-params-1 cave-params-2 y-max)
            in-cave?-1 (in-cave?-fn cave-params-1)
            in-cave?-2 (in-cave?-fn cave-params-2)
            {x1 :cave-x, z1 :cave-z} (in-cave?-1 y)
@@ -383,8 +387,10 @@ positives"
        (loop [x x1
               z z1
               t 0]
-         (let [in-1 (in-cave?-1 x y z)
-               in-2 (in-cave?-2 x y z)]
+         (let [ix (int (+ x 0.5))
+               iz (int (+ z 0.5))
+               in-1 (in-cave?-1 ix y iz)
+               in-2 (in-cave?-2 ix y iz)]
            (cond (not (or in-1 in-2))
                    false
                  (and in-1 in-2)
@@ -403,8 +409,10 @@ all of which are interconnected and reachable from the starting point,
 with bedrock on all vertical sides, and capped with :ground on top
 except for caves with openings near the middle."
   ([n-caves max-x max-z seed]
+     (epic-cave-network n-caves max-x +chunk-height+ max-z seed))
+  ([n-caves max-x max-y max-z seed]
      (msg 1 "Generating cave network ...")
-     (let [gen-twisted-cave #(twist-cave (random-cave max-x max-z
+     (let [gen-twisted-cave #(twist-cave (random-cave max-x max-y max-z
                                                       (long
                                                        (srand +seed-max+
                                                               seed % 1)))
@@ -415,11 +423,12 @@ except for caves with openings near the middle."
            candidate-caves (take n-caves cave-seq)
            cave-seq (drop n-caves cave-seq)
            _ (msg 8 "Finding centermost cave")
-           [start candidate-caves] (pick-centermost-cave candidate-caves
-                                                         max-x max-z)
+           [start candidate-caves]
+             (pick-centermost-cave candidate-caves max-x max-y max-z)
            caves [start]
            {start-x :cave-x,
-            start-z :cave-z}  ( (in-cave?-fn start) 127)]
+            start-z :cave-z}  ( (in-cave?-fn start)
+                                (dec max-y))]
        (loop [caves caves
               candidate-caves candidate-caves
               cave-seq cave-seq
@@ -429,11 +438,12 @@ except for caves with openings near the middle."
          (cond (>= (count caves) n-caves)
                  ;; return here
                  (let [_ (msg 3 "Picked enough caves; optimizing ...")
-                       caves (optimize-cave-params (take n-caves caves))
+                       caves (optimize-cave-params (take n-caves caves)
+                                                   max-y)
                        generator (epic-cave-generator
-                                    caves max-x max-z start-x start-z)
+                                    caves max-x max-y max-z start-x start-z)
                        _ (msg 3 "Carving ...")
-                       zone (gen-mcmap-zone max-x max-z generator)]
+                       zone (gen-mcmap-zone max-x max-y max-z generator)]
                    [zone start-x start-z])
                (>= i (count caves))
                  (let [more-to-get (inc (int (/ n-caves 3)))]
@@ -453,7 +463,8 @@ except for caves with openings near the middle."
                            (if (not (seq caves-to-try))
                              [caves-to-add remaining-candidates]
                              (if (caves-intersect? (first caves-to-try)
-                                                   criterion-cave)
+                                                   criterion-cave
+                                                   max-y)
                                (recur (cons (first caves-to-try)
                                             caves-to-add)
                                       remaining-candidates
@@ -552,3 +563,45 @@ except for caves with openings near the middle."
                                  :ground (mc-block :sandstone)))))]
        (println "Start is x=" start-x " z=" start-z)
        (generic-map-maker x-chunks z-chunks generator))))
+
+(defn cave-exercise-6
+  "Generates a full-1.2-height epic cave network"
+  ([x-chunks z-chunks]
+     (let [seed (choose-random-seed)]
+       (println "Chose seed:" seed)
+       (cave-exercise-6 x-chunks z-chunks seed)))
+  ([x-chunks z-chunks seed]
+     (let [max-x (* x-chunks +chunk-side+)
+           max-y 256
+           max-z (* z-chunks +chunk-side+)
+           [epic-zone start-x start-z]
+                 (epic-cave-network *num-caves* max-x max-y max-z seed)
+           _ (msg 3 "Adding bedrock ...")
+           bedrock-generator (fn [x y z]
+                               (let [ze (zone-lookup epic-zone x y z)
+                                     neighbors (neighbors-of epic-zone
+                                                             x y z)]
+                                 (if (every? #{:ground :bedrock}
+                                             (cons ze neighbors))
+                                   :bedrock
+                                   ze)))
+           epic-zone (gen-mcmap-zone max-x max-y max-z bedrock-generator)
+           _ (msg 3 "Adding creamy middle ...")
+           x-bound (dec max-x)
+           z-bound (dec max-z)
+           generator (fn [x y z]
+                       (let [ze (zone-lookup epic-zone x y z)
+                             neighbors (neighbors-of epic-zone x y z)]
+                         (if (or (zero? x) (zero? z)
+                                 (= x-bound x) (= z-bound z))
+                           (mc-block :bedrock)
+                           (case ze
+                                 :bedrock
+                                   (if (every? #(= :bedrock %) neighbors)
+                                     (mc-block :lava-source)
+                                     :bedrock)
+                                 :air (mc-block :air)
+                                 :ground (mc-block :sandstone)))))
+           _ (println "Start is x=" start-x " z=" start-z)
+           mcmap (gen-mcmap max-x max-y max-z generator)]
+       (mcmap-to-mca-binary mcmap 0 0))))

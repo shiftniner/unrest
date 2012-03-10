@@ -846,10 +846,11 @@
                  (* +chunk-side+ chunk-x))
            z0 (+ (* +region-side+ region-z)
                  (* +chunk-side+ chunk-z))
+           map-height (zone-y-size (:block-zone mcmap))
            [blocks skylight-subzone light-subzone]
              (map #(sub-zone (% mcmap)
                              x0 (+ x0 +chunk-side+)
-                             0  +chunk-height+
+                             0  map-height
                              z0 (+ z0 +chunk-side+))
                   [:block-zone :skylight-zone :light-zone])
            [height-subzone biome-subzone]
@@ -1022,7 +1023,7 @@
   full light of the sun"
   ([zone x z]
      (inc (or (first (filter #(opaque? (zone-lookup zone x % z))
-                             (range (- +chunk-height+ 2)
+                             (range (dec (zone-y-size zone))
                                     -1 -1)))
               -1))))
 
@@ -1198,18 +1199,22 @@
        (spread-light skylight-zone opacity-zone))))
 
 (defn gen-mcmap
-  "Given x and z sizes and a function of x y and z that returns a
+  "Given x, y, and z sizes and a function of x y and z that returns a
   block, returns an mcmap complete with computed light levels"
   ([x-size z-size f]
+     (gen-mcmap x-size +chunk-height+ z-size f))
+  ([x-size y-size z-size f]
      (when (or (pos? (mod x-size 16))
+               (pos? (mod y-size 16))
                (pos? (mod z-size 16)))
        (throw (RuntimeException.
-               (str "Illegal map dimensions: " x-size "x" z-size
+               (str "Illegal map dimensions: "
+                    x-size "x" y-size "x" z-size
                     "; must be multiples of 16"))))
      (let [_ (msg 1 "Placing blocks ...")
-           block-zone (gen-mcmap-zone x-size z-size f)
+           block-zone (gen-mcmap-zone x-size y-size z-size f)
            _ (msg 1 "Mapping opaque and transparent blocks ...")
-           opacity-zone (gen-mcmap-zone x-size z-size
+           opacity-zone (gen-mcmap-zone x-size y-size z-size
                           (fn [x y z]
                             (block-opacity
                              (zone-lookup block-zone x y z))))
