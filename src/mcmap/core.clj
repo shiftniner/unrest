@@ -1026,6 +1026,32 @@
                                     -1 -1)))
               -1))))
 
+(def +biome-codes+
+     {:ocean 0,
+      :plains 1,
+      :desert 2,
+      :extreme-hills 3,
+      :forest 4,
+      :taiga 5,
+      :swampland 6,
+      :river 7,
+      :hell 8,
+      :sky 9,
+      :frozen-ocean 10,
+      :frozen-river 11,
+      :these-lions-that-breathe 11,
+      :ice-plains 12,
+      :ice-mountains 13,
+      :mushroom-island 14,
+      :mushroom-island-shore 15,
+      :beach 16,
+      :desert-hills 17,
+      :forest-hills 18,
+      :taiga-hills 19,
+      :extreme-hills-edge 20,
+      :jungle 21,
+      :jungle-hills 22})
+
 (defn map-biome
   "Given a block zone and x and z coordinates, returns the biome value
   of the first block encountered that has a :biome attribute, or else
@@ -1038,7 +1064,9 @@
                                         (range (dec height)
                                                -1 -1))))
                           +default-biome+)]
-       biome-type)))
+       (if (keyword? biome-type)
+         (+biome-codes+ biome-type)
+         biome-type))))
 
 (defn block-light
   "Given a block zone element, returns the base block light
