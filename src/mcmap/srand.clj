@@ -115,6 +115,7 @@ that big-endian seq"
 (defn bytes-to-int
   "Takes a seq of bytes and returns the signed integer represented by
 that big-endian seq"
+  ;; XXX move to util.clj
   ([bs]
      (reduce (fn [i b]
                (+' (bit-and b 255)
