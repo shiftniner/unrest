@@ -205,7 +205,7 @@ in {:layered-cave-params (cp-seq cp-seq ...) form}"
 
 (defn random-cave
   ([x-max z-max seed]
-     (random-cave x-max +chunk-height+ z-max seed))
+     (random-cave x-max +old-chunk-height+ z-max seed))
   ([x-max y-max z-max seed]
      (loop [salt 0]
        (let [x0 (* x-max (srand 1 seed salt 1))
@@ -409,7 +409,7 @@ all of which are interconnected and reachable from the starting point,
 with bedrock on all vertical sides, and capped with :ground on top
 except for caves with openings near the middle."
   ([n-caves max-x max-z seed]
-     (epic-cave-network n-caves max-x +chunk-height+ max-z seed))
+     (epic-cave-network n-caves max-x +old-chunk-height+ max-z seed))
   ([n-caves max-x max-y max-z seed]
      (msg 1 "Generating cave network ...")
      (let [gen-twisted-cave #(twist-cave (random-cave max-x max-y max-z
@@ -586,7 +586,7 @@ except for caves with openings near the middle."
                                    :bedrock
                                    ze)))
            epic-zone (gen-mcmap-zone max-x max-y max-z bedrock-generator)
-           _ (msg 3 "Adding creamy middle ...")
+           _ (msg 3 "Adding lava sea ...")
            x-bound (dec max-x)
            z-bound (dec max-z)
            generator (fn [x y z]

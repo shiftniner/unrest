@@ -9,7 +9,8 @@
 
 (def +region-side+ (* 16 32))
 (def +chunk-side+ 16)
-(def +chunk-height+ 128)
+(def +old-chunk-height+ 128)
+(def +max-map-height+ 256)
 (def +byte-buffer-concat-threshold+ 16)
 ;;; Number of blocks per z slice at which it is worthwhile to use pmap
 ;;; instead of for in gen-mcmap-zone.  XXX 400 is a wild guess;
@@ -44,7 +45,7 @@
   specified size; typically uses pmap, so if thread-local bindings to
   dynamic variables must be preserved, use ct-gen-mcmap-zone"
   ([x-size z-size f]
-     (gen-mcmap-zone x-size +chunk-height+ z-size f))
+     (gen-mcmap-zone x-size +old-chunk-height+ z-size f))
   ([x-size y-size z-size f]
      (if (and (> x-size 1)
               (> (* y-size z-size)
@@ -62,7 +63,7 @@
   "Like gen-mcmap-zone, but guaranteed to evaluate completely within
   the current thread (\"CT\") to allow the use of (binding ...)"
   ([x-size z-size f]
-     (ct-gen-mcmap-zone x-size +chunk-height+ z-size f))
+     (ct-gen-mcmap-zone x-size +old-chunk-height+ z-size f))
   ([x-size y-size z-size f]
      (binding [*size-at-which-pmap-faster* Infinity]
        (gen-mcmap-zone x-size y-size z-size f))))
@@ -72,7 +73,7 @@
   threads; useful when generating relatively computationally intensive
   flat zones that are functions of large 3-D zones"
   ([x-size z-size f]
-     (ct-gen-mcmap-zone x-size +chunk-height+ z-size f))
+     (ct-gen-mcmap-zone x-size +old-chunk-height+ z-size f))
   ([x-size y-size z-size f]
      (binding [*size-at-which-pmap-faster* 0]
        (gen-mcmap-zone x-size y-size z-size f))))
@@ -95,7 +96,8 @@
   next lower block (or nil for y=0), and returns a zone of the
   specified size"
   ([x-size z-size f]
-     (rising-recursive-gen-mcmap-zone x-size +chunk-height+ z-size f))
+     (rising-recursive-gen-mcmap-zone x-size +old-chunk-height+ z-size
+                                      f))
   ([x-size y-size z-size f]
      (vec (pmap #(vec (for [z (range z-size)]
                         (rising-mcmap-column % z y-size f)))
@@ -119,7 +121,8 @@
   next higher block (or nil for y=max), and returns a zone of the
   specified size"
   ([x-size z-size f]
-     (falling-recursive-gen-mcmap-zone x-size +chunk-height+ z-size f))
+     (falling-recursive-gen-mcmap-zone x-size +old-chunk-height+ z-size
+                                       f))
   ([x-size y-size z-size f]
      (vec (pmap #(vec (for [z (range z-size)]
                         (vec (falling-mcmap-column % z y-size f))))
@@ -131,7 +134,8 @@
   next block to the north (or nil for z=0), and returns a zone of the
   specified size"
   ([x-size z-size f]
-     (southward-recursive-gen-mcmap-zone x-size +chunk-height+ z-size f))
+     (southward-recursive-gen-mcmap-zone x-size +old-chunk-height+
+                                         z-size f))
   ([x-size y-size z-size f]
      ; Swap z and y, call rising-recursive-gen-mcmap-zone, then swap z
      ; and y back
@@ -150,7 +154,8 @@
   next block to the south (or nil for z=max), and returns a zone of
   the specified size"
   ([x-size z-size f]
-     (northward-recursive-gen-mcmap-zone x-size +chunk-height+ z-size f))
+     (northward-recursive-gen-mcmap-zone x-size +old-chunk-height+
+                                         z-size f))
   ([x-size y-size z-size f]
      ; Swap z and y, call falling-recursive-gen-mcmap-zone, then swap
      ; z and y back
@@ -172,7 +177,8 @@
   next block to the west (or nil for x=0), and returns a zone of the
   specified size"
   ([x-size z-size f]
-     (eastward-recursive-gen-mcmap-zone x-size +chunk-height+ z-size f))
+     (eastward-recursive-gen-mcmap-zone x-size +old-chunk-height+ z-size
+                                        f))
   ([x-size y-size z-size f]
      ; Swap x and y, call rising-recursive-gen-mcmap-zone, then swap x
      ; and y back
@@ -191,7 +197,8 @@
   next block to the east (or nil for x=max), and returns a zone of the
   specified size"
   ([x-size z-size f]
-     (westward-recursive-gen-mcmap-zone x-size +chunk-height+ z-size f))
+     (westward-recursive-gen-mcmap-zone x-size +old-chunk-height+ z-size
+                                        f))
   ([x-size y-size z-size f]
      ; Swap x and y, call falling-recursive-gen-mcmap-zone, then swap
      ; x and y back
@@ -783,7 +790,7 @@
            [blocks skylight-subzone light-subzone]
              (map #(sub-zone (% mcmap)
                              x0 (+ x0 +chunk-side+)
-                             0 +chunk-height+
+                             0 +old-chunk-height+
                              z0 (+ z0 +chunk-side+))
                   [:block-zone :skylight-zone :light-zone])
            height-subzone (sub-zone (:height-zone mcmap)
@@ -1202,7 +1209,7 @@
   "Given x, y, and z sizes and a function of x y and z that returns a
   block, returns an mcmap complete with computed light levels"
   ([x-size z-size f]
-     (gen-mcmap x-size +chunk-height+ z-size f))
+     (gen-mcmap x-size +old-chunk-height+ z-size f))
   ([x-size y-size z-size f]
      (when (or (pos? (mod x-size 16))
                (pos? (mod y-size 16))
