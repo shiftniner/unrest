@@ -201,7 +201,7 @@ in {:layered-cave-params (cp-seq cp-seq ...) form}"
      (let [mcmap (gen-mcmap (* x-chunks +chunk-side+)
                             (* z-chunks +chunk-side+)
                             generator)]
-       (mcmap-to-mcr-binary mcmap 0 0))))
+       (mcmap-to-mca-binary mcmap 0 0))))
 
 (defn random-cave
   ([x-max z-max seed]
@@ -510,10 +510,10 @@ except for caves with openings near the middle."
      (let [max-x (* x-chunks +chunk-side+)
            max-z (* z-chunks +chunk-side+)
            gen-rand-cave #(random-cave max-x max-z
-                                       (int (rand +seed-max+)))
+                                       (long (rand +seed-max+)))
            cave-params (repeatedly 15 gen-rand-cave)
            cave-params (map #(twist-cave % max-x max-z
-                                         (int (rand +seed-max+)))
+                                         (long (rand +seed-max+)))
                             cave-params)]
        (generic-map-maker x-chunks z-chunks
                           (dark-cave-generator cave-params)))))
