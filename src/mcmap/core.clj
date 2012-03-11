@@ -809,7 +809,7 @@
                         (tag-list "TileEntities" 10
                                   (tile-entities blocks x0 z0))
                         (tag-list "TileTicks" 10 [])
-                        (tag-long "LastUpdate" 1)
+                        (tag-long "LastUpdate" 1656407)
                         (tag-int "xPos" (/ x0 +chunk-side+))
                         (tag-int "zPos" (/ z0 +chunk-side+))
                         (tag-byte "TerrainPopulated" 1) ]) ])]
@@ -865,7 +865,7 @@
                                   (entities blocks x0 z0))
                         (tag-byte-array "Biomes"
                                         (biome-bytes biome-subzone))
-                        (tag-long "LastUpdate" 1)
+                        (tag-long "LastUpdate" 1656407)
                         (tag-int "xPos" (/ x0 +chunk-side+))
                         (tag-int "zPos" (/ z0 +chunk-side+))
                         (tag-list "TileEntities" 10
