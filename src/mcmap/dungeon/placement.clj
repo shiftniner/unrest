@@ -96,31 +96,33 @@ traveling through the hallway, as [hallway xd yd zd]"
      (let [len (int (snorm [10 10 5] seed salt))
            ;; These blocks need to be determined at render time based
            ;; on params
-           hall-fn (fn [w y]
-                     (cond (some #{0 6} [w y])
-                             :ground
-                           (= y 1)
-                             :sandstone
-                           (some #{1 5} [w y])
-                             (mc-block :moss-brick)
-                           :else
-                             :air))
-           zone-fn (case orientation
-                         (0 2) (fn [x y z] (hall-fn z y))
-                         (1 3) (fn [x y z] (hall-fn x y)))
            [x-dim z-dim] (case orientation
                                (0 2) [len 7]
                                (1 3) [7 len])
            y-dim 7
-           zone (gen-mcmap-zone x-dim y-dim z-dim zone-fn)
            [x0 z0 xd zd]
              (case orientation
                    0 [0 0 len 0]
                    1 [-7 0 0 len]
                    2 [(- len) -7 (- len) 0]
                    3 [0 (- len) 0 (- len)])
-           yd 0]
-       [ [(fn [params])
+           yd 0
+           p (promise)]
+       [ [(fn [params]
+            (let [hall-fn (fn [w y]
+                            (cond (some #{0 6} [w y])
+                                    :ground
+                                  (= y 1)
+                                    :sandstone
+                                  (some #{1 5} [w y])
+                                    (mc-block :moss-brick)
+                                  :else
+                                    :air))
+                  zone-fn (case orientation
+                                (0 2) (fn [x y z] (hall-fn z y))
+                                (1 3) (fn [x y z] (hall-fn x y)))]
+              (deliver p
+                       (gen-mcmap-zone x-dim y-dim z-dim zone-fn))))
           {:x0 x0, :y0 0, :z0 z0,
            :xd x-dim, :yd y-dim, :zd z-dim,
            :axis (case orientation
@@ -129,7 +131,7 @@ traveling through the hallway, as [hallway xd yd zd]"
            :range (case orientation
                         (0 1) (range len)
                         (2 3) (range (dec len) -1 -1))
-           :zone (atom zone)}]
+           :zone p}]
          xd yd zd])))
 
 (defn try-find-place-for-dungeon
@@ -513,7 +515,7 @@ dungeons) in it someplace reachable"
            dungeons (map first dunhalls)
            hallways (map second dunhalls)
            _ (msg 3 "Rendering dungeons ...")
-           _ (dorun (pmap render-dungeon dungeons
+           _ (dorun (pmap render-dungeon (apply concat dunhalls)
                           (repeat {:pain 0.2 :reward 16000})))
            _ (msg 3 (str "Got " (count dungeons) " dungeons"))
            _ (msg 3 "Placing dungeons and hallways ...")
