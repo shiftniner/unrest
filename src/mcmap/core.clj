@@ -631,6 +631,10 @@
                        ["Chest"
                         (tag-list "Items" 10
                                   (:items ze))]
+                     :dispenser
+                       ["Trap"
+                        (tag-list "Items" 10
+                                  (:items ze))]
                      (:wall-sign :sign-post)
                        ["Sign"
                         (tag-string "Text1" (-> ze :text (get 0) (or "")))

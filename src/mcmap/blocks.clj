@@ -120,6 +120,7 @@ given kind of block"
               :gravel                 13
 ;              :wood                   17
               :glass                  20
+              :dispenser              23
               :sandstone              24
               :wool                   35
               :piston-target          36
@@ -295,6 +296,9 @@ inventory item"
                  :cauldron              380
                  :eye-of-ender          381
                  :glistering-melon      382
+                 :spawn-egg             383
+                 :bottle-o-enchanting   384
+                 :fire-charge           385
                  :13-disc               2256
                  :cat-disc              2257
                  :blocks-disc           2258
