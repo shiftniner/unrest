@@ -95,26 +95,41 @@ inside the dungeon"
      (* 16 (quot (+ n 15)
                  16))))
 
-(defn chest-full-of
-  "Takes either an item ID or [id damage], and an optional
-count (default 64), and returns a chest block full of that item"
-  ([id]
-     (chest-full-of id 64))
-  ([id count]
+(defn container-full-of
+  "Takes a block type, inventory list count, numeric item ID (or [id
+  damage]), and stack size, and returns a block with that inventory
+  list"
+  ([block-type n-slots id count]
      (let [damage (if (sequential? id)
                     (second id)
                     0)
            id (if (sequential? id)
                 (first id)
                 id)]
-       (mc-block :chest
+       (mc-block block-type
                  :items (inventory-list
                          (map (fn [slot]
                                 {:id id
                                  :count count
                                  :slot slot
                                  :damage damage})
-                              (range 27)))))))
+                              (range n-slots)))))))
+
+(defn chest-full-of
+  "Takes either a numeric item ID or [id damage], and an optional
+  count (default 64), and returns a chest block full of that item"
+  ([id]
+     (chest-full-of id 64))
+  ([id count]
+     (container-full-of :chest 27 id count)))
+
+(defn dispenser-full-of
+  "Takes either a numeric item ID or [id damage], and an optional
+  count (default 64), and returns a dispenser block full of that item"
+  ([id]
+     (dispenser-full-of id 64))
+  ([id count]
+     (container-full-of :dispenser 9 id count)))
 
 (defn rotate-empty-box-clockwise
   ([box]
