@@ -16,17 +16,11 @@
      (let [x-chunks 16
            z-chunks 16
            max-x (* x-chunks +chunk-side+)
+           max-y 256
            max-z (* z-chunks +chunk-side+)
            [epic-zone start-x start-z]
-               (epic-cave-network *num-caves* max-x max-z seed)
-           _ (msg 3 "Computing cavern mood lighting ...")
-           cavern-mood-light
-               (rising-recursive-gen-mcmap-zone max-x max-z
-                 (fn [x y z prev-light]
-                   (let [ze (zone-lookup epic-zone x y z)]
-                     (if (= :air ze)
-                       (min +max-cavern-light+ (inc (or prev-light -3)))
-                       nil))))
+               (epic-cave-network *num-caves* max-x max-y max-z seed)
+           _ (println "Start is x=" start-x " z=" start-z)
            _ (msg 3 "Adding bedrock crust ...")
            bedrock-generator (fn [x y z]
                                (let [ze (zone-lookup epic-zone x y z)
@@ -36,8 +30,8 @@
                                              (cons ze neighbors))
                                    :bedrock
                                    ze)))
-           epic-zone (gen-mcmap-zone max-x max-z bedrock-generator)
-           _ (msg 3 "Adding creamy middle ...")
+           epic-zone (gen-mcmap-zone max-x max-y max-z bedrock-generator)
+           _ (msg 3 "Adding lava sea ...")
            x-bound (dec max-x)
            z-bound (dec max-z)
            generator (fn [x y z]
@@ -48,15 +42,12 @@
                            (mc-block :bedrock)
                            (case ze
                                  :bedrock
-                                   (if (every? #(= :bedrock %) neighbors)
+                                   (if (and (> y (- max-y 10))
+                                            (every? #(= :bedrock %)
+                                                    neighbors))
                                      (mc-block :lava-source)
                                      :bedrock)
-                                 :air
-                                   (if-let [light (zone-lookup
-                                                     cavern-mood-light
-                                                     x y z)]
-                                     (mc-block :air :light (max 0 light))
-                                     (mc-block :air))
-                                 :ground (mc-block :sandstone)))))]
-       (println "Start is x=" start-x " z=" start-z)
-       (generic-map-maker x-chunks z-chunks generator))))
+                                 :air (mc-block :air) 
+                                 :ground (mc-block :sandstone)))))
+           mcmap (gen-mcmap max-x max-y max-z generator)]
+       (mcmap-to-mca-binary mcmap 0 0))))
