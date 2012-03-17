@@ -554,10 +554,11 @@ dungeons) in it someplace reachable"
                                :else
                                  (case ze
                                        :bedrock
-                                       (if (every? #(= :bedrock %)
-                                                   neighbors)
-                                         (mc-block :lava-source)
-                                         :bedrock)
+                                         (if (and (> y (- max-y 10))
+                                                  (every? #(= :bedrock %)
+                                                          neighbors))
+                                           (mc-block :lava-source)
+                                           :bedrock)
                                        :air (mc-block :air)
                                        :ground (mc-block :sandstone)
                                        ze))))]
