@@ -501,14 +501,18 @@ dungeons) in it someplace reachable"
   ([seed]
      (let [chunks 16
            max-x (* chunks +chunk-side+)
+           max-y 128
            max-z (* chunks +chunk-side+)
+           max-dim (max max-x max-y max-z)
            [epic-zone start-x start-z]
-                 (epic-cave-network 15 max-x max-z seed)
+                 (epic-cave-network 15 max-x max-y max-z seed)
            _ (msg 3 "Finding dungeons ...")
            excess-dunhalls (pmap pick-dungeon-place
                                  (repeat epic-zone)
                                  (map #(reseed seed %)
-                                      (range 1000))
+                                      (vtake 1000 100
+                                             "Tried %d dungeons ..."
+                                             (range 1000)))
                                  (repeat new-air-finder)
                                  (repeat #{:ground})
                                  (repeat pick-hallway)
@@ -516,8 +520,9 @@ dungeons) in it someplace reachable"
                                  (repeat (get-dungeons :std))
                                  (repeat nil))
            excess-dunhalls (filter identity excess-dunhalls)
-           dunhalls (take 64 (non-intersecting-dunhalls excess-dunhalls
-                                                        max-x))
+           dunhalls (vtake 64 5 "Got %d dungeons ..."
+                           (non-intersecting-dunhalls excess-dunhalls
+                                                      max-dim))
            ;_ (doall dunhalls)
            dungeons (map first dunhalls)
            hallways (map second dunhalls)
@@ -527,7 +532,7 @@ dungeons) in it someplace reachable"
            _ (msg 3 (str "Got " (count dungeons) " dungeons"))
            _ (msg 3 "Placing dungeons and hallways ...")
            epic-zone (place-dungeons epic-zone dungeons hallways)
-           _ (msg 3 "Adding bedrock ...")
+           _ (msg 3 "Adding crisp bedrock crust ...")
            bedrock-generator (fn [x y z]
                                (let [ze (zone-lookup epic-zone x y z)
                                      neighbors (neighbors-of epic-zone
@@ -536,7 +541,7 @@ dungeons) in it someplace reachable"
                                              (cons ze neighbors))
                                    :bedrock
                                    ze)))
-           epic-zone (gen-mcmap-zone max-x max-z bedrock-generator)
+           epic-zone (gen-mcmap-zone max-x max-y max-z bedrock-generator)
            _ (msg 3 "Adding creamy middle ...")
            x-bound (dec max-x)
            z-bound (dec max-z)
