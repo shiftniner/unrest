@@ -104,3 +104,37 @@
                 (recur r
                        (conj seen f))))))
         s #{} ))))
+
+(defn vtake
+  "Like take, but prints progress messages, formatted using format, at
+  msg level 10"
+  ([n print-step format-msg s]
+     (map #(do
+             (when (and (pos? %2)
+                        (zero? (mod %2 print-step)))
+               (msg 10 (format format-msg %2)))
+             %1)
+          s
+          (range))))
+
+(defn dup-seq
+  "Takes a seq and returns a seq consisting of n consecutive
+  repetitions (2 if no n parameter is given) of each member of the
+  seq"
+  ([s]
+     (dup-seq s 2))
+  ([s n]
+     (mapcat #(repeat n %)
+             s)))
+
+(defn uniq
+  "Analogous to the Unix utility of the same name, takes a seq and
+  returns it with any consecutive runs of equal items replaced with
+  one of that item"
+  ([s]
+     (lazy-seq
+      (when (seq s)
+        (let [f (first s)]
+          (cons f
+                (uniq (drop-while #(= f %)
+                                  s))))))))
