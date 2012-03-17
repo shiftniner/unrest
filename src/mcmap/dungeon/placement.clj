@@ -87,6 +87,12 @@ the zone with the dungeons placed in it"
                  dze
                  ze))))))))
 
+(defn hall-material
+  "Takes a pain level, seed, and salts, and returns a block type"
+  ([pain seed & salts]
+     ;; XXX
+     :moss-brick))
+
 (defn pick-hallway
   "Given a _dungeon_ orientation (not necessarily the orientation at
 which the player will enter the hallway), seed, and salt, returns a
@@ -109,18 +115,19 @@ traveling through the hallway, as [hallway xd yd zd]"
            yd 0
            p (promise)]
        [ [(fn [params]
-            (let [hall-fn (fn [w y]
+            (let [hall-fn (fn [w y v]
                             (cond (some #{0 6} [w y])
                                     :ground
                                   (= y 1)
                                     :sandstone
                                   (some #{1 5} [w y])
-                                    (mc-block :moss-brick)
+                                    (hall-material (:pain params)
+                                                   seed salt w y v)
                                   :else
                                     :air))
                   zone-fn (case orientation
-                                (0 2) (fn [x y z] (hall-fn z y))
-                                (1 3) (fn [x y z] (hall-fn x y)))]
+                                (0 2) (fn [x y z] (hall-fn z y x))
+                                (1 3) (fn [x y z] (hall-fn x y z)))]
               (deliver p
                        (gen-mcmap-zone x-dim y-dim z-dim zone-fn))))
           {:x0 x0, :y0 0, :z0 z0,
