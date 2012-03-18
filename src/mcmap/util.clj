@@ -138,3 +138,9 @@
           (cons f
                 (uniq (drop-while #(= f %)
                                   s))))))))
+
+(defn die
+  "Just an abbreviation for applying str and throwing a runtime
+  exception"
+  ([& args]
+     (throw (RuntimeException. (apply str args)))))
