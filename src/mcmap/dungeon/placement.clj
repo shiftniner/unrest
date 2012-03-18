@@ -357,6 +357,12 @@ with earlier-returned dunhalls"
                       nil
                       returned))))))))))
 
+(defn hallway-y
+  "Takes a hallway dungeon and returns the y coordinate of the
+  entrance to that hallway"
+  ([hallway]
+     (:y0 (second hallway))))
+
 (defn dungeon-exercise-1
   "Makes an area with just empty air and a dungeon"
   ([x-chunks z-chunks dungeon]
@@ -531,8 +537,16 @@ dungeons) in it someplace reachable"
            dungeons (map first dunhalls)
            hallways (map second dunhalls)
            _ (msg 3 "Rendering dungeons ...")
-           _ (dorun (pmap render-dungeon (apply concat dunhalls)
-                          (repeat {:pain 0.2 :reward 16000})))
+           _ (dorun (pmap render-dungeon
+                          (apply concat dunhalls)
+                          (dup-seq (map (fn [hallway]
+                                          (let [y (hallway-y hallway)
+                                                y-frac (- 1 (/ y max-y))]
+                                            {:pain y-frac
+                                             :reward (* (Math/pow 256.0
+                                                                  y-frac)
+                                                        200)}))
+                                        hallways))))
            _ (msg 3 (str "Got " (count dungeons) " dungeons"))
            _ (msg 3 "Placing dungeons and hallways ...")
            epic-zone (place-dungeons epic-zone dungeons hallways)
