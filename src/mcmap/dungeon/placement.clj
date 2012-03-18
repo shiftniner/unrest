@@ -6,7 +6,8 @@
         mcmap.srand
         mcmap.octree
         mcmap.dungeons
-        mcmap.cavern))
+        mcmap.cavern
+        mcmap.layout))
 
 
 (def +dungeon-placement-retries+ 1000)
@@ -143,7 +144,82 @@ traveling through the hallway, as [hallway xd yd zd]"
                         (0 1) (range len)
                         (2 3) (range (dec len) -1 -1))
            :zone p}]
-         xd yd zd])))
+         xd yd zd orientation])))
+
+(defn pick-joint
+  "Given an exit orientation, seed, and salt, returns either a
+  leftward bending joint or a rightward bending joint hallway, the
+  entry orientation, and the x, y, and z deltas from traveling through
+  the joint, as [hallway xd yd zd orientation]"
+  ([orientation seed salt]
+     (let [dir (sranditem [:left :right] seed salt)
+           entry-orientation (mod ( (if (= :left dir) inc dec)
+                                    orientation)
+                                  4)
+           openings (set [orientation (mod (+ 2 entry-orientation)
+                                           4)])
+           [has-east-wall? has-south-wall? has-west-wall? has-north-wall?]
+             (map #(not (openings %)) (range 4))
+           [x-dim y-dim z-dim len] (repeat 7)
+           [x0 z0 xd zd]
+             (case [entry-orientation orientation]
+                   [1 0] [-7 0 0 0]
+                   [0 1] [0 0 7 7]
+                   [2 1] [-7 -7 0 0]
+                   [1 2] [-7 0 -7 7]
+                   [3 2] [0 -7 0 0]
+                   [2 3] [-7 -7 -7 -7]
+                   [0 3] [0 0 0 0]
+                   [3 0] [0 -7 7 -7])
+           p (promise)]
+       [ [(fn [params]
+            (let [zone-fn
+                    (fn [x y z]
+                      (let [n-dist z
+                            s-dist (- z-dim z 1)
+                            e-dist (- x-dim x 1)
+                            w-dist x
+                            min-dist (min n-dist s-dist e-dist w-dist)
+                            [side wall?]
+                              (condp = min-dist
+                                  n-dist [:north has-north-wall?]
+                                  s-dist [:south has-south-wall?]
+                                  e-dist [:east has-east-wall?]
+                                  w-dist [:west has-west-wall?])
+                            hall-orientation
+                              (case [side wall?]
+                                    ([:north true] [:south true]
+                                     [:east false] [:west false]) 0
+                                    1)]
+                        (case hall-orientation
+                              0 (hall-fn z y x params seed salt)
+                              1 (hall-fn x y z params seed salt))))]
+              (deliver p (gen-mcmap-zone x-dim y-dim z-dim zone-fn))))
+          {:x0 x0, :y0 0, :z0 z0,
+           :xd x-dim, :yd y-dim, :zd z-dim,
+           :axis (case orientation
+                       (0 2) :x
+                       (1 3) :z)
+           :range (case orientation
+                        (0 1) (range len)
+                        (2 3) (range (dec len) -1 -1))
+           :zone p}]
+         xd 0 zd entry-orientation])))
+
+(defn join-hallways
+  "Takes two hallvects and returns the hallvect that is the
+  combination of those, in the order: entrance, first hallway, second
+  hallway, dungeon, as [hallway xd yd zd entry-orientaton]"
+  ([h1 h2]
+     (vec (concat
+           [ (merge-dungeons (first h2)
+                             (apply translate-dungeon
+                                    (first h1)
+                                    (take 3 (rest h2))))]
+           (map +
+                (take 3 (rest h1))
+                (take 3 (rest h2)))
+           [ (nth h1 4)]))))
 
 (defn try-find-place-for-dungeon
   "Makes on attempt at finding a place for a dungeon, and returns nil
@@ -584,3 +660,21 @@ dungeons) in it someplace reachable"
                                        ze))))]
        (println "Start is x=" start-x " z=" start-z)
        (generic-map-maker chunks chunks generator))))
+
+(defn dungeon-exercise-4
+  "Hallways as dungeons, for testing alignment; returns a dungeon"
+  ([orientation seed]
+     (let [h1 (pick-hallway orientation seed 1)
+           _ (msg 0 "hall 1: " (rest h1))
+           hj1 (pick-joint orientation seed 2)
+           orientation2 (hj1 4)
+           h2 (pick-hallway orientation2 seed 3)
+           _ (msg 0 "hall 2: " (rest h2))
+           hj2 (pick-joint orientation2 seed 4)
+           orientation3 (hj2 4)
+           h3 (pick-hallway orientation3 seed 5)
+           _ (msg 0 "hall 3: " (rest h3))
+           [h hx hy hz o] (reduce join-hallways [h1 hj1 h2 hj2 h3])]
+       (translate-dungeon h (- (dungeon-min-x h))
+                          0 0))))
+
