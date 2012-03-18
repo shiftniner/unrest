@@ -378,7 +378,7 @@ with earlier-returned dunhalls"
 (defn dungeon-playtest-1
   "Makes an area with just empty air and a dungeon, automatically
 choosing the appropriate number of chunks for the given dungeon"
-  ([dungeon]
+  ([dungeon params]
      (println (map #(% dungeon)
                    [dungeon-min-x dungeon-max-x
                     dungeon-min-y dungeon-max-y
@@ -393,6 +393,8 @@ choosing the appropriate number of chunks for the given dungeon"
                                       (- hx (dungeon-min-x dungeon))
                                       (+ hy 63)
                                       (- hz (dungeon-min-z dungeon)))]
+       (render-dungeon hallway params)
+       (render-dungeon dungeon params)
        (when (or (some #(neg? (% dungeon))
                        [dungeon-min-x dungeon-min-y dungeon-min-z])
                  (> (dungeon-max-y dungeon)
