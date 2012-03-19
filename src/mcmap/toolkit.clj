@@ -132,15 +132,15 @@ dungeon with an entrance added and with its location standardized"
                          0)
            signs (format-signs :north text)
            entrance-length (+ 6 (count signs))
-           ;; XXX - no difficulty-signifying material
            entrance (fnbox entrance-length 7 7
-                      [x y z _]
+                      [x y z params]
                       (cond (some #{0 6} [y z])
                               :bedrock
                             (= y 1)
                               :sandstone
                             (some #{1 5} [z y])
-                              :stone-bricks
+                              (hall-material (:pain params)
+                                             seed x y z)
                             (and (= [3 2] [y z])
                                  (< 2 x (+ 3 (count signs))))
                               (get signs (- x 3))

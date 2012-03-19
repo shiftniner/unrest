@@ -88,12 +88,6 @@ the zone with the dungeons placed in it"
                  dze
                  ze))))))))
 
-(defn hall-material
-  "Takes a pain level, seed, and salts, and returns a block type"
-  ([pain seed & salts]
-     ;; XXX
-     #=(mc-block :moss-brick)))
-
 (defn- hall-fn
   ([w y v params seed salt]
      (cond (some #{0 6} [w y])

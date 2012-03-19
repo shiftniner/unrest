@@ -1,8 +1,8 @@
 (ns mcmap.dungeon.build
   (:use mcmap.core
         mcmap.util
-        mcmap.blocks))
-
+        mcmap.blocks
+        mcmap.srand))
 
 (defn maybe-box-lookup
   ([box x y z]
@@ -313,3 +313,10 @@ dungeon's boxes if it were placed at that orientation and offset"
                             (+ z min-z)])
                          (space-filling-seq grid-size)))))))
 
+(let [materials [:snow-block :stone-bricks :nether-brick :bedrock]]
+  (defn hall-material
+    "Takes a pain level, seed, and salts, and returns a block type"
+    ([pain seed & salts]
+       (materials (int (apply snorm [(* pain (count materials))
+                                     0.5 0 (count materials)]
+                              seed salts))))))

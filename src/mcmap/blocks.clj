@@ -39,7 +39,8 @@
                                  :stone-bricks
                                  :nether-brick
                                  :obsidian
-                                 :gold-block]
+                                 :gold-block
+                                 :snow-block]
                                 (repeat 255))
                                  ;; partially opaque
                     (interleave [:piston-target
@@ -144,6 +145,7 @@ given kind of block"
               :redstone-torch-on      76
               :button                 77
               :ice                    79
+              :snow-block             80
               :pumpkin                86
               :glowstone              89
               :jack-o-lantern         91
