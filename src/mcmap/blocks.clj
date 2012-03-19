@@ -75,7 +75,7 @@
 
 (defn- block-colors
   "Returns cases for mc-block covering all 16 Minecraft colors for the
-given kind of block"
+  given kind of block"
   ([kind]
      (mapcat (fn [color-key]
                [(keyword (str (name color-key)
@@ -190,7 +190,7 @@ given kind of block"
       potions (apply hash-map potion-keyvals)]
   (defn mc-item
     "Returns either an item ID, or [id damage], for the given
-inventory item"
+  inventory item"
     ([type]
        (or (case type
                  :iron-pickaxe          257
@@ -325,9 +325,9 @@ inventory item"
 
 (defn sign-wrap-text
   "Takes a single string or a seq of strings and/or keywords (:newsign
-to force a sign wrap, and :nosign to leave a blank spot instead of a
-sign); returns a seq of either nil for blank spots or seqs of strings
-for signs"
+  to force a sign wrap, and :nosign to leave a blank spot instead of a
+  sign); returns a seq of either nil for blank spots or seqs of
+  strings for signs"
   ([text]
      (let [text (if (string? text)
                   [text]

@@ -33,7 +33,7 @@
 
 (defn prize-chest-items
   "Returns random contents for a prize chest, ignoring :prize but
-using :reward-list if present"
+  using :reward-list if present"
   ([params seed]
      (let [many-items (map #(get-items params (rand-item-count seed 1 %)
                                        seed 2 %)
@@ -71,8 +71,8 @@ using :reward-list if present"
                           6 2 24 20, 17 9, 7 1 25 19, 8 0 26 18])))))))
 
 (defn unit-sum-series
-  "Takes an integer N and returns the series [x, 2x, 3x, ... Nx]
-with sum 1"
+  "Takes an integer N and returns the series [x, 2x, 3x, ... Nx] with
+  sum 1"
   ([n]
      (let [denom (reduce + (range (inc n)))]
        (map /
@@ -81,7 +81,7 @@ with sum 1"
 
 (defn supply-chest
   "Returns a 1x1x1 dungeon consisting of a prize chest, ignoring
-any :prize"
+  any :prize"
   ([seed]
      (supply-chest nil seed))
   ([face seed]
@@ -90,9 +90,10 @@ any :prize"
 
 (defn format-signs
   "Given a :face direction, some text (see sign-wrap-text for format
-details), and an optional third argument specifying :sign-posts rather
-than the default :wall-signs, returns a vector of sign blocks (with
-air blocks for any gaps) containing the wrapped and formatted text"
+  details), and an optional third argument specifying :sign-posts
+  rather than the default :wall-signs, returns a vector of sign
+  blocks (with air blocks for any gaps) containing the wrapped and
+  formatted text"
   ([face text]
      (format-signs face text :wall-sign))
   ([face text sign-type]
@@ -107,9 +108,9 @@ air blocks for any gaps) containing the wrapped and formatted text"
 
 (defn add-entrance
   "Takes a dungeon, a vector (y and z specify the position for the
-entrance, and x specifies the depth of the hole that needs to be
-punched in the dungeon), entrance sign text, and a seed, and returns a
-dungeon with an entrance added and with its location standardized"
+  entrance, and x specifies the depth of the hole that needs to be
+  punched in the dungeon), entrance sign text, and a seed, and returns
+  a dungeon with an entrance added and with its location standardized"
   ([dungeon [depth ey ez] text seed]
      (let [aligned-dungeon (translate-dungeon dungeon
                                               0 (- 2 ey) (- ez))

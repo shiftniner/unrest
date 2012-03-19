@@ -45,13 +45,13 @@
 
 (defn srand
   "Returns a uniform deviate n, such that 0 <= n < max, as a pure
-function of the seed and salt arguments, which should all be longs"
+  function of the seed and salt arguments, which should all be longs"
   ([max seed & salts]
      (* max (srand-1 seed (concat salts [1])))))
 
 (defn make-seed
   "Takes any arbitrary string or seq of hashable values and returns a
-long seed for srand"
+  long seed for srand"
   ([s]
      (bit-xor (bit-shift-left (hash (partition 1 2 s))
                               16)
@@ -64,9 +64,9 @@ long seed for srand"
 
 (defn snorm
   "Returns a Gaussian deviate with the given mean, standard deviation,
-and optional minimum and maximum (by rejecting values outside the
-range), as a pure function of the seed and salt arguments, which
-should all be longs"
+  and optional minimum and maximum (by rejecting values outside the
+  range), as a pure function of the seed and salt arguments, which
+  should all be longs"
   ([ [mean std-dev min-val max-val] seed & salts]
      (let [r (Random. (salt-seed seed (concat salts [1])))]
        (loop []
@@ -99,14 +99,14 @@ should all be longs"
 
 (defn add-entropy-ints
   "Takes a seq of ints or longs and adds their entropy to the entropy
-pool"
+  pool"
   ([is]
      (doseq [i is]
        (.setSeed entropy-pool (long i)))))
 
 (defn bits-to-int
   "Takes a seq of bits and returns the unsigned integer represented by
-that big-endian seq"
+  that big-endian seq"
   ([bs]
      (reduce (fn [i b]
                (+' b (*' 2 i)))
@@ -114,7 +114,7 @@ that big-endian seq"
 
 (defn bytes-to-int
   "Takes a seq of bytes and returns the signed integer represented by
-that big-endian seq"
+  that big-endian seq"
   ;; XXX move to util.clj
   ([bs]
      (reduce (fn [i b]
@@ -124,8 +124,8 @@ that big-endian seq"
 
 (defn read-urandom-bytes
   "Takes a number of bytes to read, n, and if the host OS has a
-/dev/urandom file, reads n bytes from /dev/urandom and converts them
-to a signed integer; if there is no /dev/urandom, always returns 0"
+  /dev/urandom file, reads n bytes from /dev/urandom and converts them
+  to a signed integer; if there is no /dev/urandom, always returns 0"
   ([n]
      (let [f (java.io.File. "/dev/urandom")]
        (if (.exists f)
@@ -137,8 +137,9 @@ to a signed integer; if there is no /dev/urandom, always returns 0"
 
 (defn scheduler-entropy
   "Takes a number of seconds and gathers scheduler entropy for that
-many seconds, returning a seq of unpredictable ints; known to produce
-good entropy on Mac OS X and Linux -- needs to be tested in Windows"
+  many seconds, returning a seq of unpredictable ints; known to
+  produce good entropy on Mac OS X and Linux -- needs to be tested in
+  Windows"
   ([secs]
      (let [start (System/nanoTime)
            finish (+ start (long (* secs 1000000000)))]

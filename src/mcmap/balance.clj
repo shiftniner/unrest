@@ -259,7 +259,7 @@
 
 (defn enchant-value
   "Adjusts the given [longevity force] value for the given
-enchantment"
+  enchantment"
   ;; This is full of magic numbers, but there doesn't seem to be a
   ;; much better place for them.  Several of these numbers are based
   ;; on my gut feeling as to what the enchantments will be worth in
@@ -337,8 +337,8 @@ enchantment"
 
 (defn damage-item
   "Takes an item and a damage fraction, 0 meaning undamaged and 1
-meaning already broken, and returns the item with the given damage
-level (regardless of any damage it might have already had)"
+  meaning already broken, and returns the item with the given damage
+  level (regardless of any damage it might have already had)"
   ([item dfrac]
      (let [item (if (keyword? item)
                   {:type item}
@@ -358,8 +358,8 @@ level (regardless of any damage it might have already had)"
              :red-apple :golden-apple :rotten-flesh :spider-eye]]
   (defn get-item
     "Takes params, a seed, and salts, and returns a single unenchanted
-item less powerful than (:reward params), along with new-params,
-as [new-params item]"
+  item less powerful than (:reward params), along with new-params, as
+  [new-params item]"
     ([params seed & salts]
        (let [reward (:reward params)]
          (loop [i 0]
@@ -409,9 +409,9 @@ as [new-params item]"
         bow?     #{:bow}]
     (defn available-enchants
       "Takes an item and returns a vector of available enchantments
-that can be applied to the item (which may include enchantments not
-available in vanilla Minecraft for that item), and have not already
-been applied to it"
+  that can be applied to the item (which may include enchantments not
+  available in vanilla Minecraft for that item), and have not already
+  been applied to it"
       ([item]
          (let [item-type (if (keyword? item) item (:type item))
                possible-enchants
@@ -478,8 +478,8 @@ been applied to it"
 
 (defn powerup-item
   "Takes params, an item, and a seed and salts and either increases
-the count of the item and/or adds enchantments to it to
-approach (params :reward); returns [new-params new-item]"
+  the count of the item and/or adds enchantments to it to
+  approach (params :reward); returns [new-params new-item]"
   ([params item seed & salts]
      (let [item (if (keyword? item) {:type item} item)
            orig-p (item-power params item)
@@ -522,8 +522,8 @@ approach (params :reward); returns [new-params new-item]"
 
 (defn get-items
   "Returns multiple, possibly enchanted items adding up to less
-than (:reward params) in total power, and the leftover unused :reward
-value"
+  than (:reward params) in total power, and the leftover
+  unused :reward value"
   ([params n-items seed & salts]
      (let [results (reduce
                     (fn [state n]
@@ -577,7 +577,7 @@ value"
 
 (defn best-items
   "Takes a collection of collections of items and returns the best
-collection"
+  collection"
   ([params items-seqs]
      (first (sort (comparator #(> (reduce + (map item-power
                                                  (repeat params) %1))
@@ -609,15 +609,15 @@ collection"
        :infinity                        51}]
   (defn convert-enchantment
     "Takes a single enchantment as would be added to an item by
-add-enchant, and returns the same enchantment in the format expected
-by inventory-list"
+  add-enchant, and returns the same enchantment in the format expected
+  by inventory-list"
     ([ench]
        {:id (enchant-ids (:type ench))
         :lvl (:level ench)})))
 
 (defn balance-item-to-inventory-item
   "Takes an item as would be returned by get-item or get-items, and
-returns an item compatible with the inventory-list function"
+  returns an item compatible with the inventory-list function"
   ([item]
      (let [item-type (if (keyword? item)
                        item

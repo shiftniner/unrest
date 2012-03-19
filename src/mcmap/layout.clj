@@ -197,7 +197,7 @@
 
 (defn dungeon-neighbors-of
   "Returns a seq of up to six blocks adjacent to the given coordinates
-in the given zone"
+  in the given zone"
   ([dungeon x y z]
      (lazy-seq
       (filter identity

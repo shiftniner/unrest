@@ -11,7 +11,7 @@
 
 (defmacro dungeon-max
   "Takes an axis (x, y, or z), and a dungeon, and returns the maximum
-extent of the dungeon along that axis"
+  extent of the dungeon along that axis"
   ([axis dungeon]
      (let [size-key   (keyword (str axis "d"))
            origin-key (keyword (str axis "0"))]
@@ -21,7 +21,7 @@ extent of the dungeon along that axis"
 
 (defmacro dungeon-min
   "Takes an axis (x, y, or z), and a dungeon, and returns the minimum
-extent of the dungeon along that axis"
+  extent of the dungeon along that axis"
   ([axis dungeon]
      (let [origin-key (keyword (str axis "0"))]
        `(apply min (map #(~origin-key %)
@@ -60,7 +60,7 @@ extent of the dungeon along that axis"
 
 (defn translate-dungeon
   "Takes a dungeon and x, y, and z deltas, and returns the dungeon
-translated by that vector"
+  translated by that vector"
   ([dungeon xd yd zd]
      (cons (first dungeon)
            (map #(assoc %
@@ -71,16 +71,16 @@ translated by that vector"
 
 (defn maybe-multibox-lookup
   "Takes a seq of boxes, and x, y, and z coordinates, and returns the
-zone element at that point, which will be nil for any point that is
-not inside any box"
+  zone element at that point, which will be nil for any point that is
+  not inside any box"
   ([boxes x y z]
      (some #(maybe-box-lookup % x y z)
            boxes)))
 
 (defn maybe-dungeon-lookup
   "Takes a dungeon, and x, y, and z coordinates, and returns the zone
-element at that point, which will be nil for any point that is not
-inside the dungeon"
+  element at that point, which will be nil for any point that is not
+  inside the dungeon"
   ([dungeon x y z]
      (maybe-multibox-lookup (rest dungeon) x y z)))
 
@@ -181,8 +181,8 @@ inside the dungeon"
 
 (defn rotate-empty-box
   "Takes a box and an orientation (a number of clockwise-from-overhead
-90-degree turns around the origin), and returns a rotated box with
-no :zone"
+  90-degree turns around the origin), and returns a rotated box with
+  no :zone"
   ([orientation box]
      ( (case (mod orientation 4)
              0 identity
@@ -224,7 +224,7 @@ no :zone"
 
 (defn rotate-zone
   "Takes a zone and an orientation (a number of clockwise-from-overhead
-90-degree turns around the origin), and returns a rotated zone"
+  90-degree turns around the origin), and returns a rotated zone"
   ([orientation zone]
      ( (case (mod orientation 4)
              0 identity
@@ -235,8 +235,8 @@ no :zone"
 
 (defn rotate-dungeon
   "Takes a dungeon and an orientation (a number of
-clockwise-from-overhead 90-degree turns around the origin) and returns
-a rotated dungeon"
+  clockwise-from-overhead 90-degree turns around the origin) and
+  returns a rotated dungeon"
   ([dungeon orientation]
      (let [promises (repeatedly (dec (count dungeon))
                                 promise)]
@@ -253,8 +253,8 @@ a rotated dungeon"
 
 (defn space-filling-seq
   "Returns a seq of all points, with x y and z coordinates >= 0 and <
-size, in an order such that a large extent of the volume is covered
-relatively quickly"
+  size, in an order such that a large extent of the volume is covered
+  relatively quickly"
   ([size]
      (cons [0 0 0]
            (space-filling-seq size size)))
@@ -294,8 +294,8 @@ relatively quickly"
 
 (defn dungeon-filling-seq
   "Takes a dungeon, an orientation, and offsets by which to move the
-dungeon, and returns a seq of points that would be within the
-dungeon's boxes if it were placed at that orientation and offset"
+  dungeon, and returns a seq of points that would be within the
+  dungeon's boxes if it were placed at that orientation and offset"
   ([dungeon orientation xd yd zd]
      (let [max-dimension (dungeon-max-extent dungeon)
            grid-size (first (filter #(> % max-dimension)

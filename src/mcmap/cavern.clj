@@ -14,12 +14,12 @@
 
 (defn in-cave?-fn
   "Takes a cave-params hash (see random-cave for an example) or a seq
-of cave-params hashes, and returns a fn of x y z that returns true if
-the coordinates are within the walls of a cave.  If cave-params is a
-single cave, the function returned also takes a single y argument and
-returns a vector [cx cz td] with the x and z coordinates of the center
-of the cave at that y, and the theta divisor for the cave, used in
-computing twists."
+  of cave-params hashes, and returns a fn of x y z that returns true
+  if the coordinates are within the walls of a cave.  If cave-params
+  is a single cave, the function returned also takes a single y
+  argument and returns a vector [cx cz td] with the x and z
+  coordinates of the center of the cave at that y, and the theta
+  divisor for the cave, used in computing twists."
   ([cave-params]
      (if (or (vector? cave-params)
              (seq? cave-params))
@@ -112,8 +112,8 @@ computing twists."
              cave-params)))
 
 (defn optimize-cave-params
-  "Takes cave-params as nested seqs; returns cave-params as a hash
-in {:layered-cave-params (cp-seq cp-seq ...) form}"
+  "Takes cave-params as nested seqs; returns cave-params as a hash in
+  {:layered-cave-params (cp-seq cp-seq ...) form}"
   ([cave-params y-max]
      (let [flat-cp (flatten cave-params)
            cp-seqs (map filter-cave-params-by-y
@@ -238,7 +238,7 @@ in {:layered-cave-params (cp-seq cp-seq ...) form}"
 
 (defn twist-new-center
   "Returns the new x0 and z0 (as a vector, [x0 z0]) resulting from
-twisting the given cave-params at the given y"
+  twisting the given cave-params at the given y"
   ([cave-params y]
      (let [in-cave? (in-cave?-fn cave-params)
            {cx :cave-x, cz :cave-z, td :theta-divisor} (in-cave? y)
@@ -266,10 +266,10 @@ twisting the given cave-params at the given y"
 
 (defn split-cave
   "Vertically segments a cave-params (which must be a single hash)
-into two connecting cave-params at altitude y, going in opposite
-directions and spiraling around different axes such that the cave is
-continuous at altitude y; i.e., switches the curvature of the cave at
-altitude y"
+  into two connecting cave-params at altitude y, going in opposite
+  directions and spiraling around different axes such that the cave is
+  continuous at altitude y; i.e., switches the curvature of the cave
+  at altitude y"
   ([cave-params y]
      (let [ [x0 z0 theta-divisor] (twist-new-center cave-params y)
             theta-offset (:theta-offset cave-params)]
@@ -288,7 +288,7 @@ altitude y"
 
 (defn twist-cave
   "Takes cave-params for a single spiral cave and returns a seq of
-cave-params for a single continuous twisting cave"
+  cave-params for a single continuous twisting cave"
   ([cave-params max-x max-z seed]
      (twist-cave [cave-params] max-x max-z (+ 0.5 (srand 1 seed 1))
                  seed))
@@ -336,7 +336,7 @@ cave-params for a single continuous twisting cave"
 
 (defn find-closest-point
   "Returns the y altitude between 20 and (- y-max 28) where the two
-given caves are at their closest"
+  given caves are at their closest"
   ([cave-params-1 cave-params-2 y-max]
      (let [in-cave?-1 (in-cave?-fn cave-params-1)
            in-cave?-2 (in-cave?-fn cave-params-2)
@@ -365,8 +365,8 @@ given caves are at their closest"
 
 (defn caves-intersect?
   "Returns true only if the two given caves intersect; this function
-may sometimes generate false negatives, but will never generate false
-positives"
+  may sometimes generate false negatives, but will never generate
+  false positives"
   ([cave-params-1 cave-params-2 y-max]
      (let [y (find-closest-point cave-params-1 cave-params-2 y-max)
            in-cave?-1 (in-cave?-fn cave-params-1)
@@ -404,10 +404,10 @@ positives"
 
 (defn epic-cave-network
   "Returns a zone and a starting point as [zone start-x start-z].  The
-zone mostly contains :ground, with caverns of :air carved out of it,
-all of which are interconnected and reachable from the starting point,
-with bedrock on all vertical sides, and capped with :ground on top
-except for caves with openings near the middle."
+  zone mostly contains :ground, with caverns of :air carved out of it,
+  all of which are interconnected and reachable from the starting
+  point, with bedrock on all vertical sides, and capped with :ground
+  on top except for caves with openings near the middle."
   ([n-caves max-x max-z seed]
      (epic-cave-network n-caves max-x +old-chunk-height+ max-z seed))
   ([n-caves max-x max-y max-z seed]

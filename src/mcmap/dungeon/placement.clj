@@ -55,7 +55,7 @@
 
 (defn place-dungeons
   "Takes a zone, a seq of dungeons, and a seq of hallways, and returns
-the zone with the dungeons placed in it"
+  the zone with the dungeons placed in it"
   ;; Might be better to have this return a fn for gen-mcmap[-zone]
   ([zone dungeons hallways]
      (let [zone-size (max (zone-x-size zone)
@@ -102,9 +102,9 @@ the zone with the dungeons placed in it"
 
 (defn pick-hallway
   "Given a _dungeon_ orientation (not necessarily the orientation at
-which the player will enter the hallway), seed, and salt, returns a
-randomly-chosen hallway (in dungeon form), and x, y, and z deltas from
-traveling through the hallway, as [hallway xd yd zd]"
+  which the player will enter the hallway), seed, and salt, returns a
+  randomly-chosen hallway (in dungeon form), and x, y, and z deltas
+  from traveling through the hallway, as [hallway xd yd zd]"
   ([orientation seed salt]
      (let [len (int (snorm [10 10 5] seed salt))
            ;; These blocks need to be determined at render time based
@@ -217,7 +217,8 @@ traveling through the hallway, as [hallway xd yd zd]"
 
 (defn try-find-place-for-dungeon
   "Makes on attempt at finding a place for a dungeon, and returns nil
-if the attempt fails, and [x y z orientation hallway] if it succeeds"
+  if the attempt fails, and [x y z orientation hallway] if it
+  succeeds"
   ([dungeon zone accept-fn pick-place-fn seed salt]
      (let [ [xt yt zt orientation] (pick-place-fn seed salt)
             hallvect (pick-hallway orientation seed salt)
@@ -233,11 +234,11 @@ if the attempt fails, and [x y z orientation hallway] if it succeeds"
 
 (defn find-place-for-dungeon
   "Takes a dungeon, a zone in which to place it, a function that takes
-a zone element and returns true if the zone element may be overwritten
-by a dungeon block, a function of a seed salt that returns a location
-to try placing the entrance to a dungeon, and a seed; and returns a
-location, orientation, and hallway configuration that succeeds, or nil
-if placement failed too many times"
+  a zone element and returns true if the zone element may be
+  overwritten by a dungeon block, a function of a seed salt that
+  returns a location to try placing the entrance to a dungeon, and a
+  seed; and returns a location, orientation, and hallway configuration
+  that succeeds, or nil if placement failed too many times"
   ([dungeon zone accept-fn pick-place-fn seed]
      (loop [retries +dungeon-placement-retries+]
        (or (try-find-place-for-dungeon dungeon zone accept-fn
@@ -249,9 +250,9 @@ if placement failed too many times"
 (let [air-check-seq (filter #(every? (partial > 5) %)
                             (space-filling-seq 8))]
   (defn air-finder
-    "Takes a zone and returns a pick-place-fn for find-place-for-dungeon
-that just finds a random pocket of air, which is assumed to be
-reachable, or nil on failure"
+    "Takes a zone and returns a pick-place-fn for
+  find-place-for-dungeon that just finds a random pocket of air, which
+  is assumed to be reachable, or nil on failure"
     ([zone]
        (fn [seed salt]
          (loop [salt2 +air-finder-retries+]
@@ -285,7 +286,7 @@ reachable, or nil on failure"
 
 (defn place-dungeon-in-caves
   "Takes a zone and a seed and returns [placed-dungeon
-placed-hallway]; throws an exception if placement failed"
+  placed-hallway]; throws an exception if placement failed"
   ([zone seed]
      (let [dungeon +hello-dungeon+      ; XXX
            [dun-x dun-y dun-z orientation [hallway hx hy hz]]
@@ -399,9 +400,9 @@ placed-hallway]; throws an exception if placement failed"
 
 (defn non-intersecting-dunhalls
   "Takes a seq of dungeon/hallway pairs -- ideally a lazy and fairly
-long but NOT infinite seq -- and returns a lazy seq of dunhalls that
-do not intersect with each other by filtering out those that overlap
-with earlier-returned dunhalls"
+  long but NOT infinite seq -- and returns a lazy seq of dunhalls that
+  do not intersect with each other by filtering out those that overlap
+  with earlier-returned dunhalls"
   ([dunhalls size]
      (non-intersecting-dunhalls dunhalls nil (octree size 8)))
   ([dunhalls _ returned]
@@ -447,7 +448,7 @@ with earlier-returned dunhalls"
 
 (defn dungeon-playtest-1
   "Makes an area with just empty air and a dungeon, automatically
-choosing the appropriate number of chunks for the given dungeon"
+  choosing the appropriate number of chunks for the given dungeon"
   ([dungeon params]
      (println (map #(% dungeon)
                    [dungeon-min-x dungeon-max-x
@@ -492,7 +493,7 @@ choosing the appropriate number of chunks for the given dungeon"
 
 (defn survival-map-supplies-1
   "Makes a single chunk with chests full of goodies, to be transferred
-out of region 0,0 and used for playtesting dungeons"
+  out of region 0,0 and used for playtesting dungeons"
   ([]
      (let [x-size 16
            z-size 16
@@ -523,7 +524,7 @@ out of region 0,0 and used for playtesting dungeons"
 
 (defn dungeon-exercise-2
   "Creates an epic cave network and puts a dungeon (or several
-dungeons) in it someplace reachable"
+  dungeons) in it someplace reachable"
   ([seed]
      (let [chunks 16
            max-x (* chunks +chunk-side+)
@@ -579,7 +580,7 @@ dungeons) in it someplace reachable"
 
 (defn dungeon-exercise-3
   "Creates an epic cave network and puts a dungeon (or several
-dungeons) in it someplace reachable"
+  dungeons) in it someplace reachable"
   ([seed]
      (let [chunks 16
            max-x (* chunks +chunk-side+)

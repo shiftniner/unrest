@@ -17,7 +17,7 @@
 
 (defn- add-to-contents
   "Given an octree node and an object, returns an octree node with the
-object added directly at that node"
+  object added directly at that node"
   ([oct o]
      (assoc oct
        :contents (if-let [c (:contents oct)]
@@ -26,8 +26,8 @@ object added directly at that node"
 
 (defn oct-assoc
   "Given an octree, an object, and two coordinates defining a cuboid
-region, returns an octree with the object added at that cuboid
-region"
+  region, returns an octree with the object added at that cuboid
+  region"
   ([oct o x0 y0 z0 x1 y1 z1]
      (if (or (= x0 x1)
              (= y0 y1)
@@ -114,7 +114,7 @@ region"
 
 (defn oct-assoc-box
   "Convenience function; takes an octree and a box and returns the
-octree with the box added"
+  octree with the box added"
   ([oct box]
      (let [ {x0 :x0, y0 :y0, z0 :z0,
              xd :xd, yd :yd, zd :zd,} box]
@@ -138,8 +138,8 @@ octree with the box added"
 
 (defn oct-any-intersecting?
   "Given an octree and two coordinates defining a cuboid region,
-returns true if the octree contains anything that intersects the
-region"
+  returns true if the octree contains anything that intersects the
+  region"
   ([oct x0 y0 z0 x1 y1 z1]
      (when oct
        (if (or (<= x1 (:x0 oct))
@@ -174,7 +174,7 @@ region"
 
 (defn oct-intersecting
   "Given an octree and two coordinates defining a cuboid region,
-returns any contents of the octree intersecting the region"
+  returns any contents of the octree intersecting the region"
   ([oct x0 y0 z0 x1 y1 z1]
      (when oct
        (if (or (<= x1 (:x0 oct))
@@ -194,8 +194,8 @@ returns any contents of the octree intersecting the region"
                              (:nodes oct)))))))))
 
 (defn oct-lookup
-  "Given an octree and a point, return a seq of all contents
-of the octree overlapping that point"
+  "Given an octree and a point, return a seq of all contents of the
+  octree overlapping that point"
   ([oct x y z]
      (oct-intersecting oct x y z (inc x) (inc y) (inc z))))
 
