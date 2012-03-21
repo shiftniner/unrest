@@ -19,7 +19,7 @@
               spawner? (< y h)]
           (if (not spawner?)
             :air
-            (let [mob-num (int (snorm [(dec (* 8 pain)) 2 0 8]
+            (let [mob-num (int (snorm [(dec (* 9 pain)) 2 0 9]
                                       seed x y z 1))
                   mob ( ["Enderman" "Zombie" "PigZombie"
                          "Spider" "Skeleton" "Ghast" "Creeper"
