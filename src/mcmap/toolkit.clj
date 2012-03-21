@@ -115,7 +115,7 @@
      (let [aligned-dungeon (translate-dungeon dungeon
                                               0 (- 2 ey) (- ez))
            hole-punch (fnbox depth 7 7
-                        [x y z _]
+                        [x y z params]
                         (cond (some #{0 6} [y z])
                                 (if (< x (dec depth))
                                   :bedrock
@@ -123,7 +123,8 @@
                               (= y 1)
                                 :sandstone
                               (some #{1 5} [z y])
-                                :stone-bricks
+                                (hall-material (:pain params)
+                                               seed x y z 2)
                               :else
                                 :air))
            hole-punch (translate-dungeon hole-punch
