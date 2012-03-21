@@ -69,13 +69,13 @@
   should all be longs"
   ([ [mean std-dev min-val max-val] seed & salts]
      (let [r (Random. (salt-seed seed (concat salts [1])))]
-       (loop []
+       (loop [std-dev std-dev]
          (let [n (+ mean (* std-dev (.nextGaussian r)))]
            (if (or (and min-val
                         (< n min-val))
                    (and max-val
                         (>= n max-val)))
-             (recur)
+             (recur (* (+ std-dev 0.01) 1.01))
              n))))))
 
 (defn sranditem
