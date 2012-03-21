@@ -339,12 +339,15 @@
                        (<= (.length ^String t) 15))
                  [t]
                  (let [t ^String t
-                       break-point (.lastIndexOf t (int \space) 15)
-                       break-point (if (= -1 break-point)
-                                     15 break-point)]
-                   (cons (.substring t 0 break-point)
-                         (split-line (.substring t (inc break-point)))))))
-           text-lines (mapcat split-line text)
+                       break-point (.lastIndexOf t (int \space) 15)]
+                   (if (= -1 break-point)
+                     (cons (.substring t 0 15)
+                           (split-line (.substring t 15)))
+                     (cons (.substring t 0 break-point)
+                           (split-line (.substring t (inc break-point))))))))
+           text-lines (if (= :nowrap (first text))
+                        (rest text)
+                        (mapcat split-line text))
            split-sign
              (fn split-sign [ts]
                ;; returns a seq of either nils or seqs of strings
