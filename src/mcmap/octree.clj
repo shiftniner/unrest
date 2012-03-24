@@ -3,6 +3,8 @@
 (defn octree
   "Returns a new empty octree"
   ([max-dim min-dim]
+     (octree max-dim min-dim 0 0 0))
+  ([max-dim min-dim x0 y0 z0]
      (let [point-size (first (drop-while #(> % 1)
                                          (iterate #(/ % 2) max-dim)))]
        (when (not= 1 point-size)
@@ -10,7 +12,7 @@
                                         " is not a power of two")))))
      {:max-dim max-dim
       :min-dim min-dim
-      :x0 0, :y0 0, :z0 0
+      :x0 x0, :y0 y0, :z0 z0
       :size max-dim
       :nodes [nil nil nil nil nil nil nil nil]
       :contents nil}))
