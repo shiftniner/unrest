@@ -100,6 +100,30 @@
            :else
              :air)))
 
+(defn dungeon-intersects-octree?
+  "Takes a dungeon and an octree and returns true if and only if at
+  least one of the boxes of the dungeon overlaps at least one box in
+  the octree"
+  ([octree dungeon]
+     (some (fn [ {x0 :x0, y0 :y0, z0 :z0,
+                  xd :xd, yd :yd, zd :zd}]
+             (oct-any-intersecting? octree x0 y0 z0
+                                    (+ x0 xd)
+                                    (+ y0 yd)
+                                    (+ z0 zd)))
+           (rest dungeon))))
+
+(defn oct-assoc-dungeon
+  "Takes an octree and one or more dungeons and returns the octree
+  with the boxes from the dungeon(s) added to it"
+  ([octree dungeon]
+     (reduce (fn [tree box]
+               (oct-assoc-box tree box))
+             octree
+             (rest dungeon)))
+  ([octree d1 d2 & more]
+     (reduce oct-assoc-dungeon octree (list* d1 d2 more))))
+
 (defn pick-hallway
   "Given a _dungeon_ orientation (not necessarily the orientation at
   which the player will enter the hallway), seed, and salt, returns a
@@ -409,20 +433,13 @@
      (lazy-seq
       (loop [dunhalls dunhalls]
         (when (seq dunhalls)
-          (if (some (fn [ {x0 :x0, y0 :y0, z0 :z0,
-                           xd :xd, yd :yd, zd :zd}]
-                      (oct-any-intersecting? returned x0 y0 z0
-                                             (+ x0 xd)
-                                             (+ y0 yd)
-                                             (+ z0 zd)))
-                    (mapcat rest (first dunhalls)))
+          (if (some #(dungeon-intersects-octree? returned %)
+                    (first dunhalls))
             (recur (rest dunhalls))
             (cons (first dunhalls)
                   (lazy-seq
-                   (let [returned (reduce (fn [returned box]
-                                            (oct-assoc-box returned box))
-                                          returned
-                                          (mapcat rest (first dunhalls)))]
+                   (let [returned (reduce oct-assoc-dungeon
+                                          returned (first dunhalls))]
                      (non-intersecting-dunhalls
                       (rest dunhalls)
                       nil
