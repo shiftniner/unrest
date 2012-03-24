@@ -506,24 +506,28 @@
                               (zone-lookup zone x y z)))]
        (mcmap-to-mcr-binary mcmap 0 0))))
 
-(defn dungeon-playtest-1
+(defn dungeon-playtest
   "Makes an area with just empty air and a dungeon, automatically
   choosing the appropriate number of chunks for the given dungeon"
-  ([dungeon params]
+  ([dungeon params hallway-fn]
      (println (map #(% dungeon)
                    [dungeon-min-x dungeon-max-x
                     dungeon-min-y dungeon-max-y
                     dungeon-min-z dungeon-max-z]))
      (let [[hallway hx hy hz]
-             (pick-hallway 0 (long (rand +seed-max+)) 1)
+             (hallway-fn 0 (long (rand +seed-max+)) 1)
+           dunhall-merged (merge-dungeons hallway
+                                          (translate-dungeon
+                                           dungeon hx hy hz))
            hallway (translate-dungeon hallway
-                                      (- (dungeon-min-x dungeon))
+                                      (- (dungeon-min-x dunhall-merged))
                                       63
-                                      (- (dungeon-min-z dungeon)))
+                                      (- (dungeon-min-z dunhall-merged)))
            dungeon (translate-dungeon dungeon
-                                      (- hx (dungeon-min-x dungeon))
+                                      (- hx (dungeon-min-x dunhall-merged))
                                       (+ hy 63)
-                                      (- hz (dungeon-min-z dungeon)))]
+                                      (- hz (dungeon-min-z dunhall-merged)))
+           dunhall-merged (merge-dungeons hallway dungeon)]
        (render-dungeon hallway params)
        (render-dungeon dungeon params)
        (when (or (some #(neg? (% dungeon))
@@ -535,9 +539,9 @@
                        [dungeon-max-x dungeon-max-z]))
          (throw (RuntimeException. (str "dungeon not sized or located"
                                         " appropriately for region 0,0"))))
-       (let [x-size (round-to-chunk-size (inc (dungeon-max-x dungeon)))
-             y-size (round-to-chunk-size (inc (dungeon-max-y dungeon)))
-             z-size (round-to-chunk-size (inc (dungeon-max-z dungeon)))
+       (let [x-size (round-to-chunk-size (inc (dungeon-max-x dunhall-merged)))
+             y-size (round-to-chunk-size (inc (dungeon-max-y dunhall-merged)))
+             z-size (round-to-chunk-size (inc (dungeon-max-z dunhall-merged)))
              _ (println "zone size: x=" x-size " z=" z-size)
              zone (gen-mcmap-zone x-size y-size z-size
                                   (fn [x y z]
@@ -550,6 +554,16 @@
                                     :sandstone
                                     ze))))]
          (mcmap-to-mca-binary mcmap 0 0)))))
+
+(defn dungeon-playtest-1
+  "Dungeon playtest with a simple linear hallway"
+  ([dungeon params]
+     (dungeon-playtest dungeon params pick-hallway)))
+
+(defn dungeon-playtest-2
+  "Dungeon playtest with a complex hallway"
+  ([dungeon params]
+     (dungeon-playtest dungeon params pick-complex-hallway)))
 
 (defn survival-map-supplies-1
   "Makes a single chunk with chests full of goodies, to be transferred
@@ -732,4 +746,3 @@
            [h hx hy hz o] (reduce join-hallways [h1 hj1 h2 hj2 h3])]
        (translate-dungeon h (- (dungeon-min-x h))
                           0 0))))
-
