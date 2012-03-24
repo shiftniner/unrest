@@ -239,6 +239,49 @@
                 (take 3 (rest h2)))
            [ (nth h1 4)]))))
 
+(defn pick-complex-hallway
+  "Given an exit orientation, seed, and salt, returns a hallway
+  composed of one or more segments"
+  ([orientation seed salt]
+     (let [n-segments (+ 4 (int (srand 7 seed salt 1)))
+           segment-fns (uniq (concat [pick-hallway]
+                                     (map #(sranditem [pick-hallway
+                                                       pick-joint]
+                                                      seed salt 2 %)
+                                          (range n-segments))
+                                     [pick-hallway]))
+           octree-size 128
+           octree-offset (/ octree-size -2)
+           first-segment ( (first segment-fns)
+                           orientation (reseed seed salt 3) 1)
+           segment-tree (octree octree-size 4 octree-offset
+                                octree-offset octree-offset)
+           segment-tree (oct-assoc-dungeon segment-tree
+                                           (first first-segment))]
+       (loop [segment-fns (rest segment-fns)
+              segment-tree segment-tree
+              hallway first-segment
+              orientation (nth first-segment 4)
+              i 4]
+         (if-not (seq segment-fns)
+           hallway
+           (let [new-segment ( (first segment-fns)
+                               orientation (reseed seed salt i) 1)
+                 placed-new-segment (apply translate-dungeon
+                                           (first new-segment)
+                                           (map -
+                                                (repeat 0)
+                                                (take 3 (rest new-segment))
+                                                (take 3 (rest hallway))))]
+             (if (dungeon-intersects-octree? segment-tree
+                                             placed-new-segment)
+               hallway
+               (recur (rest segment-fns)
+                      (oct-assoc-dungeon segment-tree placed-new-segment)
+                      (join-hallways hallway new-segment)
+                      (nth new-segment 4)
+                      (inc i)))))))))
+
 (defn try-find-place-for-dungeon
   "Makes on attempt at finding a place for a dungeon, and returns nil
   if the attempt fails, and [x y z orientation hallway] if it
