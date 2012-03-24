@@ -675,7 +675,9 @@
                                              (range 1000)))
                                  (repeat new-air-finder)
                                  (repeat #{:ground})
-                                 (repeat pick-hallway)
+                                 (transition 1000
+                                             pick-hallway
+                                             pick-complex-hallway)
                                  (repeat cave-hallway-accepter)
                                  (repeat (get-dungeons :std))
                                  (repeat nil))
