@@ -476,17 +476,20 @@
      (lazy-seq
       (loop [dunhalls dunhalls]
         (when (seq dunhalls)
-          (if (some #(dungeon-intersects-octree? returned %)
-                    (first dunhalls))
-            (recur (rest dunhalls))
-            (cons (first dunhalls)
-                  (lazy-seq
-                   (let [returned (reduce oct-assoc-dungeon
-                                          returned (first dunhalls))]
-                     (non-intersecting-dunhalls
-                      (rest dunhalls)
-                      nil
-                      returned))))))))))
+          (let [ [dungeon hallway] (first dunhalls)]
+            (if (dungeon-intersects-octree? returned dungeon)
+              (recur (rest dunhalls))
+              (let [new-returned (oct-assoc-dungeon returned dungeon)]
+                (if (dungeon-intersects-octree? new-returned hallway)
+                  (recur (rest dunhalls))
+                  (cons (first dunhalls)
+                        (lazy-seq
+                         (let [returned (oct-assoc-dungeon new-returned
+                                                           hallway)]
+                           (non-intersecting-dunhalls
+                            (rest dunhalls)
+                            nil
+                            returned)))))))))))))
 
 (defn hallway-y
   "Takes a hallway dungeon and returns the y coordinate of the
