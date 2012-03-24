@@ -115,7 +115,7 @@
                (msg 10 (format format-msg %2)))
              %1)
           s
-          (range))))
+          (range n))))
 
 (defn dup-seq
   "Takes a seq and returns a seq consisting of n consecutive
