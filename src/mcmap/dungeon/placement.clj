@@ -88,17 +88,33 @@
                  dze
                  ze))))))))
 
-(defn- hall-fn
-  ([w y v params seed salt]
-     (cond (some #{0 6} [w y])
+(defn- generic-hall-fn
+  ([w y v params seed salt max-y floor-block]
+     (cond (> y max-y)
+             nil
+           (or (#{0 6} w)
+               (#{0 max-y} y))
              :ground
-           (= y 1)
-             :sandstone
-           (some #{1 5} [w y])
+           (or (#{1 5} w)
+               (= y (dec max-y)))
              (hall-material (:pain params)
                             seed salt w y v)
+           (= y 1)
+             floor-block
            :else
              :air)))
+
+(defn- hall-fn
+  ([w y v params seed salt]
+     (generic-hall-fn w y v params seed salt 6 :sandstone)))
+
+(defn- stair-fn
+  ([w y v params seed salt stair-face max-y flat-floor]
+     (generic-hall-fn w y v params seed salt max-y
+                      (if flat-floor
+                        :sandstone
+                        (mem-mc-block :stone-brick-stairs
+                                      :face stair-face)))))
 
 (defn dungeon-intersects-octree?
   "Takes a dungeon and an octree and returns true if and only if at
@@ -224,6 +240,77 @@
            :zone p}]
          xd 0 zd entry-orientation])))
 
+(defn pick-stair
+  "Given an exit orientation, seed, and salt, returns either an upward
+  or downward staircase hallway, the entry orientation, and the x, y,
+  and z deltas from traveling through the hallway, as [hallway xd yd
+  zd orientation]"
+  ([orientation seed salt]
+     (let [dir (sranditem [:up :down] seed salt)
+           len (int (snorm [10 10 3] seed salt))
+           [x-dim z-dim] (case orientation
+                               (0 2) [1 7]
+                               (1 3) [7 1])
+           y-dim 8
+           [x0 z0 xstep zstep xd zd]
+             (case orientation
+                   0 [0 0 1 0 (inc len) 0]
+                   1 [-7 0 0 1 0 (inc len)]
+                   2 [-1 -7 -1 0 (- (inc len)) 0]
+                   3 [0 -1 0 -1 0 (- (inc len))])
+           ystep (case dir :up 1 :down -1)
+           yd (* ystep len)
+           ps (vec (repeatedly (inc len)
+                               promise))]
+       [ (vec
+          (list*
+           (fn [params]
+             (let [stair-face ( [:east :south :west :north]
+                                (mod (+ orientation
+                                        (if (= dir :up) 0 2))
+                                     4))
+                   zone-fn-fn (case orientation
+                                    (0 2) (fn [dist max-y flat-floor]
+                                            (fn [x y z]
+                                              (stair-fn z y x params
+                                                        (reseed seed salt
+                                                                dist)
+                                                        0 stair-face max-y
+                                                        flat-floor)))
+                                    (1 3) (fn [dist max-y flat-floor]
+                                            (fn [x y z]
+                                              (stair-fn x y z params
+                                                        (reseed seed salt
+                                                                dist)
+                                                        0 stair-face max-y
+                                                        flat-floor))))]
+               (doseq [dist (range (inc len))]
+                 (let [max-y (if (or (and (= dir :down) (= dist 0))
+                                     (and (= dir :up)   (= dist len)))
+                               6 7)
+                       flat-floor (or (and (= dir :up)   (= dist 0))
+                                      (and (= dir :down) (= dist len)))]
+                     (deliver (ps dist)
+                              (gen-mcmap-zone x-dim y-dim z-dim
+                                              (zone-fn-fn dist max-y
+                                                          flat-floor)))))))
+           (for [dist (range (inc len))]
+             {:x0 (+ x0 (* xstep dist))
+              :y0 (* ystep dist)
+              :z0 (+ z0 (* zstep dist))
+              :xd x-dim, :yd y-dim, :zd z-dim,
+              :axis (case orientation (0 2) :x (1 3) :z)
+              :range [0]
+              :stair true
+              :zone (ps dist)})))
+         xd yd zd orientation])))
+
+(defn has-stairs?
+  "Takes a dungeon and returns whether it is a hallway containing
+  stairs"
+  ([hallway]
+     (some :stair (rest hallway))))
+
 (defn join-hallways
   "Takes two hallvects and returns the hallvect that is the
   combination of those, in the order: entrance, first hallway, second
@@ -246,7 +333,8 @@
      (let [n-segments (+ 4 (int (srand 7 seed salt 1)))
            segment-fns (uniq (concat [pick-hallway]
                                      (map #(sranditem [pick-hallway
-                                                       pick-joint]
+                                                       pick-joint
+                                                       pick-stair]
                                                       seed salt 2 %)
                                           (range n-segments))
                                      [pick-hallway]))
@@ -399,20 +487,23 @@
 (defn fully-increasing-count?
   "Takes a seq of seqs and a function of one argument, and returns
   true only if the final seq returns true for all of its elements, and
-  each seq has a number of items that returns true that is no less
+  each seq has a fraction of items that returns true that is no less
   than the one before it"
   ([ss f]
      (letfn [(check-count
-              ([n-s1 s1]
-                 (= n-s1 (count s1)))
-              ([n-s1 s1 s2 & ss]
-                 (let [n-s2 (count (filter f s2))]
-                   (and (<= n-s1 n-s2)
+              ([n-s1f s1]
+                 (= n-s1f (count s1)))
+              ([n-s1total n-s1f s1 s2 & ss]
+                 (let [n-s2total (count s2)
+                       n-s2f (count (filter f s2))]
+                   (and (<= (/ n-s1f n-s1total)
+                            (/ n-s2f n-s2total))
                         (if (seq ss)
-                          (recur n-s2 s2 (first ss) (rest ss))
-                          (check-count n-s2 s2))))))]
-       (let [n-s1 (count (filter f (first ss)))]
-         (apply check-count n-s1 ss)))))
+                          (recur n-s2total n-s2f s2 (first ss) (rest ss))
+                          (check-count n-s2f s2))))))]
+       (let [n-s1total (count (first ss))
+             n-s1f (count (filter f (first ss)))]
+         (apply check-count n-s1total n-s1f ss)))))
 
 (defn cave-hallway-accepter
   "Takes a zone and a seq of hallway coordinate slices as returned by
@@ -517,8 +608,10 @@
                    [dungeon-min-x dungeon-max-x
                     dungeon-min-y dungeon-max-y
                     dungeon-min-z dungeon-max-z]))
-     (let [[hallway hx hy hz]
-             (hallway-fn 0 (long (rand +seed-max+)) 1)
+     (let [hall-seed (long (rand +seed-max+))
+           _ (msg 1 "hall seed: " hall-seed)
+           [hallway hx hy hz]
+             (hallway-fn 0 hall-seed 1)
            dunhall-merged (merge-dungeons hallway
                                           (translate-dungeon
                                            dungeon hx hy hz))
@@ -685,7 +778,6 @@
            dunhalls (vtake 64 5 "Got %d dungeons ..."
                            (non-intersecting-dunhalls excess-dunhalls
                                                       max-dim))
-           ;_ (doall dunhalls)
            dungeons (map first dunhalls)
            hallways (map second dunhalls)
            _ (msg 3 "Rendering dungeons ...")
@@ -743,6 +835,23 @@
            hj1 (pick-joint orientation seed 2)
            orientation2 (hj1 4)
            h2 (pick-hallway orientation2 seed 3)
+           _ (msg 0 "hall 2: " (rest h2))
+           hj2 (pick-joint orientation2 seed 4)
+           orientation3 (hj2 4)
+           h3 (pick-hallway orientation3 seed 5)
+           _ (msg 0 "hall 3: " (rest h3))
+           [h hx hy hz o] (reduce join-hallways [h1 hj1 h2 hj2 h3])]
+       (translate-dungeon h (- (dungeon-min-x h))
+                          0 0))))
+
+(defn dungeon-exercise-5
+  "Hallways as dungeons, for testing alignment; returns a dungeon"
+  ([orientation seed]
+     (let [h1 (pick-hallway orientation seed 1)
+           _ (msg 0 "hall 1: " (rest h1))
+           hj1 (pick-joint orientation seed 2)
+           orientation2 (hj1 4)
+           h2 (pick-stair orientation2 seed 3)
            _ (msg 0 "hall 2: " (rest h2))
            hj2 (pick-joint orientation2 seed 4)
            orientation3 (hj2 4)
