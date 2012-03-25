@@ -507,11 +507,17 @@
                  (:ladder :wall-sign :furnace :dispenser :chest)
                    ( {:south 0x2 :north 0x3 :east 0x4 :west 0x5 nil 0}
                      (:face ze))
+                 (:wood-stairs :cobble-stairs :stone-brick-stairs
+                  :brick-stairs :nether-brick-stairs)
+                   (bit-or ( {:east 0x0 :west 0x1 :south 0x2 :north 0x3}
+                             (:face ze))
+                           (if (:upside-down ze)
+                             4 0))
                  (:redstone-repeater-on :redstone-repeater-off)
                    (bit-or ( {:north 0x0 :east 0x1 :south 0x2 :west 0x3}
                              (:face ze))
                            (* 4 (:delay ze)))
-                   :sign-post
+                 :sign-post
                    ( {:north            0x0
                       :north-northeast  0x1
                       :northeast        0x2

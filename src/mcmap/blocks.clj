@@ -102,6 +102,8 @@
   ([type & extra-data]
      (apply hash-map :type type extra-data)))
 
+(def mem-mc-block (memoize mc-block))
+
 (defn block-id
   "Returns the byte block ID for the given zone element"
   ([ze]
@@ -134,11 +136,13 @@
               :fire                   51
               :mob-spawner            52
               :monster-spawner        52
+              :wood-stairs            53
               :chest                  54
               :redstone-wire          55
               :diamond-block          57
               :sign-post              63
               :ladder                 65
+              :cobble-stairs          67
               :wall-sign              68
               :wood-pressure-plate    72
               :redstone-torch-off     75
@@ -153,7 +157,10 @@
               :redstone-repeater-on   94
               :stone-bricks           98
               :vines                 106
+              :brick-stairs          108
+              :stone-brick-stairs    109
               :nether-brick          112
+              :nether-brick-stairs   114
               }
              ze)
            (throw (RuntimeException. (str "Block ID unknown for " ze)))))))
