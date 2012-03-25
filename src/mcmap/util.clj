@@ -26,6 +26,7 @@
 
 (let [date-formatter (SimpleDateFormat. "yyyy-MM-dd HH:mm:ss.SSS - ")]
   (defn msg
+    "Prints a timestamp and a message"
     ;; XXX Make this print only if current *msg-level* >= level.  I.e.,
     ;; higher level implies chattier, less important messages.
     ([level & atoms]
@@ -33,9 +34,12 @@
          (println (apply str time-str atoms))))))
 
 (defn tmsg
+  "Like msg, but returns true"
   ([& args]
      (apply msg args)
      true))
+
+(def onemsg (memoize msg))
 
 (defmacro if-let*
   "bindings => (binding-form test)*
@@ -144,3 +148,21 @@
   exception"
   ([& args]
      (throw (RuntimeException. (apply str args)))))
+
+(defn transition
+  "Returns a seq of n duplicates of the two given items, starting at
+  100% item a, and gradually including increasing amounts of item b,
+  ending at 100% item b"
+  ([n a b]
+     (transition n a b n 0))
+  ([n a b n-max balance]
+     (lazy-seq
+      (when (pos? n)
+        (let [choice (if (< balance 1/2)
+                       a b)
+              balance (+ balance (- 1 (/ n n-max))
+                         (if (identical? choice a)
+                           0 -1))]
+          (cons choice
+                (transition (dec n)
+                            a b n-max balance)))))))
