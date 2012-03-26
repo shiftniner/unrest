@@ -162,18 +162,20 @@
            ;; factor of 10 is shifted from durability to power to
            ;; account for the fact that blocks are useful in much
            ;; greater quantities than armor and weapons
-           :pumpkin         [10   1500]
+           ;;
+           ;; This turns out to be stupid.  I commented them all out.
+           ; :pumpkin         [10   1500]
            :nether-brick    [0.1  200]
            :glowstone       [1    170]
-           :jack-o-lantern  [10   1500]
-           :sand            [10   3000]
-           :gravel          [1.5  1000]
+           ; :jack-o-lantern  [10   1500]
+           ; :sand            [10   3000]
+           ; :gravel          [1.5  1000]
            :stone-bricks    [0.1  190]
-           :dirt            [10   900]
+           ; :dirt            [10   900]
            :glass           [0.1  50])
       potions (mapcat
                (fn [ [item power]]
-                 [item [1 power]])
+                 [item [0.5 power]])
                (concat
                 ;; Potions where all four combinations work
                 (mapcat (fn [ [base baseval]]
@@ -195,8 +197,8 @@
                                            "-ii"))
                              (* 2.8 baseval)]])
                         [["regeneration" 150]
-                         ["swiftness" 90]
-                         ["strength" 100]])
+                         ["swiftness" 50]
+                         ["strength" 80]])
                 ;; Potions that are only altered by time extension
                 (mapcat (fn [ [base baseval]]
                           [ [(keyword (str "potion-of-" base)) baseval]
@@ -238,8 +240,8 @@
                              baseval]
                             [(keyword (str "splash-ext-potion-of-" base))
                              (* 2 baseval)]])
-                        [["weakness" 70]
-                         ["slowness" 50]])
+                        [["weakness" 35]
+                         ["slowness" 20]])
                 ;; Splash-only (offensive) potions that are only
                 ;; altered by strengthening
                 (mapcat (fn [ [base baseval]]
@@ -369,9 +371,9 @@
                                all-items
                              (:reward-list params)
                                (:reward-list params)
-                             (> 0.2 item-type-roll)
-                               (conj swords :bow :arrow :arrow)
                              (> 0.4 item-type-roll)
+                               (conj swords :bow :arrow :arrow)
+                             (> 0.6 item-type-roll)
                                foods
                              :else
                                all-items)
