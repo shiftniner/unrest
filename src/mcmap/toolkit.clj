@@ -11,6 +11,11 @@
 ;;; to appear; e.g., for a map where blaze rods are an objective.  The
 ;;; vector of allowed mobs could go in params.
 
+(def +standard-mobs+
+     ["Enderman" "Zombie" "PigZombie"
+      "Spider" "Skeleton" "Ghast"
+      "Creeper" "Blaze" "CaveSpider"])
+
 (defn spawners
   ([x-size y-size z-size seed]
      (fnbox x-size y-size z-size [x y z params]
@@ -19,17 +24,22 @@
               spawner? (< y h)]
           (if (not spawner?)
             :air
-            (let [mob-num (int (snorm [(dec (* 9 pain)) 2 0 9]
+            (let [mobs (or (:mobs params)
+                           +standard-mobs+)
+                  n-mobs (count mobs)
+                  mob-num (int (snorm [(dec (* n-mobs pain)) 2 0 n-mobs]
                                       seed x y z 1))
-                  mob ( ["Enderman" "Zombie" "PigZombie"
-                         "Spider" "Skeleton" "Ghast" "Creeper"
-                         "Blaze" "CaveSpider"]
-                          mob-num)]
-              (mc-block :mob-spawner
-                        :mob mob
-                        :delay (int (snorm [(* 200 (- 1 pain))
-                                            50 0]
-                                           seed x y z 2)))))))))
+                  mob (mobs mob-num)
+                  no-mob (and (#{"Enderman" "PigZombie"} mob)
+                              (> (srand 1.25 seed x y z 3)
+                                 (+ pain 0.25)))]
+              (if no-mob
+                :air
+                (mc-block :mob-spawner
+                          :mob mob
+                          :delay (int (snorm [(* 200 (- 1 pain))
+                                              50 0]
+                                             seed x y z 2))))))))))
 
 (defn prize-chest-items
   "Returns random contents for a prize chest, ignoring :prize but
