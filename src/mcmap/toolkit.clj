@@ -84,10 +84,13 @@
   "Takes an integer N and returns the series [x, 2x, 3x, ... Nx] with
   sum 1"
   ([n]
+     (unit-sum-series n 1))
+  ([n total]
      (let [denom (reduce + (range (inc n)))]
-       (map /
+       (map #(* %3 (/ %1 %2))
             (range 1 (inc n))
-            (repeat denom)))))
+            (repeat denom)
+            (repeat total)))))
 
 (defn supply-chest
   "Returns a 1x1x1 dungeon consisting of a prize chest, ignoring
