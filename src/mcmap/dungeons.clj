@@ -90,7 +90,7 @@
          long-wall  (wall-n 25)
          space-5  (strict-dungeon (pad 1 5 5))
          space-13 (strict-dungeon (pad 1 5 13))
-         [p1 p2 p3] (unit-sum-series 3)
+         [p1 p2 p3] (unit-sum-series 3 1.5)
          [r1 r2]    (unit-sum-series 2)]
      (fn [_ seed]
        (-> (htable [ space-13 short-wall space-5]
