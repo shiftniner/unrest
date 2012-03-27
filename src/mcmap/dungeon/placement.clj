@@ -314,17 +314,17 @@
 (defn join-hallways
   "Takes two hallvects and returns the hallvect that is the
   combination of those, in the order: entrance, first hallway, second
-  hallway, dungeon, as [hallway xd yd zd entry-orientaton]"
+  hallway, dungeon, as [hallway xd yd zd exit-orientaton]"
   ([h1 h2]
      (vec (concat
-           [ (merge-dungeons (first h2)
+           [ (merge-dungeons (first h1)
                              (apply translate-dungeon
-                                    (first h1)
-                                    (take 3 (rest h2))))]
+                                    (first h2)
+                                    (take 3 (rest h1))))]
            (map +
                 (take 3 (rest h1))
                 (take 3 (rest h2)))
-           [ (nth h1 4)]))))
+           [ (nth h2 4)]))))
 
 (defn pick-complex-hallway
   "Given an exit orientation, seed, and salt, returns a hallway
@@ -366,7 +366,7 @@
                hallway
                (recur (rest segment-fns)
                       (oct-assoc-dungeon segment-tree placed-new-segment)
-                      (join-hallways hallway new-segment)
+                      (join-hallways new-segment hallway)
                       (nth new-segment 4)
                       (inc i)))))))))
 
@@ -661,6 +661,21 @@
   ([dungeon params]
      (dungeon-playtest dungeon params pick-complex-hallway)))
 
+(defn dungeon-playtest-3
+  "Dungeon playtest with a hardcoded complex hallway a la
+  dungeon-exercise-5, for confirming the documentation of the order of
+  args of join-hallways is accurate"
+  ([dungeon params]
+     (dungeon-playtest dungeon params
+       (fn [orientation seed salt]
+         (let [h1 (pick-hallway orientation seed 1)
+               _ (msg 0 "hall 1: " (rest h1))
+               hj1 (pick-joint orientation seed 2)
+               orientation2 (hj1 4)
+               h2 (pick-stair orientation2 seed 3)
+               _ (msg 0 "hall 2: " (rest h2))]
+           (reduce join-hallways [h2 hj1 h1]))))))
+
 (defn survival-map-supplies-1
   "Makes a single chunk with chests full of goodies, to be transferred
   out of region 0,0 and used for playtesting dungeons"
@@ -840,7 +855,7 @@
            orientation3 (hj2 4)
            h3 (pick-hallway orientation3 seed 5)
            _ (msg 0 "hall 3: " (rest h3))
-           [h hx hy hz o] (reduce join-hallways [h1 hj1 h2 hj2 h3])]
+           [h hx hy hz o] (reduce join-hallways [h3 hj2 h2 hj1 h1])]
        (translate-dungeon h (- (dungeon-min-x h))
                           0 0))))
 
@@ -857,6 +872,6 @@
            orientation3 (hj2 4)
            h3 (pick-hallway orientation3 seed 5)
            _ (msg 0 "hall 3: " (rest h3))
-           [h hx hy hz o] (reduce join-hallways [h1 hj1 h2 hj2 h3])]
+           [h hx hy hz o] (reduce join-hallways [h3 hj2 h2 hj1 h1])]
        (translate-dungeon h (- (dungeon-min-x h))
                           0 0))))
