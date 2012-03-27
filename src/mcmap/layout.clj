@@ -4,6 +4,8 @@
         mcmap.dungeon.build
         mcmap.srand))
 
+(def +chest-slots+ 27)
+
 (defn fnbox-fn
   "Given x, y, and z sizes, and a fn of x, y, z, and params, returns a
   dungeon centered at 0,0,0 with the given size and contents
@@ -280,6 +282,42 @@
        (assoc params :reward
               (apply op (:reward params)
                      args)))))
+
+(defn prize-items
+  "Returns a seq of n items, suitable for set-prize"
+  ([n item]
+     (prize-items +chest-slots+ n item))
+  ([slots n item]
+     (when (and (not= 0 n)
+                (pos? slots))
+       (lazy-seq
+        (let [avg-stack-left (int (+ 0.5 (/ n (max 1 slots))))
+              one-fifth-items (inc (int (/ n 5)))
+              stack (if (neg? n)
+                      64
+                      (min 64 (max one-fifth-items
+                                   avg-stack-left)))]
+          (cons (if (map? item)
+                  (assoc item :count stack)
+                  {:type item :count stack})
+                (prize-items (dec slots)
+                             (- n stack)
+                             item)))))))
+
+(defn set-prize
+  "Takes a dungeon and a seq of items in the same form that would be
+  returned by prize-chest-items, and returns a dungeon generated with
+  its :prize set to that seq"
+  ([dungeon prize]
+     (modify-params dungeon [params]
+       (assoc params :prize prize))))
+
+(defn clobber-params
+  "Takes a dungeon and a map, and returns a dungeon generated with
+  params equal to that map"
+  ([dungeon params]
+     (modify-params dungeon [_]
+       params)))
 
 (defn pain
   "Takes a dungeon, an operator, and subsequent arguments, and returns
