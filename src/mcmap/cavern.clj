@@ -171,6 +171,9 @@
                                     ground-cap-z-slope)]
            (cond (or (zero? x) (zero? z) (= x-bound x) (= z-bound z))
                    :bedrock
+                 (or (#{1 (dec x-bound)} x)
+                     (#{1 (dec z-bound)} z))
+                   :ground
                  (and (> y (- y-max 3))
                       (> y (+ y-max -3
                               (distance-2d-sloped
