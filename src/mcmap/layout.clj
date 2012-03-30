@@ -302,7 +302,13 @@
                   {:type item :count stack})
                 (prize-items (dec slots)
                              (- n stack)
-                             item)))))))
+                             item))))))
+  ([slots n item & more]
+     (let [ns    (cons n    (take-nth 2 more))
+           items (cons item (take-nth 2 (rest more)))
+           ns-sum (reduce + ns)
+           subslots (scale-ints slots ns)]
+       (mapcat prize-items subslots ns items))))
 
 (defn set-prize
   "Takes a dungeon and a seq of items in the same form that would be
