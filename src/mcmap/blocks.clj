@@ -125,6 +125,8 @@
               :glass                  20
               :dispenser              23
               :sandstone              24
+              :powered-rail           27
+              :detector-rail          28
               :wool                   35
               :piston-target          36
               :gold-block             41
@@ -262,7 +264,7 @@
                  :minecart              328
                  :saddle                329
                  :iron-door             330
-                 :redstone              331
+                 :redstone-dust         331
                  :snowball              332
                  :boat                  333
                  :leather               334

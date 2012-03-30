@@ -134,7 +134,7 @@
            :bow             [38.5  4.5]
            :tnt             [0.1   20]
            :flint-and-steel [6.5   4]
-           :redstone        [3     1]
+           :redstone-dust   [3     1]
            :button          [10    5]
            :wood-pressure-plate [5 5]
            :bread           [(+ 2.5 6)   +food-value+]
