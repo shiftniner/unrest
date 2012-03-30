@@ -166,3 +166,46 @@
           (cons choice
                 (transition (dec n)
                             a b n-max balance)))))))
+
+(defn scale-ints
+  "Takes a target number and a seq of numbers (not necessarily
+  integers), and returns a seq of nonzero integers closely
+  proportional to the given seq, and summing to target"
+  ([target is]
+     (scale-ints target (reduce + is) is))
+  ([target sum is]
+     (lazy-seq
+      (when (seq is)
+        (let [factor (/ target (if (= 0 sum)
+                                 1 sum))
+              first-ret (int (+ 0.5 (* factor (first is))))
+              first-ret (if (= 0 first-ret)
+                          1 first-ret)
+              first-ret (if (> first-ret
+                               (inc (- target (count is))))
+                          (inc (- target (count is)))
+                          first-ret)]
+          (cons first-ret
+                (scale-ints (- target first-ret)
+                            (- sum (first is))
+                            (rest is))))))))
+
+(defn interleave-n
+  "Interleaves n1 of items from c1, then n2 of items in c2, etc."
+  ([n1 c1 n2 c2]
+     (lazy-seq
+      (let [s1 (seq c1) s2 (seq c2)]
+        (when (and s1 s2)
+          (concat (take n1 s1)
+                  (take n2 s2)
+                  (interleave-n n1 (drop n1 s1)
+                                n2 (drop n2 s2)))))))
+  ([n1 c1 n2 c2 & colls]
+     (lazy-seq
+      (let [ss (map seq (conj (take-nth 2 (rest colls))
+                              c2 c1))
+            ns (conj (take-nth 2 colls)
+                     n2 n1)]
+        (when (every? identity ss)
+          (concat (mapcat take ns ss)
+                  (apply interleave-n (interleave ns (map drop ns ss)))))))))
