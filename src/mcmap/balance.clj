@@ -136,6 +136,7 @@
            :flint-and-steel [6.5   4]
            :redstone-dust   [3     1]
            :button          [10    5]
+           :minecart-with-chest [8 8]
            :wood-pressure-plate [5 5]
            :bread           [(+ 2.5 6)   +food-value+]
            :cake            [(+ 6   2.4) +food-value+]
