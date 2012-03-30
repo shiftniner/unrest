@@ -2,6 +2,8 @@
   (:use mcmap.srand
         mcmap.blocks))
 
+;;; The good news.
+
 (def metaarmor
               ; [relative durability, relative damage survivable]
      {:diamond-armor     [55    (/ 0.2)]
@@ -611,8 +613,9 @@
        :infinity                        51}]
   (defn convert-enchantment
     "Takes a single enchantment as would be added to an item by
-  add-enchant, and returns the same enchantment in the format expected
-  by inventory-list"
+  add-enchant (e.g., {:type :sharpness, :level 2}), and returns the
+  same enchantment in the numeric format expected by
+  inventory-list (e.g., {:id 16, :lvl 2})"
     ([ench]
        {:id (enchant-ids (:type ench))
         :lvl (:level ench)})))
@@ -643,3 +646,18 @@
         :damage damage
         :count count
         :ench ench})))
+
+;;; The bad news.
+
+(defn scale-pain
+  "Scales a 0-1 difficulty level using a 0-1 pain scale value; at
+  pain=1, everything gets scaled to maximum difficulty (1); at pain=0,
+  everything gets scaled to minimum difficulty (0); at pain=0.5,
+  difficulty is unchanged"
+  ([diff pain]
+     (cond (= pain 0) 0
+           (= pain 1) 1
+           :else (Math/pow diff
+                           (-> (/ pain)
+                               (- 1))))))
+
