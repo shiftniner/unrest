@@ -3,6 +3,7 @@
         mcmap.util
         mcmap.blocks
         mcmap.dungeon.build
+        mcmap.toolkit
         mcmap.srand
         mcmap.octree
         mcmap.dungeons
@@ -582,6 +583,85 @@
                             nil
                             returned)))))))))))))
 
+(defn agl-map
+  "Given a zone and a function that returns true if a block is in the
+  ground, and false if it is air, returns a zone mapping each
+  coordinate in zone to its distance above ground or floor level"
+  ([zone is-ground?]
+     (rising-recursive-gen-mcmap-zone (zone-x-size zone)
+                                      (zone-y-size zone)
+                                      (zone-z-size zone)
+       (fn [x y z prev-val]
+         (when-not (is-ground? (zone-lookup zone x y z))
+           (inc (or prev-val -1)))))))
+
+(def +null-dungeon+ [ (fn [params])])
+
+(defn add-chests
+  "Takes several arguments and returns a seq of
+  n (possibly-overlapping) dunhalls; the dungeons contain chests
+  filled with the given item or items and topped with a snow block and
+  a sign, and the hallways are null hallways (which do not overlap
+  with anything)"
+  ([cavern-zone n contents sign place-chooser seed]
+     (let [agl-map (agl-map cavern-zone #{:ground})
+           text (sign-wrap-text sign)
+           _ (when (not= 1 (count text))
+               (die "in add-chests, text too long for one sign: \""
+                    sign "\""))
+           base-dungeon #(->
+                         (lineup :x :high
+                                 (stack (box nil)
+                                        (box (mc-block :wall-sign
+                                               :face :east
+                                               :text (vec % #_(first text)))))
+                                 (stack (prize-chest :east 0)
+                                        (box :snow-block)))
+                         (clobber-params {:prize contents})
+                         (surround nil)
+                         (strict-dungeon))
+           chests (vec (map rotate-dungeon
+                            #_(repeat base-dungeon)
+                            (map base-dungeon (map #(do [(str %)])
+                                                   (range 4)))
+                            (range 4)))
+           ]
+       ( (fn chest-seq [n]
+           (when (pos? n)
+             (lazy-seq
+              (loop [salt2 0]
+                (if-let* [orientation (int (srand 4 seed n salt2 1))
+                          [x y z] (place-chooser seed n salt2 2)
+                          [xd zd face xo zo] (case orientation
+                                                   0 [-1 0 :west -1  0]
+                                                   1 [0 -1 :south 1 -1]
+                                                   2 [1  0 :east  2  1]
+                                                   3 [0  1 :north 0  2])
+                          h1 (maybe-zone-lookup agl-map x y z)
+                          _ (pos? h1)
+                          [x2 z2] (map + [x z] [xd zd])
+                          h2 (maybe-zone-lookup agl-map x2 y z2)
+                          _ (<= h1 h2 (+ h1 2))
+                          y (- y h1)
+                          dunhall [ (translate-dungeon
+                                     (chests orientation)
+                                     (+ x xo) y (+ z zo))
+                                    +null-dungeon+]]
+                  (cons dunhall
+                        (chest-seq (dec n)))
+                  (recur (inc salt2)))))))
+         n))))
+
+(defn rand-place-fn
+  "Returns a function of seed and salts that returns a randomly-chosen
+  point [x y z] such that 0 <= x < x-max, 0 <= y < y-max,
+  0 <= z < z-max, and x, y, and z are integers"
+  ([x-max y-max z-max]
+     (fn [seed & salts]
+       (vec (map #(int (apply srand %1 seed %2 salts))
+                 [x-max y-max z-max]
+                 (range))))))
+
 (defn hallway-y
   "Takes a hallway dungeon and returns the y coordinate of the
   entrance to that hallway"
@@ -777,7 +857,7 @@
            _ (msg 3 "Finding dungeons ...")
            excess-dunhalls (pmap pick-dungeon-place
                                  (repeat epic-zone)
-                                 (map #(reseed seed %)
+                                 (map #(reseed seed 1 %)
                                       (vtake 1000 100
                                              "Tried %d dungeons ..."
                                              (range 1000)))
@@ -793,19 +873,48 @@
            dunhalls (vtake 64 5 "Got %d dungeons ..."
                            (non-intersecting-dunhalls excess-dunhalls
                                                       max-dim))
+           torch-chests (add-chests epic-zone 1000
+                                    (prize-items -1 :torch)
+                                    ["" "Torches"]
+                                    (rand-place-fn max-x (- max-y 5)
+                                                   max-z)
+                                    (reseed seed 2))
+           rail-chests (add-chests epic-zone 1000
+                                   (prize-items +chest-slots+
+                                                -1/100 :minecart
+                                                -4 :powered-rail
+                                                -4 :redstone-torch-on
+                                                -1/100 :button
+                                                -1/100 :detector-rail
+                                                -1/100 :redstone-dust
+                                                -20 :rail)
+                                   (str "Catch a riiiiiiiiiiiiiiiiiiiii"
+                                        "iiiiiiiide?")
+                                   (rand-place-fn max-x (- max-y 15)
+                                                  max-z)
+                                   (reseed seed 2))
+           dunhalls (vtake (+ 130 (count dunhalls))
+                           64 "Dungeons/torch chests: %d"
+                           (non-intersecting-dunhalls
+                            (concat dunhalls
+                                    (interleave-n 3 torch-chests
+                                                  1 rail-chests))
+                            max-dim))
            dungeons (map first dunhalls)
            hallways (map second dunhalls)
            _ (msg 3 "Rendering dungeons ...")
            _ (dorun (pmap render-dungeon
                           (apply concat dunhalls)
-                          (dup-seq (map (fn [hallway]
-                                          (let [y (hallway-y hallway)
+                          (dup-seq (map (fn [hallway dungeon]
+                                          (let [y (or (hallway-y hallway)
+                                                      (:y0 (second dungeon))
+                                                      (/ max-y 2))
                                                 y-frac (- 1 (/ y max-y))]
                                             {:pain y-frac
                                              :reward (* (Math/pow 256.0
                                                                   y-frac)
                                                         200)}))
-                                        hallways))))
+                                        hallways dungeons))))
            _ (msg 3 (str "Got " (count dungeons) " dungeons"))
            _ (msg 3 "Placing dungeons and hallways ...")
            epic-zone (place-dungeons epic-zone dungeons hallways)
