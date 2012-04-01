@@ -8,7 +8,8 @@
         mcmap.octree
         mcmap.dungeons
         mcmap.cavern
-        mcmap.layout))
+        mcmap.layout
+        mcmap.balance))
 
 
 (def +dungeon-placement-retries+ 1000)
@@ -844,13 +845,21 @@
   "Creates an epic cave network and puts a dungeon (or several
   dungeons) in it someplace reachable"
   ([seed]
-     (let [chunks 16
+     (dungeon-exercise-3 seed 0.225 0.8))
+  ([seed level start-level]
+     (let [n-caves 15
+           n-dungeons 64
+           chunks 16
+           map-difficulty (/ level 100)
+           start-difficulty (/ start-level 100)
+
            max-x (* chunks +chunk-side+)
            max-y 128
            max-z (* chunks +chunk-side+)
            max-dim (max max-x max-y max-z)
            [epic-zone start-x start-z]
-                 (epic-cave-network 15 max-x max-y max-z seed)
+                 (epic-cave-network n-caves max-x max-y max-z seed)
+           _ (println "Start is x=" start-x " z=" start-z)
            _ (msg 3 "Finding dungeons ...")
            excess-dunhalls (pmap pick-dungeon-place
                                  (repeat epic-zone)
@@ -867,9 +876,10 @@
                                  (repeat (get-dungeons :std))
                                  (repeat nil))
            excess-dunhalls (filter identity excess-dunhalls)
-           dunhalls (vtake 64 5 "Got %d dungeons ..."
+           dunhalls (vtake n-dungeons 5 "Got %d dungeons ..."
                            (non-intersecting-dunhalls excess-dunhalls
                                                       max-dim))
+           actual-dungeons dunhalls
            torch-chests (add-chests epic-zone 1000
                                     (prize-items -1 :torch)
                                     ["" "Torches"]
@@ -886,11 +896,11 @@
                                                 -1/100 :redstone-dust
                                                 -20 :rail)
                                    (str "Catch a riiiiiiiiiiiiiiiiiiiii"
-                                        "iiiiiiiide?")
+                                        "iiiiide?")
                                    (rand-place-fn max-x (- max-y 15)
                                                   max-z)
                                    (reseed seed 2))
-           dunhalls (vtake (+ 130 (count dunhalls))
+           dunhalls (vtake (+ 128 n-dungeons)
                            64 "Dungeons/torch chests: %d"
                            (non-intersecting-dunhalls
                             (concat dunhalls
@@ -907,12 +917,15 @@
                                                       (:y0 (second dungeon))
                                                       (/ max-y 2))
                                                 y-frac (- 1 (/ y max-y))]
-                                            {:pain y-frac
+                                            {:pain (dungeon-pain
+                                                    y-frac
+                                                    map-difficulty
+                                                    start-difficulty)
                                              :reward (* (Math/pow 256.0
                                                                   y-frac)
                                                         200)}))
                                         hallways dungeons))))
-           _ (msg 3 (str "Got " (count dungeons) " dungeons"))
+           _ (msg 3 (str "Got " (count actual-dungeons) " dungeons"))
            _ (msg 3 "Placing dungeons and hallways ...")
            epic-zone (place-dungeons epic-zone dungeons hallways)
            _ (msg 3 "Adding crisp bedrock crust ...")
@@ -945,7 +958,6 @@
                                        :air (mc-block :air)
                                        :ground (mc-block :sandstone)
                                        ze))))]
-       (println "Start is x=" start-x " z=" start-z)
        (generic-map-maker chunks chunks generator))))
 
 (defn dungeon-exercise-4

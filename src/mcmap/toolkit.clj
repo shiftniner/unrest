@@ -7,39 +7,80 @@
         mcmap.layout
         mcmap.balance))
 
-;;; XXX I probably need some way of controlling which mobs are allowed
-;;; to appear; e.g., for a map where blaze rods are an objective.  The
-;;; vector of allowed mobs could go in params.
-
 (def +standard-mobs+
-     ["Enderman" "Zombie" "PigZombie"
-      "Spider" "Skeleton" "Ghast"
-      "Creeper" "Blaze" "CaveSpider"])
+     [[0.02 nil]
+      [0.04 "Zombie"]
+      [0.02 "Skeleton"]
+      [0.02 "Spider"]
+      [0.01 "Enderman"]
+      [0.02 "Skeleton"]
+      [0.02 "Spider"]
+      [0.04 "Zombie"]
+      [0.06 "Skeleton"]
+      [0.03 "Spider"]
+      [0.01 "PigZombie"]
+      [0.03 "Spider"]
+      [0.06 "Skeleton"]
+      [0.18 "Spider"]
+      [0.07 "Ghast"]
+      [0.01 "Creeper"]
+      [0.18 "Blaze"]
+      [0.18 "CaveSpider"]])
+
+(defn pick-mob
+  ([mobs pain]
+     (if (seq mobs)
+       (if (<= pain (ffirst mobs))
+         (second (first mobs))
+         (recur (rest mobs)
+                (- pain (ffirst mobs))))
+       (die "Ran out of mobs with " pain " pain left"))))
+
+(defn scale-mobs
+  ([mobs]
+     (let [sum (reduce + (map first mobs))
+           scale (/ sum)]
+       (map (fn [ [w mob]]
+              [(* scale w)
+               mob])
+            mobs))))
+
+(memo scale-mobs)
 
 (defn spawners
+  "Returns a chunk of spawners; frac scales the difficulty linearly,
+  unlike (:pain params), for dividing difficulty among several groups
+  of spawners in a single dungeon"
   ([x-size y-size z-size seed]
+     (spawners x-size y-size z-size seed 1))
+  ([x-size y-size z-size seed frac]
      (fnbox x-size y-size z-size [x y z params]
         (let [pain (:pain params)
-              h (int (+ 0.5 (snorm [(* 2 pain) 1] seed x z)))
-              spawner? (< y h)]
-          (if (not spawner?)
-            :air
-            (let [mobs (or (:mobs params)
-                           +standard-mobs+)
-                  n-mobs (count mobs)
-                  mob-num (int (snorm [(dec (* n-mobs pain)) 2 0 n-mobs]
-                                      seed x y z 1))
-                  mob (mobs mob-num)
-                  no-mob (and (#{"Enderman" "PigZombie"} mob)
-                              (> (srand 1.25 seed x y z 3)
-                                 (+ pain 0.25)))]
-              (if no-mob
-                :air
-                (mc-block :mob-spawner
-                          :mob mob
-                          :delay (int (snorm [(* 200 (- 1 pain))
-                                              50 0]
-                                             seed x y z 2))))))))))
+              ctr-dist (Math/sqrt (+ (square (- x (* 1/2 (dec x-size))))
+                                     (square (* 2 y))
+                                     (square (- z (* 1/2 (dec z-size))))))
+              adjusted-pain (scale-pain (* 0.8 frac
+                                           (Math/pow 0.5 ctr-dist))
+                                        pain)
+              adjusted-pain (scale-pain adjusted-pain
+                                        (snorm [0.5 0.16 0.2 0.8]
+                                               seed x y z 1))
+              mobs (or (:mobs params)
+                       +standard-mobs+)
+              mobs (if (and (zero? ctr-dist)
+                            (pos? pain)
+                            (nil? (second (first mobs))))
+                     (rest mobs)
+                     mobs)
+              mobs (scale-mobs mobs)
+              mob (pick-mob mobs adjusted-pain)]
+          (if mob
+            (mc-block :mob-spawner
+                      :mob mob
+                      :delay (int (snorm [(* 200 (- 1 pain))
+                                          50 0]
+                                         seed x y z 2)))
+            :air)))))
 
 (defn prize-chest-items
   "Returns random contents for a prize chest, ignoring :prize but

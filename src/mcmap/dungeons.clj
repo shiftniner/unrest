@@ -67,7 +67,7 @@
      (fn [_ seed]
        (-> (stack (htable [(pad 7 2 19)]
                           [(pad 1 1 6)
-                           (spawners 5 5 5 (reseed seed 1))
+                           (spawners 5 3 5 (reseed seed 1))
                            (pad 1 1 5)
                            (-> (supply-chest :north (reseed seed 4))
                                (reward * r1))]
@@ -94,14 +94,11 @@
          [r1 r2]    (unit-sum-series 2)]
      (fn [_ seed]
        (-> (htable [ space-13 short-wall space-5]
-                   [ (-> (spawners 5 5 5 (reseed seed 5))
-                         (pain * p3))
+                   [ (spawners 5 3 5 (reseed seed 5) p3)
                      long-wall
-                     (-> (spawners 5 5 5 (reseed seed 3))
-                         (pain * p2))
+                     (spawners 5 3 5 (reseed seed 3) p2)
                      long-wall
-                     (-> (spawners 5 5 5 (reseed seed 4))
-                         (pain * p1))]
+                     (spawners 5 3 5 (reseed seed 4) p1)]
                    [ (htable [space-5]
                              [(-> (prize-chest :east (reseed seed 1))
                                   (reward * r2))])
