@@ -845,7 +845,7 @@
   "Creates an epic cave network and puts a dungeon (or several
   dungeons) in it someplace reachable"
   ([seed]
-     (dungeon-exercise-3 seed 0.225 0.8))
+     (dungeon-exercise-3 seed 22.5 80))
   ([seed level start-level]
      (let [n-caves 15
            n-dungeons 64
