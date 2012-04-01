@@ -209,3 +209,19 @@
         (when (every? identity ss)
           (concat (mapcat take ns ss)
                   (apply interleave-n (interleave ns (map drop ns ss)))))))))
+
+(defn square
+  "Returns n*n"
+  ([n]
+     (* n n)))
+
+(defmacro memo
+  "Abbreviation for memoizing functions, so the function name need not
+  be duplicated"
+  ([fn-name]
+     `(def ~fn-name (memoize ~fn-name))))
+
+(defn nonzero?
+  "Analogous to zero? and not=, equivalent to (not (zero? n))"
+  ([n]
+     (not (zero? n))))
