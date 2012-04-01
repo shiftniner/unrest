@@ -662,3 +662,11 @@
                            (-> (/ pain)
                                (- 1))))))
 
+(defn dungeon-pain
+  "Scales pain appropriately for a dungeon at the given depth (0-1, 0
+  being the surface of the map) for the given map difficulty and start
+  difficulty"
+  ([yfrac map-difficulty start-difficulty]
+     (let [s (* 0.8 start-difficulty (- 1 map-difficulty))
+           p-raw (+ s (* yfrac (- 0.8 s)))]
+       (scale-pain p-raw map-difficulty))))
