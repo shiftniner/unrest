@@ -609,23 +609,20 @@
            _ (when (not= 1 (count text))
                (die "in add-chests, text too long for one sign: \""
                     sign "\""))
-           base-dungeon #(->
+           base-dungeon (->
                          (lineup :x :high
                                  (stack (box nil)
                                         (box (mc-block :wall-sign
                                                :face :east
-                                               :text (vec % #_(first text)))))
+                                               :text (vec (first text)))))
                                  (stack (prize-chest :east 0)
                                         (box :snow-block)))
                          (clobber-params {:prize contents})
                          (surround nil)
                          (strict-dungeon))
            chests (vec (map rotate-dungeon
-                            #_(repeat base-dungeon)
-                            (map base-dungeon (map #(do [(str %)])
-                                                   (range 4)))
-                            (range 4)))
-           ]
+                            (repeat base-dungeon)
+                            (range 4)))]
        ( (fn chest-seq [n]
            (when (pos? n)
              (lazy-seq
