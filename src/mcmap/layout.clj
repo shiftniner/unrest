@@ -288,7 +288,7 @@
   ([n item]
      (prize-items +chest-slots+ n item))
   ([slots n item]
-     (when (and (not= 0 n)
+     (when (and (nonzero? n)
                 (pos? slots))
        (lazy-seq
         (let [avg-stack-left (int (+ 0.5 (/ n (max 1 slots))))

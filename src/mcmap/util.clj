@@ -176,10 +176,10 @@
   ([target sum is]
      (lazy-seq
       (when (seq is)
-        (let [factor (/ target (if (= 0 sum)
+        (let [factor (/ target (if (zero? sum)
                                  1 sum))
               first-ret (int (+ 0.5 (* factor (first is))))
-              first-ret (if (= 0 first-ret)
+              first-ret (if (zero? first-ret)
                           1 first-ret)
               first-ret (if (> first-ret
                                (inc (- target (count is))))
