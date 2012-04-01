@@ -66,7 +66,10 @@
                                         (snorm [0.5 0.16 0.2 0.8]
                                                seed x y z 1))
               mobs (or (:mobs params)
-                       +standard-mobs+)
+                       (let [r (srand 1 seed x y z 3)]
+                         (cond (< r 0.94) +standard-mobs+
+                               (< r 0.98) (drop-last +standard-mobs+)
+                               :else      (drop-last 3 +standard-mobs+))))
               mobs (if (and (zero? ctr-dist)
                             (pos? pain)
                             (nil? (second (first mobs))))
