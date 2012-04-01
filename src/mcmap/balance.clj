@@ -656,8 +656,8 @@
   everything gets scaled to minimum difficulty (0); at pain=0.5,
   difficulty is unchanged"
   ([diff pain]
-     (cond (= pain 0) 0
-           (= pain 1) 1
+     (cond (<= pain 0) 0
+           (>= pain 1) 1
            :else (Math/pow diff
                            (-> (/ pain)
                                (- 1))))))
