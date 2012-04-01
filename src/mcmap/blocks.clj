@@ -144,6 +144,7 @@
               :diamond-block          57
               :sign-post              63
               :ladder                 65
+              :rail                   66
               :cobble-stairs          67
               :wall-sign              68
               :wood-pressure-plate    72
