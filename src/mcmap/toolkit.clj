@@ -36,7 +36,7 @@
                 (- pain (ffirst mobs))))
        (die "Ran out of mobs with " pain " pain left"))))
 
-(defn scale-mobs
+(memo defn scale-mobs
   ([mobs]
      (let [sum (reduce + (map first mobs))
            scale (/ sum)

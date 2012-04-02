@@ -217,9 +217,14 @@
 
 (defmacro memo
   "Abbreviation for memoizing functions, so the function name need not
-  be duplicated"
-  ([fn-name]
-     `(def ~fn-name (memoize ~fn-name))))
+  be duplicated; use this as an adverb, before a defn"
+  ([& defn-forms]
+     (let [defn-pos (inc (count (take-while #(not= 'defn %)
+                                            defn-forms)))
+           fn-name (first (drop defn-pos defn-forms))]
+       `(do
+          ~defn-forms
+          (def ~fn-name (memoize ~fn-name))))))
 
 (defn nonzero?
   "Analogous to zero? and not=, equivalent to (not (zero? n))"
