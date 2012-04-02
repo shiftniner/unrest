@@ -217,9 +217,10 @@
 
 (defmacro memo
   "Abbreviation for memoizing functions, so the function name need not
-  be duplicated; use this as an adverb, before a defn"
+  be duplicated; use this as an adverb, before a defn or defn-"
   ([& defn-forms]
-     (let [defn-pos (inc (count (take-while #(not= 'defn %)
+     (let [defn-pos (inc (count (take-while #(not (#{'defn 'defn-}
+                                                   %))
                                             defn-forms)))
            fn-name (first (drop defn-pos defn-forms))]
        `(do
