@@ -39,13 +39,14 @@
 (defn scale-mobs
   ([mobs]
      (let [sum (reduce + (map first mobs))
-           scale (/ sum)]
-       (map (fn [ [w mob]]
-              [(* scale w)
-               mob])
-            mobs))))
-
-(memo scale-mobs)
+           scale (/ sum)
+           scaled-mobs (map (fn [ [w mob]]
+                              [(* scale w)
+                               mob])
+                            (drop-last mobs))]
+       (concat scaled-mobs
+               [ [ (reduce - 1.0 (map first scaled-mobs))
+                   (second (last mobs))]]))))
 
 (defn spawners
   "Returns a chunk of spawners; frac scales the difficulty linearly,
