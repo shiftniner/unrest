@@ -24,17 +24,16 @@
       [0.18 "Spider"]
       [0.07 "Ghast"]
       [0.01 "Creeper"]
-      [0.18 "Blaze"]
-      [0.18 "CaveSpider"]])
-
-(defn pick-mob
-  ([mobs pain]
-     (if (seq mobs)
-       (if (<= pain (ffirst mobs))
-         (second (first mobs))
-         (recur (rest mobs)
-                (- pain (ffirst mobs))))
-       (die "Ran out of mobs with " pain " pain left"))))
+      [0.18 [[0.8  "Blaze"]
+             [0.1  "Spider"]
+             [0.07 "Skeleton"]
+             [0.03 "Ghast"]]]
+      [0.18 [[0.73 "CaveSpider"]
+             [0.09 "Blaze"]
+             [0.06 "Ghast"]
+             [0.06 "Skeleton"]
+             [0.03 "Spider"]
+             [0.03 "Zombie"]]]])
 
 (memo defn scale-mobs
   ([mobs]
@@ -47,6 +46,24 @@
        (concat scaled-mobs
                [ [ (reduce - 1.0 (map first scaled-mobs))
                    (second (last mobs))]]))))
+
+(defn pick-mob
+  ([mobs pain seed salt & salts]
+     (if (seq mobs)
+       (if (<= pain (ffirst mobs))
+         (let [result (second (first mobs))]
+           (if (string? result)
+             result
+             (apply pick-mob
+                    (scale-mobs result)
+                    (apply srand 1 seed salt salts)
+                    seed
+                    (inc salt)
+                    salts)))
+         (recur (rest mobs)
+                (- pain (ffirst mobs))
+                seed salt salts))
+       (die "Ran out of mobs with " pain " pain left"))))
 
 (defn spawners
   "Returns a chunk of spawners; frac scales the difficulty linearly,
@@ -67,17 +84,14 @@
                                         (snorm [0.5 0.16 0.2 0.8]
                                                seed x y z 1))
               mobs (or (:mobs params)
-                       (let [r (srand 1 seed x y z 3)]
-                         (cond (< r 0.94) +standard-mobs+
-                               (< r 0.98) (drop-last +standard-mobs+)
-                               :else      (drop-last 3 +standard-mobs+))))
+                       +standard-mobs+)
               mobs (if (and (zero? ctr-dist)
                             (pos? pain)
                             (nil? (second (first mobs))))
                      (rest mobs)
                      mobs)
               mobs (scale-mobs mobs)
-              mob (pick-mob mobs adjusted-pain)]
+              mob (pick-mob mobs adjusted-pain seed 1 x y z 3)]
           (if mob
             (mc-block :mob-spawner
                       :mob mob
