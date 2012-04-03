@@ -49,8 +49,12 @@
 
 (defn pick-mob
   ([mobs pain seed salt & salts]
-     (if (seq mobs)
-       (if (<= pain (ffirst mobs))
+     (if-not (seq mobs)
+       (die "Ran out of mobs with " pain " pain left")
+       (if (> pain (ffirst mobs))
+         (recur (rest mobs)
+                (- pain (ffirst mobs))
+                seed salt salts)
          (let [result (second (first mobs))]
            (if (string? result)
              result
@@ -59,11 +63,7 @@
                     (apply srand 1 seed salt salts)
                     seed
                     (inc salt)
-                    salts)))
-         (recur (rest mobs)
-                (- pain (ffirst mobs))
-                seed salt salts))
-       (die "Ran out of mobs with " pain " pain left"))))
+                    salts)))))))
 
 (defn spawners
   "Returns a chunk of spawners; frac scales the difficulty linearly,
