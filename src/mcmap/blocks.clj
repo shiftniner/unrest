@@ -96,6 +96,8 @@
          :moss-brick    {:type :stone-bricks :datum 0x1}
          :cracked-brick {:type :stone-bricks :datum 0x2}
          :old-tnt       {:type :tnt :datum 0x1}
+         :creeper-sandstone {:type :sandstone :datum 0x1}
+         :smooth-sandstone  {:type :sandstone :datum 0x2}
          (concat (block-colors "wool")
                  ;; default:
                  ['type]))))
