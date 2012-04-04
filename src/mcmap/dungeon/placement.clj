@@ -956,7 +956,35 @@
                                            (mc-block :lava-source)
                                            :bedrock)
                                        :air (mc-block :air)
-                                       :ground (mc-block :sandstone)
+                                       :ground
+                                         (let [r  (srand 1 seed 51 x y z)
+                                               r2 (srand 1 seed 52 x y z)
+                                               p (dungeon-pain
+                                                  (- 1 (/ y max-y))
+                                                  map-difficulty
+                                                  start-difficulty)]
+                                           (cond
+                                            (and (> r 0.96)
+                                                 (< r2 (Math/pow 1e-18 p)))
+                                              :glowstone
+                                            (and (> r 0.96)
+                                                 (< (- 1 r2)
+                                                    (* p (Math/pow 1e-7
+                                                                   (- 1 p)))))
+                                              (mc-block
+                                               :mob-spawner
+                                               :mob (pick-mob
+                                                     +standard-mobs+
+                                                     1 seed 1 54 x y z)
+                                               :delay (int (snorm
+                                                            [(* 200 (- 1 p))
+                                                             50 0]
+                                                            seed 53 x y z)))
+                                            (< r 0.01)
+                                              (mc-block :creeper-sandstone)
+                                            (< r 0.06)
+                                              (mc-block :smooth-sandstone)
+                                            :else (mc-block :sandstone)))
                                        ze))))]
        (generic-map-maker chunks chunks generator))))
 
