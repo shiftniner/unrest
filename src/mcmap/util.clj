@@ -231,3 +231,19 @@
   "Analogous to zero? and not=, equivalent to (not (zero? n))"
   ([n]
      (not (zero? n))))
+
+(defn sum-counts
+  "Takes a seq of maps of values to numbers (and nils, which are
+  ignored), and returns a map of values to the sums of all the numbers
+  the values map to in all the maps in the seq"
+  ([ms]
+     (reduce (fn [sums m]
+               (reduce (fn [sums k]
+                         (assoc sums k
+                                (+ (or (sums k)
+                                       0)
+                                   (m k))))
+                       sums
+                       (keys m)))
+             {}
+             ms)))

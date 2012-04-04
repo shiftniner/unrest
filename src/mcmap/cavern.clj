@@ -199,11 +199,30 @@
                  :else
                    :ground))))))
 
+(defn count-spawners
+  ([zone]
+     (let [counts (sum-counts (map (fn [ze]
+                                     (cond (and (map? ze)
+                                                (= :mob-spawner
+                                                   (:type ze)))
+                                             { (keyword
+                                                (str (:mob ze)
+                                                     " spawner"))
+                                               1}
+                                           (= ze :glowstone)
+                                             {:Glowstone 1}))
+                                   (all-zone-elements zone)))
+           blocks (sort-by counts (keys counts))]
+       (doseq [b blocks]
+         (println (str (name b)
+                       ": " (counts b)))))))
+
 (defn generic-map-maker
   ([x-chunks z-chunks generator]
      (let [mcmap (gen-mcmap (* x-chunks +chunk-side+)
                             (* z-chunks +chunk-side+)
                             generator)]
+       (count-spawners (:block-zone mcmap))
        (mcmap-to-mca-binary mcmap 0 0))))
 
 (defn random-cave
