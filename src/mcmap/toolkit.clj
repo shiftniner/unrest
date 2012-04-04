@@ -56,7 +56,8 @@
                 (- pain (ffirst mobs))
                 seed salt salts)
          (let [result (second (first mobs))]
-           (if (string? result)
+           (if (or (string? result)
+                   (nil? result))
              result
              (apply pick-mob
                     (scale-mobs result)
@@ -86,7 +87,7 @@
               mobs (or (:mobs params)
                        +standard-mobs+)
               mobs (if (and (zero? ctr-dist)
-                            (pos? pain)
+                            (> pain (Math/pow 1e-13 (srand 1 seed x y z 4)))
                             (nil? (second (first mobs))))
                      (rest mobs)
                      mobs)
