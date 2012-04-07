@@ -291,7 +291,8 @@
      (when (and (nonzero? n)
                 (pos? slots))
        (lazy-seq
-        (let [avg-stack-left (int (+ 0.5 (/ n (max 1 slots))))
+        (let [avg-stack-left (int (+ 1 (/ (dec n)
+                                          (max 1 slots))))
               one-fifth-items (inc (int (/ n 5)))
               stack (if (neg? n)
                       64
