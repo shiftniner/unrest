@@ -200,7 +200,7 @@
                                         [ (box 1 1 5 :stone)]))]
                        [ (stone-ore-box 3 26 1 (reseed seed 7 4))
                          (stack (stairs 24)
-                                (-> (prize-chest :west
+                                (-> (prize-chest :south
                                                  (reseed seed 6))
                                     (reward * r2)))
                          (stone-ore-box 3 26 1 (reseed seed 7 5))]
