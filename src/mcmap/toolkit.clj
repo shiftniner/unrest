@@ -307,3 +307,51 @@
                    (rect-corner? x-dim z-dim x z) half-block
                    :else                          full-block)
              :air))))))
+
+(defn stone-ore-box
+  "Returns a box consisting mainly of stone, with some coal and iron
+  veins"
+  ([x-dim y-dim z-dim seed]
+     (let [twopi (* Math/PI 2)
+           thetas (vec (map #(srand twopi seed %)
+                            (range 12)))]
+       (fnbox x-dim y-dim z-dim [x y z _]
+         (let [coal-wave (apply + (map #(Math/sin (+ %1 (/ %2 %3)))
+                                       thetas
+                                       [x y z x y z]
+                                       (dup-seq [3 2] 3)))
+               iron-wave (apply + (map #(Math/sin (+ %1 (/ %2 %3)))
+                                       (drop 6 thetas)
+                                       [x y z x y z]
+                                       (dup-seq [11 6] 3)))]
+           (cond (< 3.5 coal-wave)      :coal-ore
+                 (< -0.2 iron-wave 0.2) :iron-ore
+                 :else                  :stone))))))
+
+(defn remove-mobs-from-distribution
+  "Takes a mob distribution, e.g. +standard-mobs+, and returns the
+  distribution with the given mobs (a set of strings) removed"
+  ([dist mobs]
+     (when (seq dist)
+       (lazy-seq
+        (let [freq (ffirst dist)
+              mob (second (first dist))
+              the-rest (remove-mobs-from-distribution (rest dist) mobs)]
+          (cond (coll? mob)
+                  (cons [freq (remove-mobs-from-distribution mob mobs)]
+                        the-rest)
+                (mobs mob)
+                  the-rest
+                :else
+                  (cons (first dist)
+                        the-rest)))))))
+
+(defn remove-mobs
+  "Takes a dungeon and a seq of mob *strings*, and returns a dungeon
+  with no spawners of that mob type"
+  ([dungeon mobs]
+     (modify-params dungeon [params]
+       (assoc params :mobs
+              (remove-mobs-from-distribution (or (:mobs params)
+                                                 +standard-mobs+)
+                                             (set mobs))))))
