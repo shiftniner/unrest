@@ -969,7 +969,7 @@
                                               :glowstone
                                             (and (> r 0.96)
                                                  (< (- 1 r2)
-                                                    (* p (Math/pow 1e-7
+                                                    (* p (Math/pow 1e-5
                                                                    (- 1 p)))))
                                               (mc-block
                                                :mob-spawner
@@ -980,9 +980,9 @@
                                                             [(* 200 (- 1 p))
                                                              50 0]
                                                             seed 53 x y z)))
-                                            (< r 0.01)
+                                            (< r 0.005)
                                               (mc-block :creeper-sandstone)
-                                            (< r 0.06)
+                                            (< r 0.015)
                                               (mc-block :smooth-sandstone)
                                             :else (mc-block :sandstone)))
                                        ze))))]
