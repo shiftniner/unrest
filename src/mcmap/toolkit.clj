@@ -312,23 +312,39 @@
 
 (defn stone-ore-box
   "Returns a box consisting mainly of stone, with some coal and iron
-  veins"
+  veins in much greater concentrations than typically seen in vanilla
+  Minecraft"
   ([x-dim y-dim z-dim seed]
      (let [twopi (* Math/PI 2)
-           thetas (vec (map #(srand twopi seed %)
-                            (range 12)))]
+           thetas (map #(srand twopi seed %)
+                       (range))
+           x-areas (-> x-dim (+ 9) (/ 10) int)
+           y-areas (-> y-dim (+ 9) (/ 10) int)]
        (fnbox x-dim y-dim z-dim [x y z _]
-         (let [coal-wave (apply + (map #(Math/sin (+ %1 (/ %2 %3)))
-                                       thetas
-                                       [x y z x y z]
-                                       (dup-seq [3 2] 3)))
-               iron-wave (apply + (map #(Math/sin (+ %1 (/ %2 %3)))
-                                       (drop 6 thetas)
-                                       [x y z x y z]
-                                       (dup-seq [11 6] 3)))]
-           (cond (< 3.5 coal-wave)      :coal-ore
-                 (< -0.2 iron-wave 0.2) :iron-ore
-                 :else                  :stone))))))
+         (let [x-area (-> x (+ 9) (/ 10) int)
+               y-area (-> y (+ 9) (/ 10) int)
+               z-area (-> z (+ 9) (/ 10) int)
+               to-drop (* 36 (+ x-area
+                                (* y-area x-areas)
+                                (* z-area y-areas x-areas)))
+               coal-wave (delay
+                          (apply + (map #(Math/sin (+ %1 (/ %2 %3)))
+                                        (drop to-drop thetas)
+                                        (cycle [x y z])
+                                        (dup-seq [1.1 0.6 1.5 1.8] 3))))
+               iron-wave (delay
+                          (apply + (map #(Math/sin (+ %1 (/ %2 %3)))
+                                        (drop (+ to-drop 12) thetas)
+                                        (cycle [x y z])
+                                        (dup-seq [0.3 0.2 0.4 0.6] 3))))
+               stone-wave (apply + (map #(Math/sin (+ %1 (/ %2 %3)))
+                                        (drop (+ to-drop 24) thetas)
+                                        (cycle [x y z])
+                                        (dup-seq [1.1 0.6 1.5 1.8] 3)))]
+           (cond (< -3.0 stone-wave 3.0) :stone
+                 (< -2.0 @coal-wave 2.0) :coal-ore
+                 (< -1.0 @iron-wave 1.0) :iron-ore
+                 :else                   :stone))))))
 
 (defn remove-mobs-from-distribution
   "Takes a mob distribution, e.g. +standard-mobs+, and returns the
