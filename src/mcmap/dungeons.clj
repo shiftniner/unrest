@@ -83,7 +83,7 @@
                          (reseed seed 2))))))
 
   "A zig-zagging hallway with one or more spawners in the center"
-  (:std
+  (:uncommon
    back-and-forth
    (let [wall-n #(strict-dungeon (htable [(box % 5 3 :wall)]))
          short-wall (wall-n 5)
@@ -118,6 +118,141 @@
            (add-entrance [3 0 -8]
                          ["" "Back and" "Forth"]
                          (reseed seed 2))))))
+
+  "A zig-zagging hallway going the other way, with one or more
+  spawners in the center"
+  (:uncommon
+   back-and-forth-backwards
+   (let [wall-n #(strict-dungeon (htable [(box % 5 3 :wall)]))
+         short-wall (wall-n 5)
+         long-wall  (wall-n 25)
+         space-5  (strict-dungeon (pad 1 5 5))
+         space-13 (strict-dungeon (pad 1 5 13))
+         [p1 p2 p3] (unit-sum-series 3 1.5)
+         [r1 r2]    (unit-sum-series 2)]
+     (fn [_ seed]
+       (-> (htable [ space-5 short-wall space-13]
+                   [ (spawners 5 3 5 (reseed seed 5) p1)
+                     long-wall
+                     (spawners 5 3 5 (reseed seed 3) p2)
+                     long-wall
+                     (spawners 5 3 5 (reseed seed 4) p3)]
+                   [ (htable [space-13]
+                             [(-> (prize-chest :east (reseed seed 1))
+                                  (reward * r1))
+                              (pad 1 5 8)])
+                     short-wall
+                     (htable [space-5]
+                             [(-> (supply-chest :east (reseed seed 6))
+                                  (reward * r2))])])
+           (surround :wall)
+           (dungeon-map-neighbors
+            (fn [b ns]
+              (cond (not= b :wall)       b
+                    (every? #{:wall} ns) :bedrock
+                    :else                :sandstone)))
+           (surround :bedrock)
+           (surround :ground)
+           (add-entrance [3 0 8]
+                         ["" "Back and" "Forth"]
+                         (reseed seed 2))))))
+
+  "Grocery Shopping"
+  (:rare
+   stairs-and-flowers
+   (let [ [r1 r2] (unit-sum-series 2)]
+     (fn [y seed]
+       (letfn [ (stairs [y-dim]
+                  (spiral-stairs y-dim
+                                 (mc-block :smooth-stone-half-slab)
+                                 (mc-block :smooth-stone-double-slab)
+                                 :air 1))]
+         (if (> y 40)
+           (-> (htable [ (stone-ore-box 1 26 5 (reseed seed 7 1))]
+                       [ (stone-ore-box 3 26 1 (reseed seed 7 2))
+                         (stairs 26)
+                         (stone-ore-box 3 26 1 (reseed seed 7 3))]
+                       [ (apply stack
+                                (pad 1 4 1)
+                                (concat (map #(spawners 1 7 5
+                                                        (reseed seed 1 %)
+                                                        1/2 :stone)
+                                             (range 1 4))
+                                        [ (box 1 1 5 :stone)]))]
+                       [ (stack (htable [ (-> (supply-chest :south
+                                                            (reseed seed 5))
+                                              (reward * r1))
+                                          (pad 1  1 1)
+                                          (box 1  1 1
+                                               (sranditem [:rose :dandelion]
+                                                          seed 3))
+                                          (pad 1  1 2)])
+                                (pad 1  3 5)
+                                (box 1  1 5 :stone)
+                                (box 1 21 5 :bedrock))]
+                       [ (apply stack
+                                (pad 1 4 1)
+                                (concat (map #(spawners 1 7 5
+                                                        (reseed seed 4 %)
+                                                        1/2 :stone)
+                                             (range 1 4))
+                                        [ (box 1 1 5 :stone)]))]
+                       [ (stone-ore-box 3 26 1 (reseed seed 7 4))
+                         (stack (stairs 24)
+                                (-> (prize-chest :west
+                                                 (reseed seed 6))
+                                    (reward * r2)))
+                         (stone-ore-box 3 26 1 (reseed seed 7 5))]
+                       [ (stone-ore-box 1 26 5 (reseed seed 7 6))])
+               (surround :bedrock)
+               (remove-mobs ["Ghast"])
+               (surround :ground)
+               (add-entrance [3 23 0]
+                             ["" "Stairs and Flowers"]
+                             (reseed seed 2)))
+           ;; (<= y 40)
+           (-> (htable [ (stone-ore-box 1 26 5 (reseed seed 7 1))]
+                       [ (stone-ore-box 3 26 1 (reseed seed 7 2))
+                         (stairs 26)
+                         (stone-ore-box 3 26 1 (reseed seed 7 3))]
+                       [ (apply stack
+                                (box 1 1 5 :stone)
+                                (concat (map #(spawners 1 7 5
+                                                        (reseed seed 1 %)
+                                                        1/2 :stone)
+                                             (range 1 4))
+                                        [ (pad 1 4 1)]))]
+                       [ (stack (box 1 21 5 :bedrock)
+                                (box 1  1 5 :stone)
+                                (htable [ (-> (supply-chest :south
+                                                            (reseed seed 5))
+                                              (reward * r1))
+                                          (pad 1  1 1)
+                                          (box 1  1 1
+                                               (sranditem [:rose :dandelion]
+                                                          seed 3))
+                                          (pad 1  1 2)])
+                                (pad 1  3 5))]
+                       [ (apply stack
+                                (box 1 1 5 :stone)
+                                (concat (map #(spawners 1 7 5
+                                                        (reseed seed 4 %)
+                                                        1/2 :stone)
+                                             (range 1 4))
+                                        [ (pad 1 4 1)]))]
+                       [ (stone-ore-box 3 26 1 (reseed seed 7 4))
+                         (dungeon-replace (stairs 25)
+                                          (-> (prize-chest :south
+                                                           (reseed seed 6))
+                                              (reward * r2)))
+                         (stone-ore-box 3 26 1 (reseed seed 7 5))]
+                       [ (stone-ore-box 1 26 5 (reseed seed 7 6))])
+               (surround :bedrock)
+               (remove-mobs ["Ghast"])
+               (surround :ground)
+               (add-entrance [3 0 0]
+                             ["" "Stairs and Flowers"]
+                             (reseed seed 2))))))))
 
   "An inconvenient (especially on harder levels) victory monument
   room"

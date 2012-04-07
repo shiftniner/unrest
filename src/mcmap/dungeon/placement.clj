@@ -873,7 +873,11 @@
                                              pick-hallway
                                              pick-complex-hallway)
                                  (repeat cave-hallway-accepter)
-                                 (repeat (get-dungeons :std))
+                                 (repeat (apply get-dungeons
+                                                (concat
+                                                 (repeat 6 :std)
+                                                 (repeat 3 :uncommon)
+                                                 (repeat 1 :rare))))
                                  (repeat nil))
            excess-dunhalls (filter identity excess-dunhalls)
            dunhalls (vtake n-dungeons 5 "Got %d dungeons ..."
