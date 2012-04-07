@@ -73,6 +73,8 @@
   ([x-size y-size z-size seed]
      (spawners x-size y-size z-size seed 1))
   ([x-size y-size z-size seed frac]
+     (spawners x-size y-size z-size seed frac :air))
+  ([x-size y-size z-size seed frac non-spawner]
      (fnbox x-size y-size z-size [x y z params]
         (let [pain (:pain params)
               ctr-dist (Math/sqrt (+ (square (- x (* 1/2 (dec x-size))))
@@ -99,7 +101,7 @@
                       :delay (int (snorm [(* 200 (- 1 pain))
                                           50 0]
                                          seed x y z 2)))
-            :air)))))
+            non-spawner)))))
 
 (defn prize-chest-items
   "Returns random contents for a prize chest, ignoring :prize but
