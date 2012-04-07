@@ -79,7 +79,7 @@
            (surround :bedrock)
            (surround :ground)
            (add-entrance [3 1 0]
-                         ["" "Hello," "Dungeon"]
+                         ["" "Simple" "Exercises"]
                          (reseed seed 2))))))
 
   "A zig-zagging hallway with one or more spawners in the center"
@@ -157,7 +157,7 @@
                          ["" "Back and" "Forth"]
                          (reseed seed 2))))))
 
-  "Grocery Shopping"
+  "A familiar spiral staircase, then another one going back"
   (:rare
    stairs-and-flowers
    (let [ [r1 r2] (unit-sum-series 2)]
@@ -168,6 +168,7 @@
                                  (mc-block :smooth-stone-double-slab)
                                  :air 1))]
          (if (> y 40)
+           ;; climb down and then back up
            (-> (htable [ (stone-ore-box 1 26 5 (reseed seed 7 1))]
                        [ (stone-ore-box 3 26 1 (reseed seed 7 2))
                          (stairs 26)
@@ -210,7 +211,7 @@
                (add-entrance [3 23 0]
                              ["" "Stairs and Flowers"]
                              (reseed seed 2)))
-           ;; (<= y 40)
+           ;; (<= y 40): climb up and then back down
            (-> (htable [ (stone-ore-box 1 26 5 (reseed seed 7 1))]
                        [ (stone-ore-box 3 26 1 (reseed seed 7 2))
                          (stairs 26)
