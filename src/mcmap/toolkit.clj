@@ -267,3 +267,43 @@
                      (cond (#{0 (dec x-max)} x) :glass
                            (= z 2) :glass
                            :else :air))))))))
+
+(defn rect-theta
+  "Takes dimensions and a point, and returns the clockwise angle in
+  radians between the vector (0,0)->(1,0) and the vector from the
+  center of the dimensions and the point"
+  ([x-dim z-dim x z]
+     (Math/atan2 (- z (/ (dec z-dim) 2))
+                 (- x (/ (dec x-dim) 2)))))
+
+(defn rect-center?
+  "Returns true if (x,z) is at the center of the area of size x-dim x
+  z-dim"
+  ([x-dim z-dim x z]
+     (and (= x (/ (dec x-dim) 2))
+          (= z (/ (dec z-dim) 2)))))
+
+(defn rect-corner?
+  "Returns true if (x,z) is in a corner of the area of size x-dim x
+  z-dim"
+  ([x-dim z-dim x z]
+     (and ( #{0 (dec x-dim)} x)
+          ( #{0 (dec z-dim)} z))))
+
+(defn spiral-stairs
+  "Returns a 3 by y-dim by 3 dungeon with spiral stairs using the
+  given half block and full block; direction is either 1 for clockwise
+  going up, or -1 for clockwise going down"
+  ([y-dim half-block full-block center direction]
+     (let [x-dim 3, z-dim 3]
+       (fnbox x-dim y-dim z-dim [x y z _]
+         (let [theta (/ (rect-theta x-dim z-dim x z)
+                        (* Math/PI 2))]
+           (if (= (mod (int (+ 4.5 (* theta 4)))
+                       4)
+                  (mod (* y direction)
+                       4))
+             (cond (rect-center? x-dim z-dim x z) center
+                   (rect-corner? x-dim z-dim x z) half-block
+                   :else                          full-block)
+             :air))))))
