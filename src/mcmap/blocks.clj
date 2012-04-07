@@ -98,6 +98,8 @@
          :old-tnt       {:type :tnt :datum 0x1}
          :creeper-sandstone {:type :sandstone :datum 0x1}
          :smooth-sandstone  {:type :sandstone :datum 0x2}
+         :smooth-stone-half-slab   {:type :slab        :datum 0x0}
+         :smooth-stone-double-slab {:type :double-slab :datum 0x0}
          (concat (block-colors "wool")
                  ;; default:
                  ['type]))))
@@ -131,8 +133,12 @@
               :detector-rail          28
               :wool                   35
               :piston-target          36
+              :dandelion              37
+              :rose                   38
               :gold-block             41
               :iron-block             42
+              :double-slab            43
+              :slab                   44
               :tnt                    46
               :moss-stone             48
               :obsidian               49
