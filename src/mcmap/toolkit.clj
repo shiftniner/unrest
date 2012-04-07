@@ -89,7 +89,9 @@
               mobs (or (:mobs params)
                        +standard-mobs+)
               mobs (if (and (zero? ctr-dist)
-                            (> pain (Math/pow 1e-13 (srand 1 seed x y z 4)))
+                            (> pain (Math/pow 1e-13
+                                              (* (srand 1 seed x y z 4)
+                                                 frac)))
                             (nil? (second (first mobs))))
                      (rest mobs)
                      mobs)
