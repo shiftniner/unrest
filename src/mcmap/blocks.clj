@@ -125,6 +125,8 @@
               :lava-source            11
               :sand                   12
               :gravel                 13
+              :iron-ore               15
+              :coal-ore               16
 ;              :wood                   17
               :glass                  20
               :dispenser              23
