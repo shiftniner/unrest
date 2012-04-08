@@ -140,6 +140,7 @@
               :sandstone              24
               :powered-rail           27
               :detector-rail          28
+              :dead-bush              32
               :wool                   35
               :piston-target          36
               :dandelion              37
