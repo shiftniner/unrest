@@ -183,8 +183,7 @@
                                                             (reseed seed 5))
                                               (reward * r1))
                                           (pad 1  1 1)
-                                          (box 1  1 1
-                                               (mc-block
+                                          (box (mc-block
                                                 (sranditem [:rose :dandelion]
                                                            seed 3)
                                                 :force-nospread-light 8))
@@ -239,8 +238,7 @@
                                                             (reseed seed 5))
                                               (reward * r1))
                                           (pad 1  1 1)
-                                          (box 1  1 1
-                                               (mc-block
+                                          (box (mc-block
                                                 (sranditem [:rose :dandelion
                                                             :dead-bush]
                                                            seed 3)
