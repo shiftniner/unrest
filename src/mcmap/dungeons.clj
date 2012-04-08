@@ -281,6 +281,76 @@
                              ["" "Stairs and Flowers"]
                              (reseed seed 2))))))))
 
+  "A zig-zagging hallway going up"
+  (:uncommon
+   back-and-forth-ii
+   (let [wall (strict-dungeon (htable [(box 25 3 5 :wall)]))
+         space-2  (strict-dungeon (pad  2 5 1))
+         space-7  (strict-dungeon (pad  7 5 1))
+         space-10 (strict-dungeon (pad 10 5 1))
+         space-3z (strict-dungeon (pad  1 1 3))
+         [p1 p2 p3] (unit-sum-series 3 1.5)
+         [r1 r2]    (unit-sum-series 2)]
+     (fn [_ seed]
+       (-> (stack
+            (htable [ space-10]
+                    [ (spawners 5 3 5 (reseed seed 1) p1)]
+                    [ space-10]
+                    [ (box 5 5 1
+                           (mc-block :vines :faces #{:south}))
+                      space-3z
+                      (box 5 5 1
+                           (mc-block :vines :faces #{:north}))])
+            (htable [ wall]
+                    [ (box 5 3 1
+                           (mc-block :vines :faces #{:south}))
+                      space-3z
+                      (box 5 3 1
+                           (mc-block :vines :faces #{:north}))])
+            (htable [ (box 5 5 1
+                           (mc-block :vines :faces #{:south}))
+                      space-3z
+                      (box 5 5 1
+                           (mc-block :vines :faces #{:north}))]
+                    [ space-7]
+                    [ (spawners 5 3 5 (reseed seed 2) p2)]
+                    [ space-7]
+                    [ (-> (supply-chest :west (reseed seed 3))
+                          (reward * r1))]
+                    [ (box 5 5 1
+                           (mc-block :vines :faces #{:south}))
+                      space-3z
+                      (box 5 5 1
+                           (mc-block :vines :faces #{:north}))])
+            (htable [ (box 5 3 1
+                           (mc-block :vines :faces #{:south}))
+                      space-3z
+                      (box 5 3 1
+                           (mc-block :vines :faces #{:north}))]
+                    [ wall])
+            (htable [ (box 5 5 1
+                           (mc-block :vines :faces #{:south}))
+                      space-3z
+                      (box 5 5 1
+                           (mc-block :vines :faces #{:north}))]
+                    [ space-10]
+                    [ (spawners 5 3 5 (reseed seed 5) p3)]
+                    [ space-7]
+                    [ (-> (prize-chest :east (reseed seed 6))
+                          (reward * r2))]
+                    [ space-2]))
+           (surround :wall)
+           (dungeon-map-neighbors
+            (fn [b ns]
+              (cond (not= b :wall)       b
+                    (every? #{:wall} ns) :bedrock
+                    :else                :iron-block)))
+           (surround :bedrock)
+           (surround :ground)
+           (add-entrance [3 0 0]
+                         ["" "Back and" "Forth 2"]
+                         (reseed seed 4))))))
+
   "An inconvenient (especially on harder levels) victory monument
   room"
   (:home
