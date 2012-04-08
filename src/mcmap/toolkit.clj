@@ -198,7 +198,7 @@
                                   :bedrock
                                   nil)
                               (= y 1)
-                                :sandstone
+                                :cavern-wall
                               (some #{1 5} [z y])
                                 (hall-material (:pain params)
                                                seed x y z 2)
@@ -216,7 +216,7 @@
                       (cond (some #{0 6} [y z])
                               :bedrock
                             (= y 1)
-                              :sandstone
+                              :cavern-wall
                             (some #{1 5} [z y])
                               (hall-material (:pain params)
                                              seed x y z)
