@@ -27,25 +27,37 @@
      (apply hash-map
                                  ;; opaque
             (concat (interleave [:stone
-                                 :wool
-                                 :glowstone
-                                 :bedrock
-                                 :sandstone
-                                 :moss-stone
-                                 :wood
+                                 :dirt
                                  :cobble
-                                 :iron-block
-                                 :diamond-block
-                                 :stone-bricks
-                                 :nether-brick
-                                 :obsidian
+                                 :bedrock
+                                 :sand
+                                 :gravel
+                                 :iron-ore
+                                 :coal-ore
+                                 :wood
+                                 :dispenser
+                                 :sandstone
+                                 :wool
                                  :gold-block
-                                 :snow-block]
+                                 :iron-block
+                                 :double-slab
+                                 :tnt
+                                 :moss-stone
+                                 :obsidian
+                                 :diamond-ore
+                                 :diamond-block
+                                 :snow-block
+                                 :pumpkin
+                                 :glowstone
+                                 :jack-o-lantern
+                                 :stone-bricks
+                                 :nether-brick]
                                 (repeat 255))
                                  ;; partially opaque
                     (interleave [:piston-target
                                  :water-flow
                                  :water-source
+                                 :ice
                                  :lava-flow
                                  :lava-source]
                                 (repeat 1)))))
@@ -159,6 +171,7 @@
               :wood-stairs            53
               :chest                  54
               :redstone-wire          55
+              :diamond-ore            56
               :diamond-block          57
               :sign-post              63
               :ladder                 65
@@ -181,8 +194,7 @@
               :brick-stairs          108
               :stone-brick-stairs    109
               :nether-brick          112
-              :nether-brick-stairs   114
-              }
+              :nether-brick-stairs   114}
              ze)
            (throw (RuntimeException. (str "Block ID unknown for " ze)))))))
 
