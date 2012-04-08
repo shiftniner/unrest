@@ -25,10 +25,8 @@
     fn) ...)
 
   Where type-or-list-of-types is either a keyword of a collection of
-  keywords, name is a symbol, bindings is a binding vector with two
-  names (the first for the y coordinate of the dungeon, and the second
-  for the seed), and body is one or more expressions, the last of
-  which must return a dungeon."
+  keywords, name is a symbol, the fn is of two parameters (the y
+  coordinate of the dungeon and the seed) returning a dungeon."
     ([& dungeons]
        (let [dungeons (filter #(not (string? %)) dungeons)
              dungeon-types (distinct (mapcat? first dungeons))
@@ -59,8 +57,9 @@
 
 (defdungeons
 
-  "Simple box with spawners in the middle and a chest on the edge,
-  reminiscent of the vanilla Minecraft dungeon"
+  "Simple box with spawners in the middle and chests around the edge,
+  reminiscent of the vanilla Minecraft dungeon, but larger, darker,
+  and usually with more spawners"
   (:std
    hello-dungeon
    (let [[r1 r2] (unit-sum-series 2)]
@@ -82,7 +81,7 @@
                          ["" "Simple" "Exercises"]
                          (reseed seed 2))))))
 
-  "A zig-zagging hallway with one or more spawners in the center"
+  "A zig-zagging hallway with multiple clusters of spawners"
   (:uncommon
    back-and-forth
    (let [wall-n #(strict-dungeon (htable [(box % 5 3 :wall)]))
@@ -119,8 +118,8 @@
                          ["" "Back and" "Forth"]
                          (reseed seed 2))))))
 
-  "A zig-zagging hallway going the other way, with one or more
-  spawners in the center"
+  "A zig-zagging hallway going the other way, with multiple clusters
+  of spawners"
   (:uncommon
    back-and-forth-backwards
    (let [wall-n #(strict-dungeon (htable [(box % 5 3 :wall)]))
@@ -177,7 +176,7 @@
                                 (pad 1 4 1)
                                 (concat (map #(spawners 1 7 5
                                                         (reseed seed 1 %)
-                                                        1/2 :stone)
+                                                        1/3 :stone)
                                              (range 1 4))
                                         [ (box 1 1 5 :stone)]))]
                        [ (stack (htable [ (-> (supply-chest :south
@@ -195,7 +194,7 @@
                                 (pad 1 4 1)
                                 (concat (map #(spawners 1 7 5
                                                         (reseed seed 4 %)
-                                                        1/2 :stone)
+                                                        1/3 :stone)
                                              (range 1 4))
                                         [ (box 1 1 5 :stone)]))]
                        [ (stone-ore-box 3 26 1 (reseed seed 7 4))
@@ -220,7 +219,7 @@
                                 (box 1 1 5 :stone)
                                 (concat (map #(spawners 1 7 5
                                                         (reseed seed 1 %)
-                                                        1/2 :stone)
+                                                        1/3 :stone)
                                              (range 1 4))
                                         [ (pad 1 4 1)]))]
                        [ (stack (box 1 21 5 :bedrock)
@@ -238,7 +237,7 @@
                                 (box 1 1 5 :stone)
                                 (concat (map #(spawners 1 7 5
                                                         (reseed seed 4 %)
-                                                        1/2 :stone)
+                                                        1/3 :stone)
                                              (range 1 4))
                                         [ (pad 1 4 1)]))]
                        [ (stone-ore-box 3 26 1 (reseed seed 7 4))
