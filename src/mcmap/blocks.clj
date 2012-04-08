@@ -106,6 +106,13 @@
   ([type & extra-data]
      (apply hash-map :type type extra-data)))
 
+(defn block-type
+  "Returns the :type of the given block"
+  ([ze]
+     (if (map? ze)
+       (:type ze)
+       ze)))
+
 (def mem-mc-block (memoize mc-block))
 
 (defn block-id
