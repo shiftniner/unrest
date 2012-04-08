@@ -184,8 +184,10 @@
                                               (reward * r1))
                                           (pad 1  1 1)
                                           (box 1  1 1
-                                               (sranditem [:rose :dandelion]
-                                                          seed 3))
+                                               (mc-block
+                                                (sranditem [:rose :dandelion]
+                                                           seed 3)
+                                                :force-nospread-light 8))
                                           (pad 1  1 2)])
                                 (pad 1  3 5)
                                 (box 1  1 5 :stone)
@@ -205,9 +207,18 @@
                          (stone-ore-box 3 26 1 (reseed seed 7 5))]
                        [ (stone-ore-box 1 26 5 (reseed seed 7 6))])
                (surround :bedrock)
+               (dungeon-map-neighbors
+                (fn [b ns]
+                  (if (and (not= :air b)
+                           (some #( #{:rose :dandelion}
+                                    (block-type %))
+                                 ns))
+                    :dirt
+                    b)))
+               (surround :bedrock)
                (remove-mobs ["Ghast"])
                (surround :ground)
-               (add-entrance [3 23 0]
+               (add-entrance [4 23 0]
                              ["" "Stairs and Flowers"]
                              (reseed seed 2)))
            ;; (<= y 40): climb up and then back down
@@ -229,8 +240,11 @@
                                               (reward * r1))
                                           (pad 1  1 1)
                                           (box 1  1 1
-                                               (sranditem [:rose :dandelion]
-                                                          seed 3))
+                                               (mc-block
+                                                (sranditem [:rose :dandelion
+                                                            :dead-bush]
+                                                           seed 3)
+                                                :force-nospread-light 8))
                                           (pad 1  1 2)])
                                 (pad 1  3 5))]
                        [ (apply stack
@@ -248,9 +262,24 @@
                          (stone-ore-box 3 26 1 (reseed seed 7 5))]
                        [ (stone-ore-box 1 26 5 (reseed seed 7 6))])
                (surround :bedrock)
+               (dungeon-map-neighbors
+                (fn [b ns]
+                  (cond (= :air b)
+                          b
+                        (some #( #{:rose :dandelion}
+                                 (block-type %))
+                              ns)
+                          :dirt
+                        (some #( #{:dead-bush}
+                                 (block-type %))
+                              ns)
+                          :sand
+                        :else
+                          b)))
+               (surround :bedrock)
                (remove-mobs ["Ghast"])
                (surround :ground)
-               (add-entrance [3 0 0]
+               (add-entrance [4 0 0]
                              ["" "Stairs and Flowers"]
                              (reseed seed 2))))))))
 
