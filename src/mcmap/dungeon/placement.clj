@@ -852,12 +852,12 @@
            chunks 16
            map-difficulty (/ level 100)
            start-difficulty (/ start-level 100)
-           cavern-wall   (mc-block :stone)
-           uncommon-wall (mc-block :stone-bricks)
-           rare-wall     (mc-block :diamond-ore)
-;;            cavern-wall   (mc-block :sandstone)
-;;            uncommon-wall (mc-block :smooth-sandstone)
-;;            rare-wall     (mc-block :creeper-sandstone)
+;;            cavern-wall   (mc-block :stone)
+;;            uncommon-wall (mc-block :stone-bricks)
+;;            rare-wall     (mc-block :diamond-ore)
+           cavern-wall   (mc-block :sandstone)
+           uncommon-wall (mc-block :smooth-sandstone)
+           rare-wall     (mc-block :creeper-sandstone)
 
            max-x (* chunks +chunk-side+)
            max-y 128
