@@ -724,7 +724,7 @@
              mcmap (gen-mcmap x-size y-size z-size
                               (fn [x y z]
                                 (let [ze (zone-lookup zone x y z)]
-                                  (if (= :ground ze)
+                                  (if ( #{:ground :cavern-wall} ze)
                                     :sandstone
                                     ze))))]
          (mcmap-to-mca-binary mcmap 0 0)))))
