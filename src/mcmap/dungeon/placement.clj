@@ -108,13 +108,13 @@
 
 (defn- hall-fn
   ([w y v params seed salt]
-     (generic-hall-fn w y v params seed salt 6 :sandstone)))
+     (generic-hall-fn w y v params seed salt 6 :cavern-wall)))
 
 (defn- stair-fn
   ([w y v params seed salt stair-face max-y flat-floor]
      (generic-hall-fn w y v params seed salt max-y
                       (if flat-floor
-                        :sandstone
+                        :cavern-wall
                         (mem-mc-block :stone-brick-stairs
                                       :face stair-face)))))
 
@@ -852,6 +852,12 @@
            chunks 16
            map-difficulty (/ level 100)
            start-difficulty (/ start-level 100)
+           cavern-wall   (mc-block :stone)
+           uncommon-wall (mc-block :stone-bricks)
+           rare-wall     (mc-block :diamond-ore)
+;;            cavern-wall   (mc-block :sandstone)
+;;            uncommon-wall (mc-block :smooth-sandstone)
+;;            rare-wall     (mc-block :creeper-sandstone)
 
            max-x (* chunks +chunk-side+)
            max-y 128
@@ -960,7 +966,7 @@
                                            (mc-block :lava-source)
                                            :bedrock)
                                        :air (mc-block :air)
-                                       :ground
+                                       (:ground :cavern-wall)
                                          (let [r  (srand 1 seed 51 x y z)
                                                r2 (srand 1 seed 52 x y z)
                                                p (dungeon-pain
@@ -984,11 +990,9 @@
                                                             [(* 200 (- 1 p))
                                                              50 0]
                                                             seed 53 x y z)))
-                                            (< r 0.005)
-                                              (mc-block :creeper-sandstone)
-                                            (< r 0.015)
-                                              (mc-block :smooth-sandstone)
-                                            :else (mc-block :sandstone)))
+                                            (< r 0.002) rare-wall
+                                            (< r 0.012) uncommon-wall
+                                            :else       cavern-wall))
                                        ze))))]
        (generic-map-maker chunks chunks generator))))
 
