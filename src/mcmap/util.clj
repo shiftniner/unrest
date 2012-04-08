@@ -39,6 +39,12 @@
      (apply msg args)
      true))
 
+(defn v
+  "Prints the given arg with msg and returns it"
+  ([arg]
+     (msg 0 arg)
+     arg))
+
 (def onemsg (memoize msg))
 
 (defmacro if-let*
