@@ -535,6 +535,10 @@
                       :northwest        0xE
                       :north-northwest  0xF}
                      (:face ze))
+                 :vines
+                   (reduce bit-or
+                           (map {:south 0x1 :west 0x2 :north 0x4 :east 0x8}
+                                (:faces ze)))
                  0))
        0)))
 
