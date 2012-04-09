@@ -171,13 +171,25 @@
       :north-northwest :east-northeast})
 
 (defn rotate-block
+  "Rotation must be nonnegative; rotates the block ze clockwise by
+  90 x rotation degrees"
   ([rotation ze]
-     (if (or (zero? rotation)
-             (not (map? ze))
-             (not (:face ze)))
-       ze
-       (rotate-block (dec rotation)
-                     (assoc ze :face (+rotate-face-90+ (:face ze)))))))
+     (cond (or (zero? rotation)
+               (not (map? ze)))
+             ze
+           (:face ze)
+             (rotate-block (dec rotation)
+                           (assoc ze :face (+rotate-face-90+ (:face ze))))
+           (:faces ze)
+             (rotate-block (dec rotation)
+                           (assoc ze :faces
+                                  (reduce (fn [faces face]
+                                            (conj faces
+                                                  (+rotate-face-90+ face)))
+                                          (empty (:faces ze))
+                                          (:faces ze))))
+           :else
+             ze)))
 
 (defn rotate-empty-box
   "Takes a box and an orientation (a number of clockwise-from-overhead
