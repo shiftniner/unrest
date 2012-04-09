@@ -847,6 +847,8 @@
   ([seed]
      (dungeon-exercise-3 seed 22.5 80))
   ([seed level start-level]
+     (dungeon-exercise-3 seed seed level start-level))
+  ([cavern-seed seed level start-level]
      (let [n-caves 15
            n-dungeons 64
            chunks 16
@@ -864,7 +866,7 @@
            max-z (* chunks +chunk-side+)
            max-dim (max max-x max-y max-z)
            [epic-zone start-x start-z]
-                 (epic-cave-network n-caves max-x max-y max-z seed)
+               (epic-cave-network n-caves max-x max-y max-z cavern-seed)
            _ (println "Start is x=" start-x " z=" start-z)
            _ (msg 3 "Finding dungeons ...")
            excess-dunhalls (pmap pick-dungeon-place
