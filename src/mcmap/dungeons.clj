@@ -351,6 +351,52 @@
                          ["" "Back and" "Forth 2"]
                          (reseed seed 4))))))
 
+  "Tard bridges over lava, with spawners on top"
+  (:std
+   spite-and-malice
+   (letfn [(bridge-section [seed frac]
+             (stack (box 9 3 17 :lava-source)
+                    (pad 1 8 1)
+                    (fnbox 9 1 17 [x _ z params]
+                      (let [p (:pain params)
+                            r (srand 1 seed 1 x z)]
+                        (if (= 2 (mod z 3))
+                          (if (and (zero? (mod (+ x (quot z 3))
+                                               3))
+                                   (< r (Math/pow p 3)))
+                            :air
+                            :cobble)
+                          (if (< r (Math/pow p 0.5))
+                            :air
+                            :iron-bars))))
+                    (spawners 5 3 5 (reseed seed 2)
+                              frac)))]
+     (let [ [r1 r2] (unit-sum-series 2)
+            [f1 f2] (unit-sum-series 2)]
+       (fn [_ seed]
+         (-> (htable [(box 6 12 17 :ground)]
+                     [(bridge-section (reseed seed 1) f1)]
+                     [(stack (box 5 12 17 :ground)
+                             (-> (supply-chest :east (reseed seed 2))
+                                 (reward * r1)))]
+                     [(bridge-section (reseed seed 3) f2)]
+                     [(stack (box 5 12 17 :ground)
+                             (-> (prize-chest :east (reseed seed 4))
+                                 (reward * r2)))])
+             (stack (box (+ (* 9 2) 6 5 5)
+                         1 17 :ground))
+             boxify
+             (dungeon-map-neighbors
+              (fn [b ns]
+                (cond (not= b :ground)       b
+                      (every? #{:ground} ns) :bedrock
+                      :else                  :stone)))
+             (surround :bedrock)
+             (surround :ground)
+             (add-entrance [2 12 0]
+                           ["" "Spite &" "Malice"]
+                           (reseed seed 5)))))))
+
   "An inconvenient (especially on harder levels) victory monument
   room"
   (:home
