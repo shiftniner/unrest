@@ -114,6 +114,36 @@
             (map #(apply lineup :z :center (reverse %))
                  dungeon-vectors))))
 
+(defn boxify
+  "Takes a dungeon and returns a single-box dungeon with the same
+  contents, with empty spaces replaced with air; an optional second
+  parameter defines a different block to replace empty space with"
+  ([dungeon]
+     (boxify dungeon :air))
+  ([dungeon fill]
+     (let [min-x (dungeon-min-x dungeon)
+           min-y (dungeon-min-y dungeon)
+           min-z (dungeon-min-z dungeon)
+           x-size (dungeon-x-extent dungeon)
+           y-size (dungeon-y-extent dungeon)
+           z-size (dungeon-z-extent dungeon)
+           p (promise)]
+       [ (fn [params]
+           (let [render (first dungeon)]
+             (render params)
+             (deliver p
+                      (gen-mcmap-zone
+                       x-size y-size z-size
+                       (fn [x y z]
+                         (or (maybe-dungeon-lookup dungeon
+                                                   (+ x min-x)
+                                                   (+ y min-y)
+                                                   (+ z min-z))
+                             fill))))))
+         {:x0 min-x,  :y0 min-y,  :z0 min-z
+          :xd x-size, :yd y-size, :zd z-size
+          :zone p}])))
+
 (defn surround-fn
   "Takes a dungeon and a function of seven arguments (three
   coordinates, params, and three dimensions of the surrounding box)
