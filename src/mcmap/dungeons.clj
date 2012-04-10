@@ -351,7 +351,7 @@
                          ["" "Back and" "Forth 2"]
                          (reseed seed 4))))))
 
-  "Tard bridges over lava, with spawners on top"
+  "Tard bridges over lava (or the void), with spawners on top"
   (:std
    spite-and-malice
    (letfn [(bridge-section [seed frac lava?]
