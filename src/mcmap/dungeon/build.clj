@@ -90,6 +90,12 @@
      ( (first dungeon) params)
      dungeon))
 
+(defn dungeon-rendered?
+  "Returns true if the given dungeon has been rendered, or has no boxes"
+  ([d]
+     (or (not (:zone (second d)))
+         (realized? (:zone (second d))))))
+
 (defn round-to-chunk-size
   ([n]
      (* 16 (quot (+ n 15)
