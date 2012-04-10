@@ -252,11 +252,22 @@
                   (rest dungeon)
                   ps)))))
 
-(defn no-render
-  "Returns a version of the given dungeon with rendering disabled"
-  ([dungeon]
-     (cons (fn [_])
-           (rest dungeon))))
+(defn sequence-dungeons
+  "Takes any number of dungeons, and returns a seq of dungeons in the same
+  order as in the arg list, such that each dungeon is always guaranteed to
+  render before any subsequent dungeons"
+  ([d]
+     (list d))
+  ([d1 d2 & ds]
+     (lazy-seq
+      (cons d1
+            (apply sequence-dungeons
+                   (cons (fn [params]
+                           (when-not (dungeon-rendered? d1)
+                             (render-dungeon d1 params)
+                             (render-dungeon d2 params)))
+                         (rest d2))
+                   ds)))))
 
 (defn extrude-dungeon
   "Takes a dungeon, an axis, :high or :low, and a number of blocks,
@@ -278,10 +289,7 @@
                                                (+ x min-x)
                                                min-y
                                                (+ z min-z)))
-             extrusion (cons (fn [params]
-                               (render-dungeon dungeon params)
-                               (render-dungeon extrusion params))
-                             (rest extrusion))
+             [dungeon extrusion] (sequence-dungeons dungeon extrusion)
              extrusion (translate-dungeon extrusion
                                           (- min-x
                                              (dungeon-min-x extrusion))
@@ -289,7 +297,7 @@
                                           (- min-z
                                              (dungeon-min-z extrusion)))]
          (translate-dungeon
-          (lineup :y :low extrusion (no-render dungeon))
+          (lineup :y :low extrusion dungeon)
           0 max-y 0))
        (die "Unimplemented: extrude-dungeon " axis " " dir))))
 
