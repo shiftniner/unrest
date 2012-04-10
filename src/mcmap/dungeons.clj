@@ -354,8 +354,8 @@
   "Tard bridges over lava, with spawners on top"
   (:std
    spite-and-malice
-   (letfn [(bridge-section [seed frac]
-             (stack (box 9 3 17 :lava-source)
+   (letfn [(bridge-section [seed frac lava?]
+             (stack (box 9 3 17 (if lava? :lava-source :air))
                     (pad 1 8 1)
                     (fnbox 9 1 17 [x _ z params]
                       (let [p (:pain params)
@@ -373,29 +373,46 @@
                               frac)))]
      (let [ [r1 r2] (unit-sum-series 2)
             [f1 f2] (unit-sum-series 2)]
-       (fn [_ seed]
-         (-> (htable [(box 6 12 17 :ground)]
-                     [(bridge-section (reseed seed 1) f1)]
-                     [(stack (box 5 12 17 :ground)
-                             (-> (supply-chest :east (reseed seed 2))
-                                 (reward * r1)))]
-                     [(bridge-section (reseed seed 3) f2)]
-                     [(stack (box 5 12 17 :ground)
-                             (-> (prize-chest :east (reseed seed 4))
-                                 (reward * r2)))])
-             (stack (box (+ (* 9 2) 6 5 5)
-                         1 17 :ground))
-             boxify
-             (dungeon-map-neighbors
-              (fn [b ns]
-                (cond (not= b :ground)       b
-                      (every? #{:ground} ns) :bedrock
-                      :else                  :stone)))
-             (surround :bedrock)
-             (surround :ground)
-             (add-entrance [2 12 0]
-                           ["" "Spite &" "Malice"]
-                           (reseed seed 5)))))))
+       (fn [y seed]
+         (let [open-to-void? (< y 22)
+               remove-bottom-side (if open-to-void? 2 0)
+               bottom-trim (if open-to-void?
+                             (min 10 (- 12 y))
+                             0)
+               dungeon-resizer (cond (neg? (- bottom-trim
+                                              remove-bottom-side))
+                                       #(extrude-dungeon % :y :low
+                                                         (- 2 bottom-trim))
+                                     (pos? bottom-trim)
+                                       #(trim-dungeon % 0 0 0 bottom-trim 0 0)
+                                     :else
+                                       identity)
+               lava? (not open-to-void?)]
+           (-> (htable [(box 6 12 17 :ground)]
+                       [(bridge-section (reseed seed 1) f1 lava?)]
+                       [(stack (box 5 12 17 :ground)
+                               (-> (supply-chest :east (reseed seed 2))
+                                   (reward * r1)))]
+                       [(bridge-section (reseed seed 3) f2 lava?)]
+                       [(stack (box 5 12 17 :ground)
+                               (-> (prize-chest :east (reseed seed 4))
+                                   (reward * r2)))])
+               (stack (box (+ (* 9 2) 6 5 5)
+                           1 17 :ground))
+               boxify
+               (remove-mobs ["Ghast"])
+               (dungeon-map-neighbors
+                (fn [b ns]
+                  (cond (not= b :ground)       b
+                        (every? #{:ground} ns) :bedrock
+                        :else                  :stone)))
+               (surround :bedrock)
+               (surround :ground)
+               (trim-dungeon 0 0 0 remove-bottom-side 0 0)
+               dungeon-resizer
+               (add-entrance [2 12 0]
+                             ["" "Spite &" "Malice"]
+                             (reseed seed 5))))))))
 
   "An inconvenient (especially on harder levels) victory monument
   room"

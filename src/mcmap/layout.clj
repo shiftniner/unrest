@@ -192,6 +192,107 @@
                   (fn [_ _ _ _ _ _ _] ze)
                   fill)))
 
+(defn dungeon-dimensions
+  "Returns a seq of [x-min x-max y-min y-max z-min z-max] for the
+  given dungeon"
+  ([dungeon]
+     (map #(% dungeon)
+          [dungeon-min-x dungeon-max-x
+           dungeon-min-y dungeon-max-y
+           dungeon-min-z dungeon-max-z])))
+
+(defn trim-dungeon
+  "Takes a dungeon and six dimensions, and returns a dungeon with the
+  specified number of blocks trimmed off of each side"
+  ([dungeon west east top bottom north south]
+     (let [ [min-x max-x min-y max-y min-z max-z :as dims]
+              (dungeon-dimensions dungeon)
+            [new-min-x new-max-x new-min-y new-max-y new-min-z new-max-z]
+              (map #(%1 %2 %3)
+                   [+ - + - + -]
+                   dims
+                   [west east bottom top north south])
+            ps (repeatedly (count (rest dungeon))
+                           promise)]
+       (cons (fn [params]
+               ( (first dungeon) params)
+               (dorun
+                (map (fn [box p]
+                       (let [new-x0 (max new-min-x (:x0 box))
+                             new-y0 (max new-min-y (:y0 box))
+                             new-z0 (max new-min-z (:z0 box))
+                             x-diff (- new-x0 (:x0 box))
+                             y-diff (- new-y0 (:y0 box))
+                             z-diff (- new-z0 (:z0 box))]
+                         (deliver p
+                           (gen-mcmap-zone (:xd box) (:yd box) (:zd box)
+                             (fn [x y z]
+                               (maybe-zone-lookup @(:zone box)
+                                                  (+ x x-diff)
+                                                  (+ y y-diff)
+                                                  (+ z z-diff)))))))
+                     (rest dungeon)
+                     ps)))
+             (map (fn [box p]
+                    (let [box-max-x (+ (:x0 box) (:xd box))
+                          box-max-y (+ (:y0 box) (:yd box))
+                          box-max-z (+ (:z0 box) (:zd box))
+                          new-x0 (max new-min-x (:x0 box))
+                          new-y0 (max new-min-y (:y0 box))
+                          new-z0 (max new-min-z (:z0 box))
+                          new-max-x (min new-max-x box-max-x)
+                          new-max-y (min new-max-y box-max-y)
+                          new-max-z (min new-max-z box-max-z)]
+                      (assoc box
+                        :x0 new-x0 :y0 new-y0 :z0 new-z0
+                        :xd (- new-max-x new-x0)
+                        :yd (- new-max-y new-y0)
+                        :zd (- new-max-z new-z0)
+                        :zone p)))
+                  (rest dungeon)
+                  ps)))))
+
+(defn no-render
+  "Returns a version of the given dungeon with rendering disabled"
+  ([dungeon]
+     (cons (fn [_])
+           (rest dungeon))))
+
+(defn extrude-dungeon
+  "Takes a dungeon, an axis, :high or :low, and a number of blocks,
+  and extrudes the dungeon in that direction by that many blocks; note
+  that the area extruded is a single cuboid matching the extent of the
+  dungeon, which may have nils if the dungeon does not occupy the full
+  face"
+  ([dungeon axis dir n]
+     ;; That's right, I'm only handling one case for now.  Sue me.
+     (if (= [axis dir] [:y :low])
+       (let [min-x (dungeon-min-x dungeon)
+             max-x (dungeon-max-x dungeon)
+             min-y (dungeon-min-y dungeon)
+             max-y (dungeon-max-y dungeon)
+             min-z (dungeon-min-z dungeon)
+             max-z (dungeon-max-z dungeon)
+             extrusion (fnbox (- max-x min-x) n (- max-z min-z) [x y z _]
+                         (maybe-dungeon-lookup dungeon
+                                               (+ x min-x)
+                                               min-y
+                                               (+ z min-z)))
+             extrusion (cons (fn [params]
+                               (render-dungeon dungeon params)
+                               (render-dungeon extrusion params))
+                             (rest extrusion))
+             extrusion (translate-dungeon extrusion
+                                          (- min-x
+                                             (dungeon-min-x extrusion))
+                                          0
+                                          (- min-z
+                                             (dungeon-min-z extrusion)))]
+         (translate-dungeon
+          (lineup :y :low extrusion (no-render dungeon))
+          0 max-y 0))
+       (die "Unimplemented: extrude-dungeon " axis " " dir))))
+
 (defn dungeon-replace
   "Takes two dungeons, returning a dungeon of the same shape as the
   first, but with blocks from the second wherever the two dungeons
