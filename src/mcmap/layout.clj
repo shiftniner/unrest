@@ -269,6 +269,40 @@
                          (rest d2))
                    ds)))))
 
+(defn pre-render-fn
+  "Takes a dungeon and a fn of no arguments to call (presumably for
+  side-effects) before the dungeon is rendered; returns a dungeon that
+  does so"
+  ([d f]
+     (cons (fn [params]
+             (f d params)
+             (render-dungeon d params))
+           (rest d))))
+
+(defmacro pre-render
+  "Takes a dungeon, a binding vector for two args (the dungeon and
+  params) and forms to evaluate (presumably for their side-effects)
+  before the dungeon is rendered; returns a dungeon that does so"
+  ([d bindings & forms]
+     `(pre-render-fn ~d (fn ~bindings ~@forms))))
+
+(defn post-render-fn
+  "Takes a dungeon and a fn of no arguments to call (presumably for
+  side-effects) after the dungeon is rendered; returns a dungeon that
+  does so"
+  ([d f]
+     (cons (fn [params]
+             (render-dungeon d params)
+             (f d params))
+           (rest d))))
+
+(defmacro post-render
+  "Takes a dungeon, a binding vector for two args (the dungeon and
+  params) and forms to evaluate (presumably for their side-effects)
+  after the dungeon is rendered; returns a dungeon that does so"
+  ([d bindings & forms]
+     `(post-render-fn ~d (fn ~bindings ~@forms))))
+
 (defn extrude-dungeon
   "Takes a dungeon, an axis, :high or :low, and a number of blocks,
   and extrudes the dungeon in that direction by that many blocks; note
