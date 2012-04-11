@@ -505,7 +505,9 @@
                           (check-count n-s2f s2))))))]
        (let [n-s1total (count (first ss))
              n-s1f (count (filter f (first ss)))]
-         (apply check-count n-s1total n-s1f ss)))))
+         (and (> (- n-s1total n-s1f)
+                 3)
+              (apply check-count n-s1total n-s1f ss))))))
 
 (defn cave-hallway-accepter
   "Takes a zone and a seq of hallway coordinate slices as returned by
