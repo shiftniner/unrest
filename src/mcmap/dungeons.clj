@@ -377,12 +377,11 @@
          (let [open-to-void? (< y 22)
                remove-bottom-side (if open-to-void? 2 0)
                bottom-trim (if open-to-void?
-                             (min 10 (- 12 y))
+                             (min 9 (- 10 y))
                              0)
-               dungeon-resizer (cond (neg? (- bottom-trim
-                                              remove-bottom-side))
+               dungeon-resizer (cond (neg? bottom-trim)
                                        #(extrude-dungeon % :y :low
-                                                         (- 2 bottom-trim))
+                                                         (- bottom-trim))
                                      (pos? bottom-trim)
                                        #(trim-dungeon % 0 0 0 bottom-trim 0 0)
                                      :else
