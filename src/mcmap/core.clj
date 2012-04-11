@@ -1201,23 +1201,33 @@
 (defn compute-block-light
   ([block-zone opacity-zone]
      (let [light-zone (gen-mcmap-zone (zone-x-size block-zone)
-                                      (zone-y-size block-zone)
+                                      (inc (zone-y-size block-zone))
                                       (zone-z-size block-zone)
                             (fn [x y z]
                               (block-light
-                                  (zone-lookup block-zone x y z))))]
-       (spread-light light-zone opacity-zone))))
+                                  (maybe-zone-lookup block-zone x y z))))
+           tall-light-zone (spread-light light-zone opacity-zone)]
+       (gen-mcmap-zone (zone-x-size block-zone)
+                       (zone-y-size block-zone)
+                       (zone-z-size block-zone)
+         (fn [x y z]
+           (zone-lookup tall-light-zone x y z))))))
 
 (defn compute-skylight
   ([block-zone opacity-zone height-zone]
      (let [skylight-zone (gen-mcmap-zone (zone-x-size block-zone)
-                                         (zone-y-size block-zone)
+                                         (inc (zone-y-size block-zone))
                                          (zone-z-size block-zone)
                                (fn [x y z]
                                  (block-skylight
-                                     (zone-lookup block-zone x y z)
-                                     x y z height-zone)))]
-       (spread-light skylight-zone opacity-zone))))
+                                     (maybe-zone-lookup block-zone x y z)
+                                     x y z height-zone)))
+           tall-skylight-zone (spread-light skylight-zone opacity-zone)]
+       (gen-mcmap-zone (zone-x-size block-zone)
+                       (zone-y-size block-zone)
+                       (zone-z-size block-zone)
+         (fn [x y z]
+           (zone-lookup tall-skylight-zone x y z))))))
 
 (defn gen-mcmap
   "Given x, y, and z sizes and a function of x y and z that returns a
@@ -1235,10 +1245,10 @@
      (let [_ (msg 1 "Placing blocks ...")
            block-zone (gen-mcmap-zone x-size y-size z-size f)
            _ (msg 1 "Mapping opaque and transparent blocks ...")
-           opacity-zone (gen-mcmap-zone x-size y-size z-size
+           opacity-zone (gen-mcmap-zone x-size (inc y-size) z-size
                           (fn [x y z]
                             (block-opacity
-                             (zone-lookup block-zone x y z))))
+                             (maybe-zone-lookup block-zone x y z))))
            _ (msg 1 "Computing height and biome maps ...")
            height-zone (p-gen-mcmap-zone x-size 1 z-size
                          (fn [x _ z]
