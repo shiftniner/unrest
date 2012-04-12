@@ -55,11 +55,22 @@
                      :else
                        :air))))}])
 
+(def dungeons-dump (atom nil))
+
+(def hallways-dump (atom nil))
+
 (defn place-dungeons
   "Takes a zone, a seq of dungeons, and a seq of hallways, and returns
   the zone with the dungeons placed in it"
   ;; Might be better to have this return a fn for gen-mcmap[-zone]
   ([zone dungeons hallways]
+     (when (some #(not (dungeon-rendered? %))
+                 dungeons)
+       (compare-and-set! dungeons-dump @dungeons-dump dungeons)
+       (compare-and-set! hallways-dump @hallways-dump hallways)
+       (die "dungeon or hallway not rendered; dungeons dumped to"
+            " @mcmap.placement/dungeons-dump, and hallways dumped to"
+            " @mcmap.placement/hallways-dump"))
      (let [zone-size (max (zone-x-size zone)
                           (zone-z-size zone)
                           (zone-y-size zone))
