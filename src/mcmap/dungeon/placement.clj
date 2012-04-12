@@ -506,7 +506,7 @@
        (let [n-s1total (count (first ss))
              n-s1f (count (filter f (first ss)))]
          (and (> (- n-s1total n-s1f)
-                 3)
+                 8)
               (apply check-count n-s1total n-s1f ss))))))
 
 (defn cave-hallway-accepter
