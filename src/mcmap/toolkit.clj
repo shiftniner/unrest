@@ -126,23 +126,36 @@
                              (item-power params %2)))
              items))))
 
+(defmacro maybe-chest
+  "Returns a 1x1x1 dungeon with a chest with contents defined by the
+  value of body, which is evaluated at render time and has access to
+  params, or air if body evaluates to nil; binding-vector should
+  contain one symbol, for params"
+  ([face binding-vector & body]
+     (when-not (vector? binding-vector)
+       (die "binding-vector must be a vector"))
+     `(fnbox 1 1 1 [_# _# _# ~@binding-vector]
+        (let [contents# (do ~@body)]
+          (if contents#
+            (let [inv-list# (map balance-item-to-inventory-item
+                                 contents#)]
+              (mc-block :chest :face ~face
+                        :items (inventory-list
+                                (map #(assoc %1 :slot %2)
+                                     inv-list#
+                                     [13, 14 12, 4 22, 15 11, 5 3 23 21,
+                                      16 10, 6 2 24 20, 17 9, 7 1 25 19,
+                                      8 0 26 18]))))
+            :air)))))
+
 (defn prize-chest
   "Returns a teensy dungeon consisting of a prize chest"
   ([seed]
      (prize-chest nil seed))
   ([face seed]
-     (fnbox 1 1 1 [_ _ _ params]
-       (let [items (or (:prize params)
-                       (prize-chest-items params seed))
-             inv-list (map balance-item-to-inventory-item items)]
-         (mc-block :chest
-                   :face face
-                   :items
-                   (inventory-list
-                    (map #(assoc %1 :slot %2)
-                         inv-list
-                         [13, 14 12, 4 22, 15 11, 5 3 23 21, 16 10,
-                          6 2 24 20, 17 9, 7 1 25 19, 8 0 26 18])))))))
+     (maybe-chest face [params]
+       (or (:prize params)
+           (prize-chest-items params seed)))))
 
 (defn unit-sum-series
   "Takes an integer N and returns the series [x, 2x, 3x, ... Nx] with
