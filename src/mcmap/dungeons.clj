@@ -417,6 +417,70 @@
                              ["" "Spite &" "Malice"]
                              (reseed seed 5))))))))
 
+  "Pitching practice - bedrock walls with 1x1 holes dividing three
+  rooms; a supply of ender pearls to get between them"
+  (:rare
+   a-hole-in-the-wall
+   (letfn [(room [seed frac pearl-factor extra-chest]
+             (htable [ (pad 2 1 2)]
+                     [ (pad 1 1 1)
+                       (or extra-chest (pad 1 1 1))
+                       (pad 1 1 1)
+                       (maybe-chest :south [params]
+                         (let [p (:pain params)
+                               n-pearls (int (* pearl-factor
+                                                (dec (/ p))))]
+                           (when (pos? n-pearls)
+                             (prize-items n-pearls :ender-pearl))))
+                       (pad 2 1 2)
+                       (-> (spawners 1 1 1 0 2)
+                           (set-mobs [ [1/1000 nil]
+                                       [999/1000 "Enderman"]]))
+                       (pad 5 1 5)
+                       (spawners 5 3 5 seed frac)
+                       (pad 2 1 2)]
+                     [ (pad 2 1 2)]))]
+     (let [ [r1 r2] (unit-sum-series 2)
+            [f1 f2 f3] (unit-sum-series 3 2/5)
+            wall (strict-dungeon
+                  (stack
+                   (fnbox 3 5 19 [x y z _]
+                     (cond (= [x y z] [1 1 5])
+                             :air
+                           (and (#{0 2} x)
+                                (<= y 2)
+                                (<= 4 z 6))
+                             :air
+                           (#{0 2} x)
+                             :cobble
+                           :else
+                             :bedrock))))]
+       (fn [_ seed]
+         (-> (htable [ (room (reseed seed 1)
+                             f1 1 nil)]
+                     [ wall]
+                     [ (-> (room (reseed seed 2)
+                                 f2 2
+                                 (supply-chest :south (reseed seed 4)))
+                           (reward * r1))]
+                     [ wall]
+                     [ (-> (room (reseed seed 3)
+                                 f3 1
+                                 (prize-chest :south (reseed seed 5)))
+                           (reward * r2))])
+             (surround :cobble)
+             (dungeon-map-neighbors
+               (fn [b ns]
+                 (if (every? #{:cobble :bedrock}
+                             (cons b ns))
+                   :bedrock
+                   b)))
+             (surround :bedrock)
+             (surround :ground)
+             (add-entrance [3 0 0]
+                           ["" "A Hole in the Wall"]
+                           (reseed seed 6)))))))
+
   "An inconvenient (especially on harder levels) victory monument
   room"
   (:home
