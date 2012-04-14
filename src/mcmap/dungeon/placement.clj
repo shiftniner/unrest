@@ -654,6 +654,7 @@
                           h2 (maybe-zone-lookup agl-map x2 y z2)
                           _ (<= h1 h2 (+ h1 2))
                           y (- y h1)
+                          _ (pos? y)
                           dunhall [ (translate-dungeon
                                      (chests orientation)
                                      (+ x xo) y (+ z zo))
