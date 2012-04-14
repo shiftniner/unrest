@@ -174,10 +174,12 @@
                          (stone-ore-box 3 26 1 (reseed seed 7 3))]
                        [ (apply stack
                                 (pad 1 4 1)
-                                (concat (map #(spawners 1 7 5
-                                                        (reseed seed 1 %)
-                                                        1/3 :stone)
-                                             (range 1 4))
+                                (concat (map #(spawners 1 3 5
+                                                        (reseed seed 1 %1)
+                                                        %2 :stone)
+                                             (range 1 8)
+                                             [1/12 1/36 1/108 1/4
+                                              1/108 1/36 1/12])
                                         [ (box 1 1 5 :stone)]))]
                        [ (stack (htable [ (-> (supply-chest :south
                                                             (reseed seed 5))
@@ -193,10 +195,12 @@
                                 (box 1 21 5 :bedrock))]
                        [ (apply stack
                                 (pad 1 4 1)
-                                (concat (map #(spawners 1 7 5
-                                                        (reseed seed 4 %)
-                                                        1/3 :stone)
-                                             (range 1 4))
+                                (concat (map #(spawners 1 3 5
+                                                        (reseed seed 4 %1)
+                                                        %2 :stone)
+                                             (range 1 8)
+                                             [1/12 1/36 1/108 1/4
+                                              1/108 1/36 1/12])
                                         [ (box 1 1 5 :stone)]))]
                        [ (stone-ore-box 3 26 1 (reseed seed 7 4))
                          (stack (stairs 24)
