@@ -387,3 +387,11 @@
               (remove-mobs-from-distribution (or (:mobs params)
                                                  +standard-mobs+)
                                              (set mobs))))))
+
+(defn set-mobs
+  "Takes a dungeon and a mob distribution seq (e.g., [ [2/3
+  \"Zombie\"] [1/3 \"Spider\"] ]), and returns a dungeon with that
+  distribution of mobs"
+  ([dungeon mobs]
+     (modify-params dungeon [params]
+       (assoc params :mobs mobs))))
