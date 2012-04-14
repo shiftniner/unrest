@@ -740,6 +740,7 @@
                                   (if ( #{:ground :cavern-wall} ze)
                                     :sandstone
                                     ze))))]
+         (count-spawners (:block-zone mcmap))
          (mcmap-to-mca-binary mcmap 0 0)))))
 
 (defn dungeon-playtest-1
