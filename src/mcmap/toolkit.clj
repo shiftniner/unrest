@@ -225,20 +225,23 @@
                          0)
            signs (format-signs :north text)
            entrance-length (+ 6 (count signs))
-           entrance (fnbox entrance-length 7 7
+           entrance (fnbox entrance-length 9 9
                       [x y z params]
-                      (cond (some #{0 6} [y z])
+                      (cond (some #{0 8} [y z])
+                              :ground
+                            (some #{1 7} [y z])
                               :bedrock
-                            (= y 1)
+                            (= y 2)
                               :cavern-wall
-                            (some #{1 5} [z y])
+                            (some #{2 6} [z y])
                               (hall-material (:pain params)
                                              seed x y z)
-                            (and (= [3 2] [y z])
+                            (and (= [4 3] [y z])
                                  (< 2 x (+ 3 (count signs))))
                               (get signs (- x 3))
                             :else
-                              :air))]
+                              :air))
+           entrance (translate-dungeon entrance 0 -1 0)]
        (-> (lineup :x :high
                    entrance
                    (dungeon-replace aligned-dungeon
