@@ -96,7 +96,8 @@
                      (rest mobs)
                      mobs)
               mobs (scale-mobs mobs)
-              mob (pick-mob mobs adjusted-pain seed 1 x y z 3)]
+              mob (pick-mob mobs (min 1 adjusted-pain)
+                            seed 1 x y z 3)]
           (if mob
             (mc-block :mob-spawner
                       :mob mob
