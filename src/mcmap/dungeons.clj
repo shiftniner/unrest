@@ -293,7 +293,7 @@
          space-7  (strict-dungeon (pad  7 5 1))
          space-10 (strict-dungeon (pad 10 5 1))
          space-3z (strict-dungeon (pad  1 1 3))
-         [p1 p2 p3] (unit-sum-series 3 1.5)
+         [p1 p2 p3] (unit-sum-series 3)
          [r1 r2]    (unit-sum-series 2)]
      (fn [_ seed]
        (-> (stack
