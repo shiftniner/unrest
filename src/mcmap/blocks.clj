@@ -51,7 +51,11 @@
                                  :glowstone
                                  :jack-o-lantern
                                  :stone-bricks
-                                 :nether-brick]
+                                 :nether-brick
+                                 ;; So I can use map-height on a zone
+                                 ;; with these meta-blocks:
+                                 :ground
+                                 :cavern-wall]
                                 (repeat 255))
                                  ;; partially opaque
                     (interleave [:piston-target
