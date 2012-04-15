@@ -490,8 +490,8 @@
            orig-p (item-power params item)
            reward (:reward params)]
        (if (> 0.5 (apply srand 1 seed (concat salts [1])))
-         (let [n (min (inc (int (/ reward orig-p)))
-                      +max-stack-size+)
+         (let [n (int (min (inc (/ reward orig-p))
+                           +max-stack-size+))
                new-item (assoc item :count n)
                value-gain (- (item-power params new-item)
                              (item-power params item))]
