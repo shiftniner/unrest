@@ -40,14 +40,96 @@
                                      (rest hallways)
                                      max-y))))))))
 
+(defn new-level-dat
+  "Takes a start x, y, and z, and an options hash, and returns an
+  uncompressed level.dat"
+  ([x y z opts]
+     (tag-compound ""
+      [(tag-compound "Data"
+         [ (tag-byte "thundering" 1)
+           (tag-long "LastPlayed" (System/currentTimeMillis))
+           (tag-compound "Player"
+                         [ (tag-list "Motion" 6
+                                     [ (tag-double 0)
+                                       (tag-double 0)
+                                       (tag-double 0)])
+                           (tag-float "foodExhaustionLevel" 0)
+                           (tag-int "foodTickTimer" 0)
+                           (tag-int "XpLevel" 0)
+                           (tag-short "Health" 20)
+                           (tag-list "Inventory" 10 [])
+                           (tag-short "AttackTime" 0)
+                           (tag-byte "Sleeping" 0)
+                           (tag-int "SpawnX" (int x))
+                           (tag-short "Fire" -20)
+                           (tag-int "SpawnY" (int y))
+                           (tag-int "SpawnZ" (int z))
+                           (tag-int "foodLevel" 20)
+                           (tag-int "Score" 0)
+                           (tag-short "DeathTime" 0)
+                           (tag-float "XpP" 0)
+                           (tag-short "SleepTimer" 0)
+                           (tag-short "HurtTime" 0)
+                           (tag-byte "OnGround" 1)
+                           (tag-int "Dimension" 0)
+                           (tag-short "Air" 300)
+                           (tag-list "Pos" 6
+                                     [ (tag-double x)
+                                       (tag-double y)
+                                       (tag-double z)])
+                           (tag-float "foodSaturationLevel"
+                                      (or (:food-saturation opts)
+                                          20))
+                           (tag-compound "Abilities"
+                              [ (tag-byte "flying" 0)
+                                (tag-byte "instabuild"
+                                          (if (or (:instabuild opts)
+                                                  (:creative opts))
+                                            1 0))
+                                (tag-byte "mayfly"
+                                          (if (or (:mayfly opts)
+                                                  (:creative opts))
+                                            1 0))
+                                (tag-byte "invulnerable"
+                                          (if (or (:iddqd opts)
+                                                  (:creative opts))
+                                            1 0))])
+                           (tag-float "FallDistance" 0)
+                           (tag-int "XpTotal" 0)
+                           (tag-list "Rotation" 5
+                                     [ (tag-float 0)
+                                       (tag-float 0)])])
+           (tag-long "RandomSeed" (or (:minecraft-seed opts)
+                                      (long (* Math/PI 2e18))))
+           (tag-int "GameType" (if (or (:creative opts)
+                                       (:semi-creative opts))
+                                 1 0))
+           (tag-byte "MapFeatures" 0)
+           (tag-int "version" 19133)
+           (tag-long "Time" 0)
+           (tag-byte "raining" 1)
+           (tag-int "thunderTime" 5)
+           (tag-int "SpawnX" (int x))
+           (tag-byte "hardcore" (if (:hardcore opts)
+                                  1 0))
+           (tag-int "SpawnY" (int y))
+           (tag-int "SpawnZ" (int z))
+           (tag-string "LevelName" (or (:level-name opts)
+                                       "Unrest map"))
+           (tag-string "generatorName" (or (:generator opts)
+                                           "FLAT"))
+           (tag-long "SizeOnDisk" 0)
+           (tag-int "rainTime" 5)
+           (tag-int "generatorVersion" 1)])])))
+
 (defn quest-cavern-map
   "Given a seq of one or more chest content seqs describing quest
-  items, a game seed, an optional separate cavern seed, and a level,
-  creates an epic cave network and puts dungeons in it, one or more of
-  which have quest items"
-  ([quest-chests seed level]
-     (quest-cavern-map quest-chests seed seed level))
-  ([quest-chests seed cavern-seed level]
+  items, a game seed, an optional separate cavern seed, a level, and a
+  Minecraft save directory, creates an epic cave network and puts
+  dungeons in it, one or more of which have quest items"
+  ([quest-chests seed level save-dir options]
+     (quest-cavern-map quest-chests seed seed level save-dir options))
+  ([quest-chests seed cavern-seed level save-dir options]
      (let [n-caves 15
            n-dungeons 64
            chunks 16
@@ -200,10 +282,20 @@
                                             (< r 0.002) rare-wall
                                             (< r 0.012) uncommon-wall
                                             :else       cavern-wall))
-                                       ze))))]
-       (generic-map-maker chunks chunks generator))))
+                                       ze))))
+           mca-file (generic-map-maker chunks chunks generator)
+           start-y (inc (map-height epic-zone
+                                    (int start-x)
+                                    (int start-z)))]
+       (write-file (str save-dir "/region/r.0.0.mca")
+                   mca-file)
+       (write-file (str save-dir "/level.dat.unzipped")
+                   (new-level-dat start-x start-y start-z options))
+       (run-cmd "gzip < '" save-dir "/level.dat.unzipped'"
+                " > '" save-dir "/level.dat'"))))
 
 (def record-quest-map
-     "Given a game seed, optional separate cavern seed, and level,
+     "Given a game seed, optional separate cavern seed, level, and an
+  existing Minecraft save directory (which will be overwritten)
   generates a gold-record-quest game map"
      (partial quest-cavern-map [(prize-items 1 :13-disc)]))

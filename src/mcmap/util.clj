@@ -1,6 +1,8 @@
 (ns mcmap.util
   (:import java.text.SimpleDateFormat
-           java.util.Date))
+           java.util.Date
+           java.io.BufferedReader
+           java.io.InputStreamReader))
 
 (defmacro forcat
   "Returns the result of applying concat to the result of the list
@@ -253,3 +255,28 @@
                        (keys m)))
              {}
              ms)))
+
+(defn run-cmd
+  "Runs the given command synchronously, printing its output, and
+  returning the exit code"
+  ([& strs]
+     (let [cmd (apply str strs)
+           rt (Runtime/getRuntime)
+           pr (.exec rt (into-array ["sh" "-c" cmd]))
+           input (java.io.BufferedReader.
+                  (java.io.InputStreamReader.
+                   (.getInputStream pr)))
+           stderr (java.io.BufferedReader.
+                   (java.io.InputStreamReader.
+                    (.getErrorStream pr)))]
+       (loop []
+         (let [line (.readLine input)]
+           (when line
+             (println line)
+             (recur))))
+       (loop []
+         (let [line (.readLine stderr)]
+           (when line
+             (println line)
+             (recur))))
+       (.waitFor pr))))
