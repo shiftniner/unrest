@@ -332,13 +332,13 @@
   "Returns a byte buffer containing a zlib compressed version of the
   data in the given byte buffer"
   ([buf]
-     (compress buf #(DeflaterOutputStream. ^OutputSteram %))))
+     (compress buf #(DeflaterOutputStream. %))))
 
 (defn gzip-compress
   "Returns a byte buffer containing a gzip compressed version of the
   data in the given byte buffer"
   ([buf]
-     (compress buf #(GZIPOutputStream. ^OutputSteram %))))
+     (compress buf #(GZIPOutputStream. %))))
 
 (defn utf8-bytes
   ([s]
