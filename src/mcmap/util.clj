@@ -260,6 +260,7 @@
   "Runs the given command synchronously, printing its output, and
   returning the exit code"
   ([& strs]
+     (apply println "WARNING: non-portable run-cmd used, with args:" strs)
      (let [cmd (apply str strs)
            rt (Runtime/getRuntime)
            pr (.exec rt (into-array ["sh" "-c" cmd]))
