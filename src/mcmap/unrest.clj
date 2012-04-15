@@ -139,6 +139,9 @@
            cavern-fill   (mc-block :snow-block)
            uncommon-wall (mc-block :smooth-sandstone)
            rare-wall     (mc-block :creeper-sandstone)
+           reward-frac  1.388406820377468
+           reward-start (* 100 (dec (scale-pain reward-frac
+                                                (max 0.01 map-difficulty))))
 
            max-x (* chunks +chunk-side+)
            max-y 128
@@ -220,7 +223,7 @@
                                             start-difficulty)
                                      :reward (* (Math/pow 256.0
                                                           y-frac)
-                                                200)
+                                                reward-start)
                                      :prize prize}))
                                 hallways dungeons (concat prizes
                                                           (repeat nil))))))
