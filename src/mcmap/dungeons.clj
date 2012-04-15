@@ -427,7 +427,7 @@
                        (or extra-chest (pad 1 1 1))
                        (pad 1 1 1)
                        (maybe-chest :south [params]
-                         (let [p (:pain params)
+                         (let [p (max 1/10000 (:pain params))
                                n-pearls (int (* pearl-factor
                                                 (dec (/ p))))]
                            (when (pos? n-pearls)
