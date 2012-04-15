@@ -117,7 +117,7 @@
            (tag-string "LevelName" (or (:level-name opts)
                                        "Unrest map"))
            (tag-string "generatorName" (or (:generator opts)
-                                           "FLAT"))
+                                           "default"))
            (tag-long "SizeOnDisk" 0)
            (tag-int "rainTime" 5)
            (tag-int "generatorVersion" 1)])])))
