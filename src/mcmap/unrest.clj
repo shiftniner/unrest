@@ -108,7 +108,7 @@
            (tag-int "version" 19133)
            (tag-long "Time" 0)
            (tag-byte "raining" 1)
-           (tag-int "thunderTime" 5)
+           (tag-int "thunderTime" 20)
            (tag-int "SpawnX" (int x))
            (tag-byte "hardcore" (if (:hardcore opts)
                                   1 0))
@@ -119,7 +119,7 @@
            (tag-string "generatorName" (or (:generator opts)
                                            "default"))
            (tag-long "SizeOnDisk" 0)
-           (tag-int "rainTime" 5)
+           (tag-int "rainTime" 20)
            (tag-int "generatorVersion" 1)])])))
 
 (defn quest-cavern-map
