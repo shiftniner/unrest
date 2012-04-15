@@ -137,12 +137,12 @@
                      long-wall
                      (spawners 5 3 5 (reseed seed 4) p3)]
                    [ (htable [space-13]
-                             [(-> (prize-chest :east (reseed seed 1))
+                             [(-> (supply-chest :east (reseed seed 1))
                                   (reward * r1))
                               (pad 1 5 8)])
                      short-wall
                      (htable [space-5]
-                             [(-> (supply-chest :east (reseed seed 6))
+                             [(-> (prize-chest :east (reseed seed 6))
                                   (reward * r2))])])
            (surround :wall)
            (dungeon-map-neighbors
