@@ -289,10 +289,9 @@
                                     (int start-z)))]
        (write-file (str save-dir "/region/r.0.0.mca")
                    mca-file)
-       (write-file (str save-dir "/level.dat.unzipped")
-                   (new-level-dat start-x start-y start-z options))
-       (run-cmd "gzip < '" save-dir "/level.dat.unzipped'"
-                " > '" save-dir "/level.dat'"))))
+       (write-file (str save-dir "/level.dat")
+                   (gzip-compress (new-level-dat start-x start-y start-z
+                                                 options))))))
 
 (def record-quest-map
      "Given a game seed, optional separate cavern seed, level, and an
