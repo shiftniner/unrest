@@ -237,18 +237,19 @@
                (maybe-zone-lookup zone x y (inc z))
                (maybe-zone-lookup zone x y (dec z))]))))
 
-(defn chunk-in-zone?
+(defn chunk-in-mcmap?
   "Returns true if and only if the given region and chunk coordinates
   include any part of the given zone"
-  ([zone region-x region-z chunk-x chunk-z]
-     (let [chunk-x0 (+ (* +region-side+ region-x)
+  ([mcmap region-x region-z chunk-x chunk-z]
+     (let [zone (:block-zone mcmap)
+           mcmap-x0 (:x0 mcmap)
+           mcmap-z0 (:z0 mcmap)
+           chunk-x0 (+ (* +region-side+ region-x)
                        (* +chunk-side+  chunk-x))
            chunk-z0 (+ (* +region-side+ region-z)
                        (* +chunk-side+  chunk-z))]
-       (and (not (neg? chunk-x0))
-            (not (neg? chunk-z0))
-            (< chunk-x0 (zone-x-size zone))
-            (< chunk-z0 (zone-z-size zone))))))
+       (and (<= mcmap-x0 chunk-x0 (+ mcmap-x0 -1 (zone-x-size zone)))
+            (<= mcmap-z0 chunk-z0 (+ mcmap-z0 -1 (zone-z-size zone)))))))
 
 (defn sub-zone
   "Returns a zone within the given zone, for the given coordinate
@@ -799,16 +800,18 @@
                  (* +chunk-side+ chunk-x))
            z0 (+ (* +region-side+ region-z)
                  (* +chunk-side+ chunk-z))
+           zone-x0 (- x0 (:x0 mcmap))
+           zone-z0 (- z0 (:z0 mcmap))
            [blocks skylight-subzone light-subzone]
              (map #(sub-zone (% mcmap)
-                             x0 (+ x0 +chunk-side+)
+                             zone-x0 (+ zone-x0 +chunk-side+)
                              0 +old-chunk-height+
-                             z0 (+ z0 +chunk-side+))
+                             zone-z0 (+ zone-z0 +chunk-side+))
                   [:block-zone :skylight-zone :light-zone])
            height-subzone (sub-zone (:height-zone mcmap)
-                                    x0 (+ x0 +chunk-side+)
+                                    zone-x0 (+ zone-x0 +chunk-side+)
                                     0 1
-                                    z0 (+ z0 +chunk-side+))
+                                    zone-z0 (+ zone-z0 +chunk-side+))
            data (tag-compound ""
                   [ (tag-compound "Level"
                       [ (tag-byte-array "Blocks"
@@ -832,8 +835,6 @@
                         (tag-int "xPos" (/ x0 +chunk-side+))
                         (tag-int "zPos" (/ z0 +chunk-side+))
                         (tag-byte "TerrainPopulated" 1) ]) ])]
-       (write-file (str "/tmp/mcr-chunk-data-" x0 "-" z0)
-                   data)
        {:x chunk-x
         :z chunk-z
         :compressed-data (zlib-compress data)})))
@@ -865,18 +866,20 @@
                  (* +chunk-side+ chunk-x))
            z0 (+ (* +region-side+ region-z)
                  (* +chunk-side+ chunk-z))
+           zone-x0 (- x0 (:x0 mcmap))
+           zone-z0 (- z0 (:z0 mcmap))
            map-height (zone-y-size (:block-zone mcmap))
            [blocks skylight-subzone light-subzone]
              (map #(sub-zone (% mcmap)
-                             x0 (+ x0 +chunk-side+)
+                             zone-x0 (+ zone-x0 +chunk-side+)
                              0  map-height
-                             z0 (+ z0 +chunk-side+))
+                             zone-z0 (+ zone-z0 +chunk-side+))
                   [:block-zone :skylight-zone :light-zone])
            [height-subzone biome-subzone]
              (map #(sub-zone (% mcmap)
-                             x0 (+ x0 +chunk-side+)
+                             zone-x0 (+ zone-x0 +chunk-side+)
                              0  1
-                             z0 (+ z0 +chunk-side+))
+                             zone-z0 (+ zone-z0 +chunk-side+))
                   [:height-zone :biome-zone])
            data (tag-compound ""
                   [ (tag-compound "Level"
@@ -903,23 +906,25 @@
         :z chunk-z
         :compressed-data (zlib-compress data)})))
 
-(defn mcmap-to-chunks
-  "Returns a seq of chunks for the given mcmap and region coordinates,
-  where each chunk is {:x <chunk-x> :z <chunk-z> :data <byte-buffer>"
-  ([mcmap x z]
-     (let [block-zone (:block-zone mcmap)]
-       (pfor [chunk-x (range 32) chunk-z (range 32)
-             :when (chunk-in-zone? block-zone x z chunk-x chunk-z)]
-         (extract-chunk mcmap x z chunk-x chunk-z)))))
+(defn mmcmap-to-chunks
+  "Returns a seq of chunks for the given multi-mcmap and region
+  coordinates, where each chunk is {:x <chunk-x> :z <chunk-z> :data
+  <byte-buffer>"
+  ([mmcmap x z]
+     (pfor [chunk-x (range 32) chunk-z (range 32)
+            mcmap (:mcmaps mmcmap)
+            :when (chunk-in-mcmap? mcmap x z chunk-x chunk-z)]
+       (extract-chunk mcmap x z chunk-x chunk-z))))
 
-(defn mcmap-to-anvil-chunks
-  "Returns a seq of chunks for the given mcmap and region coordinates,
-  where each chunk is {:x <chunk-x> :z <chunk-z> :data <byte-buffer>"
-  ([mcmap x z]
-     (let [block-zone (:block-zone mcmap)]
-       (pfor [chunk-x (range 32) chunk-z (range 32)
-             :when (chunk-in-zone? block-zone x z chunk-x chunk-z)]
-         (extract-anvil-chunk mcmap x z chunk-x chunk-z)))))
+(defn mmcmap-to-anvil-chunks
+  "Returns a seq of chunks for the given multi-mcmap and region
+  coordinates, where each chunk is {:x <chunk-x> :z <chunk-z> :data
+  <byte-buffer>"
+  ([mmcmap x z]
+     (pfor [chunk-x (range 32) chunk-z (range 32)
+            mcmap (:mcmaps mmcmap)
+            :when (chunk-in-mcmap? mcmap x z chunk-x chunk-z)]
+       (extract-anvil-chunk mcmap x z chunk-x chunk-z))))
 
 (defn locations
   "Returns a seq of chunk file locations and sector counts (in 4KiB
@@ -1228,18 +1233,22 @@
            (zone-lookup tall-skylight-zone x y z))))))
 
 (defn gen-mcmap
-  "Given x, y, and z sizes and a function of x y and z that returns a
-  block, returns an mcmap complete with computed light levels"
+  "Given x, y, and z sizes, x and z offsets, and a function of x y and
+  z that returns a block, returns an mcmap complete with computed
+  light levels"
   ([x-size z-size f]
      (gen-mcmap x-size +old-chunk-height+ z-size f))
   ([x-size y-size z-size f]
+     (gen-mcmap x-size y-size z-size 0 0 f))
+  ([x-size y-size z-size x0 z0 f]
      (when (or (pos? (mod x-size 16))
                (pos? (mod y-size 16))
                (pos? (mod z-size 16)))
-       (throw (RuntimeException.
-               (str "Illegal map dimensions: "
-                    x-size "x" y-size "x" z-size
-                    "; must be multiples of 16"))))
+       (die "Illegal map dimensions: " x-size "x" y-size "x" z-size
+            "; must be multiples of 16"))
+     (when (or (pos? (mod x0 16))
+               (pos? (mod z0 16)))
+       (die "Illegal map offset: " x0 "," z0 "; must be multiples of 16"))
      (let [_ (msg 1 "Placing blocks ...")
            block-zone (gen-mcmap-zone x-size y-size z-size f)
            _ (msg 1 "Mapping opaque and transparent blocks ...")
@@ -1277,14 +1286,39 @@
         :light-zone @light-zone
         :skylight-zone @skylight-zone
         :height-zone height-zone
-        :biome-zone biome-zone})))
+        :biome-zone biome-zone
+        :x0 x0
+        :z0 z0})))
 
-(defn mcmap-to-mcr-binary
-  "Takes an mcmap and two region coordinates, and returns a region
-  extracted from that zone, in Minecraft beta .mcr format"
-  ([mcmap x z]
+(defn mcmaps-to-mmcmap
+  "Takes a seq of mcmaps and returns an mmcmap"
+  ([mcmaps]
+     {:mcmaps mcmaps}))
+
+(defn gen-mmcmap
+  "Given x, y, and z sizes, x and z offsets, and a function of x y and
+  z that returns a block, returns a multi-mcmap complete with computed
+  light levels"
+  ([& args]
+     (mcmaps-to-mmcmap [(apply gen-mcmap args)])))
+
+(defn mmcmap-to-mcr-binary
+  "Takes a multi-mcmap and two region coordinates, and returns a
+  region extracted from that zone, in Minecraft beta .mcr format"
+  ([mmcmap x z]
      (msg 1 "Extracting chunks for region " x "." z " ...")
-     (let [chunks (mcmap-to-chunks mcmap x z)
+     (let [chunks (mmcmap-to-chunks mmcmap x z)
+           locs (locations chunks)]
+       (concat-bytes (locations-to-bytes locs)
+                     (timestamps chunks)
+                     (place-chunks chunks locs)))))
+
+(defn mmcmap-to-mca-binary
+  "Takes a multi-mcmap and two region coordinates, and returns a
+  region extracted from that zone, in Minecraft Anvil .mca format"
+  ([mmcmap x z]
+     (msg 1 "Extracting chunks for Anvil region " x "." z " ...")
+     (let [chunks (mmcmap-to-anvil-chunks mmcmap x z)
            locs (locations chunks)]
        (concat-bytes (locations-to-bytes locs)
                      (timestamps chunks)
@@ -1294,15 +1328,18 @@
   "Takes an mcmap and two region coordinates, and returns a region
   extracted from that zone, in Minecraft Anvil .mca format"
   ([mcmap x z]
-     (msg 1 "Extracting chunks for Anvil region " x "." z " ...")
-     (let [chunks (mcmap-to-anvil-chunks mcmap x z)
-           locs (locations chunks)]
-       (concat-bytes (locations-to-bytes locs)
-                     (timestamps chunks)
-                     (place-chunks chunks locs)))))
+     (mmcmap-to-mca-binary (mcmaps-to-mmcmap [mcmap])
+                           x z)))
+
+(defn mcmap-to-mcr-binary
+  "Takes an mcmap and two region coordinates, and returns a region
+  extracted from that zone, in Minecraft Anvil .mca format"
+  ([mcmap x z]
+     (mmcmap-to-mcr-binary (mcmaps-to-mmcmap [mcmap])
+                           x z)))
 
 (defn map-exercise-1
-  "Returns the .mcr binary data for a single region made up of
+  "Returns the .mca binary data for a single region made up of
   sandwiches of glowstone and air with columns of stone, or writes it
   to a file if given a filename; generates two chunks by two chunks if
   not given two dimension arguments"
@@ -1317,7 +1354,7 @@
            mcmap (gen-mcmap (* x-chunks +chunk-side+)
                             (* z-chunks +chunk-side+)
                             generator)]
-       (mcmap-to-mcr-binary mcmap 0 0)))
+       (mcmap-to-mca-binary mcmap 0 0)))
   ([filename]
      (write-file filename (map-exercise-1)))
   ([]
