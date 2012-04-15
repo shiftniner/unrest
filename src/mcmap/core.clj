@@ -2,7 +2,9 @@
   (:use mcmap.blocks
         mcmap.util)
   (:import java.nio.ByteBuffer
-           java.util.zip.Deflater
+           java.util.zip.DeflaterOutputStream
+           java.util.zip.GZIPOutputStream
+           java.io.ByteArrayOutputStream
            java.io.FileOutputStream))
 
 (set! *warn-on-reflection* true)
@@ -313,34 +315,30 @@
        (doseq [^ByteBuffer bb (rest byte-buffer)]
          (.write ^FileOutputStream out (.array bb))))))
 
+(defn compress
+  "Takes a byte buffer and a fn that calls a DeflaterOutputStream
+  constructor with one OutputStream argument, and returns a byte
+  buffer with compressed data"
+  ([buf deflater-fn]
+     (let [baos (ByteArrayOutputStream.)
+           ^DeflaterOutputStream out (deflater-fn baos)]
+       (doseq [^ByteBuffer bb (rest buf)]
+         (.write out (.array bb)))
+       (.finish out)
+       (.close out)
+       (byte-buffer (seq (.toByteArray baos))))))
+
 (defn zlib-compress
   "Returns a byte buffer containing a zlib compressed version of the
   data in the given byte buffer"
   ([buf]
-     (let [input-len (first buf)
-           out (byte-array input-len)
-           c (Deflater.)]
-       (loop [in-count input-len
-              in-bufs (rest buf)
-              out-pos 0]
-         (if (or (pos? in-count)
-                 (not (.needsInput c)))
-           (if (and (.needsInput c)
-                    (pos? in-count))
-             (let [new-array (.array ^ByteBuffer (first in-bufs))]
-               (.setInput c new-array 0 (count new-array))
-               (when (= in-count (count new-array))
-                 (.finish c))
-               (recur (- in-count (count new-array))
-                      (rest in-bufs)
-                      out-pos))
-             (let [comp-count (.deflate c out out-pos
-                                        (- input-len out-pos))]
-               (recur in-count
-                      in-bufs
-                      (+ out-pos comp-count))))
-           (let [out-len (.getBytesWritten c)]
-             (byte-buffer (take out-len out))))))))
+     (compress buf #(DeflaterOutputStream. ^OutputSteram %))))
+
+(defn gzip-compress
+  "Returns a byte buffer containing a gzip compressed version of the
+  data in the given byte buffer"
+  ([buf]
+     (compress buf #(GZIPOutputStream. ^OutputSteram %))))
 
 (defn utf8-bytes
   ([s]
