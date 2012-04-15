@@ -1290,6 +1290,17 @@
         :x0 x0
         :z0 z0})))
 
+(defn dup-mcmap
+  "Takes an mcmap and a new x0 and z0, and returns an mcmap translated
+  to that position"
+  ([mcmap x0 z0]
+     (when (or (pos? (mod x0 16))
+               (pos? (mod z0 16)))
+       (die "Illegal map offset: " x0 "," z0 "; must be multiples of 16"))
+     (assoc mcmap
+       :x0 x0
+       :z0 z0)))
+
 (defn mcmaps-to-mmcmap
   "Takes a seq of mcmaps and returns an mmcmap"
   ([mcmaps]
