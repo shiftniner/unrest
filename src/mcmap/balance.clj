@@ -390,7 +390,7 @@
                    [(assoc params :reward (- reward power))
                     item]
                    (< reward 0.5)
-                   [params (apply sranditem [:string :bone :gunpowder]
+                   [params (apply sranditem [:bone :leather :gunpowder]
                                   seed (concat salts [i 4]))]
                    :else
                    (recur (inc i))))))))
