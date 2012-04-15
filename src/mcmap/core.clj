@@ -1556,3 +1556,27 @@
            mcmap (gen-mcmap 80 80 generator)]
        (mcmap-to-mca-binary mcmap 0 0))))
 
+(defn map-exercise-9
+  "Returns a seq of the .mca regions 0,0, -1,0, 0,-1, and -1,-1, for a
+  single zone centered on x=0,z=0 made up of sandwiches of glowstone
+  and air with columns of stone"
+  ([x-chunks z-chunks]
+     (let [generator (fn [x y z]
+                       (if (and (zero? (mod z 4))
+                                (zero? (mod x 4)))
+                         (mc-block :stone)
+                         (if (zero? (mod y 4))
+                           (mc-block :glowstone)
+                           (mc-block :air))))
+           mcmap (gen-mcmap (* x-chunks +chunk-side+)
+                            128
+                            (* z-chunks +chunk-side+)
+                            (* x-chunks +chunk-side+ -1/2)
+                            (* z-chunks +chunk-side+ -1/2)
+                            generator)]
+       [ (mcmap-to-mca-binary mcmap 0 0)
+         (mcmap-to-mca-binary mcmap 0 -1)
+         (mcmap-to-mca-binary mcmap -1 0)
+         (mcmap-to-mca-binary mcmap -1 -1)]))
+  ([]
+     (map-exercise-1 2 2)))
