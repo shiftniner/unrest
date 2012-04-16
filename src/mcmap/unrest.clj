@@ -289,14 +289,18 @@
            main-mcmap (gen-mcmap max-x max-y max-z generator)
            _ (msg 0 "Counting spawners ...")
            _ (count-spawners (:block-zone main-mcmap))
-           air-mcmap (gen-mcmap 128 16 128, -128 -128
-                                (fn [x y z] :air))
-           air-mcmaps (for [x0 (range -128 257 128)
-                            z0 (range -128 257 128)
-                            :when (not (and (<= 0 x0 255)
-                                            (<= 0 z0 255)))]
-                        (dup-mcmap air-mcmap x0 z0))
-           mmcmap (mcmaps-to-mmcmap (cons main-mcmap air-mcmaps))
+           buffer-mcmap (gen-mcmap 128 96 128, -128 -128
+                                   (fn [x y z]
+                                     (if (= y 95)
+                                       (mem-mc-block
+                                        :smooth-stone-half-slab)
+                                       :bedrock)))
+           buffer-mcmaps (for [x0 (range -128 257 128)
+                               z0 (range -128 257 128)
+                               :when (not (and (<= 0 x0 255)
+                                               (<= 0 z0 255)))]
+                           (dup-mcmap buffer-mcmap x0 z0))
+           mmcmap (mcmaps-to-mmcmap (cons main-mcmap buffer-mcmaps))
            start-y (+ 2 (map-height epic-zone
                                     (int start-x)
                                     (int start-z)))]
