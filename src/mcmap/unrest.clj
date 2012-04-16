@@ -287,6 +287,8 @@
                                             :else       cavern-wall))
                                          ze))))
            main-mcmap (gen-mcmap max-x max-y max-z generator)
+           _ (msg 0 "Counting spawners ...")
+           _ (count-spawners (:block-zone main-mcmap))
            air-mcmap (gen-mcmap 128 16 128, -128 -128
                                 (fn [x y z] :air))
            air-mcmaps (for [x0 (range -128 257 128)
