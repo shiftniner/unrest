@@ -298,6 +298,14 @@
            start-y (+ 2 (map-height epic-zone
                                     (int start-x)
                                     (int start-z)))]
+       (write-file (str save-dir "/parameters.txt")
+                   (-> (str "quest chests: " (pr-str quest-chests) "\n"
+                            "   game seed: " seed "\n"
+                            " cavern seed: " cavern-seed "\n"
+                            "       level: " level "\n"
+                            "     options: " (pr-str options) "\n")
+                       .getBytes
+                       byte-buffer))
        (doseq [x0 [0 -1], z0 [0 -1]]
          (write-file (str save-dir "/region/r." x0 "." z0 ".mca")
                      (mmcmap-to-mca-binary mmcmap x0 z0)))
