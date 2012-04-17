@@ -33,7 +33,7 @@
     ;; higher level implies chattier, less important messages.
     ([level & atoms]
        (let [time-str (.format date-formatter (Date.))]
-         (println (apply str time-str atoms))))))
+         (print (apply str time-str (concat atoms ["\n"])))))))
 
 (defn tmsg
   "Like msg, but returns true"
