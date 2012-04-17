@@ -131,7 +131,7 @@
            n-dungeons 64
            chunks 16
            map-difficulty (/ level 100)
-           start-difficulty 0.8
+           start-difficulty (- 1 map-difficulty)
            cavern-wall   (mc-block :sandstone)
            cavern-fill   (mc-block :snow-block)
            uncommon-wall (mc-block :smooth-sandstone)
