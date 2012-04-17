@@ -241,9 +241,12 @@
            x-bound (dec max-x)
            z-bound (dec max-z)
            generator (fn [x y z]
-                       (let [ze (zone-lookup epic-zone x y z)
+                       (let [ze (when (< y max-y)
+                                  (zone-lookup epic-zone x y z))
                              neighbors (neighbors-of epic-zone x y z)]
-                         (cond (or (zero? x) (zero? z)
+                         (cond (>= y max-y)
+                                 (mc-block :air)
+                               (or (zero? x) (zero? z)
                                    (= x-bound x) (= z-bound z))
                                  (mc-block :bedrock)
                                :else
@@ -283,7 +286,7 @@
                                             (< r 0.012) uncommon-wall
                                             :else       cavern-wall))
                                          ze))))
-           main-mcmap (gen-mcmap max-x max-y max-z generator)
+           main-mcmap (gen-mcmap max-x (+ max-y 16) max-z generator)
            _ (msg 0 "Counting spawners ...")
            _ (count-spawners (:block-zone main-mcmap))
            buffer-mcmap (gen-mcmap 128 96 128, -128 -128
