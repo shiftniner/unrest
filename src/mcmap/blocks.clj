@@ -114,8 +114,24 @@
          :old-tnt       {:type :tnt :datum 0x1}
          :creeper-sandstone {:type :sandstone :datum 0x1}
          :smooth-sandstone  {:type :sandstone :datum 0x2}
-         :smooth-stone-half-slab   {:type :slab        :datum 0x0}
-         :smooth-stone-double-slab {:type :double-slab :datum 0x0}
+         :smooth-stone-half-slab       {:type :slab        :datum 0x0}
+         :sandstone-half-slab          {:type :slab        :datum 0x1}
+         :wood-half-slab               {:type :slab        :datum 0x2}
+         :cobble-half-slab             {:type :slab        :datum 0x3}
+         :brick-half-slab              {:type :slab        :datum 0x4}
+         :stone-brick-half-slab        {:type :slab        :datum 0x5}
+         :smooth-stone-upper-half-slab {:type :slab        :datum 0x8}
+         :sandstone-upper-half-slab    {:type :slab        :datum 0x9}
+         :wood-upper-half-slab         {:type :slab        :datum 0xA}
+         :cobble-upper-half-slab       {:type :slab        :datum 0xB}
+         :brick-upper-half-slab        {:type :slab        :datum 0xC}
+         :stone-brick-upper-half-slab  {:type :slab        :datum 0xD}
+         :smooth-stone-double-slab     {:type :double-slab :datum 0x0}
+         :sandstone-double-slab        {:type :double-slab :datum 0x1}
+         :wood-double-slab             {:type :double-slab :datum 0x2}
+         :cobble-double-slab           {:type :double-slab :datum 0x3}
+         :brick-double-slab            {:type :double-slab :datum 0x4}
+         :stone-brick-double-slab      {:type :double-slab :datum 0x5}
          (concat (block-colors "wool")
                  ;; default:
                  ['type]))))
