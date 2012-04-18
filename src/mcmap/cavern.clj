@@ -55,7 +55,7 @@
          (let [fns (vec (map in-cave?-fn layers))]
            (fn
              ([x y z]
-                (if-let [f (fns y)]
+                (if-let [f (fns (* 2 y))]
                   (f x y z)
                   (throw (Exception. (str "in-cave? " x " " y " " z
                                           " called, fns is: " fns
@@ -117,7 +117,7 @@
   ([cave-params y-max]
      (let [flat-cp (flatten cave-params)
            cp-seqs (map filter-cave-params-by-y
-                        (range y-max)
+                        (range 0 y-max 1/2)
                         (repeat flat-cp))]
        {:layered-cave-params cp-seqs})))
 
@@ -430,9 +430,9 @@
   all of which are interconnected and reachable from the starting
   point, with bedrock on all vertical sides, and capped with :ground
   on top except for caves with openings near the middle."
-  ([n-caves max-x max-z seed]
-     (epic-cave-network n-caves max-x +old-chunk-height+ max-z seed))
-  ([n-caves max-x max-y max-z seed]
+  ([n-caves max-x max-z seed opts]
+     (epic-cave-network n-caves max-x +old-chunk-height+ max-z seed opts))
+  ([n-caves max-x max-y max-z seed opts]
      (msg 1 "Generating cave network ...")
      (let [gen-twisted-cave #(twist-cave (random-cave max-x max-y max-z
                                                       (long
@@ -462,8 +462,24 @@
                  (let [_ (msg 3 "Picked enough caves; optimizing ...")
                        caves (optimize-cave-params (take n-caves caves)
                                                    max-y)
-                       generator (epic-cave-generator
-                                    caves max-x max-y max-z start-x start-z)
+                       generator1 (epic-cave-generator
+                                     caves max-x max-y max-z start-x start-z)
+                       generator (if (:hires opts)
+                                   (do
+                                     (msg 0 "hires carving enabled")
+                                     (fn [x y z]
+                                       (let [lower (generator1 x y z)
+                                             upper (generator1 x (+ y 1/2)
+                                                               z)]
+                                         (cond (= upper lower)
+                                                 lower
+                                               (= :ground lower)
+                                                 :half-ground
+                                               (= :ground upper)
+                                                 :upper-half-ground
+                                               :else
+                                                 (die "no case")))))
+                                   generator1)
                        _ (msg 3 "Carving ...")
                        zone (gen-mcmap-zone max-x max-y max-z generator)]
                    [zone start-x start-z])

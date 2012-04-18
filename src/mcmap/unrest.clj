@@ -127,12 +127,14 @@
   ([quest-chests seed level save-dir options]
      (quest-cavern-map quest-chests seed seed level save-dir options))
   ([quest-chests seed cavern-seed level save-dir options]
-     (let [n-caves 15
-           n-dungeons 64
+     (let [n-caves    (or (:n-caves    options) 15)
+           n-dungeons (or (:n-dungeons options) 64)
            chunks 16
            map-difficulty (/ level 100)
            start-difficulty (- 1 map-difficulty)
            cavern-wall   (mc-block :sandstone)
+           lower-wall    (mc-block :sandstone-half-slab)
+           upper-wall    (mc-block :sandstone-upper-half-slab)
            cavern-fill   (mc-block :snow-block)
            uncommon-wall (mc-block :smooth-sandstone)
            rare-wall     (mc-block :creeper-sandstone)
@@ -145,7 +147,8 @@
            max-z (* chunks +chunk-side+)
            max-dim (max max-x max-y max-z)
            [epic-zone start-x start-z]
-               (epic-cave-network n-caves max-x max-y max-z cavern-seed)
+               (epic-cave-network n-caves max-x max-y max-z cavern-seed
+                                  options)
            _ (println "Start is x=" start-x " z=" start-z)
            _ (msg 3 "Finding dungeons ...")
            excess-dunhalls (pmap pick-dungeon-place
@@ -258,6 +261,8 @@
                                            (mc-block :lava-source)
                                            :bedrock)
                                        :air (mc-block :air)
+                                       :half-ground lower-wall
+                                       :upper-half-ground upper-wall
                                        (:ground :cavern-wall)
                                          (let [r  (srand 1 seed 51 x y z)
                                                r2 (srand 1 seed 52 x y z)

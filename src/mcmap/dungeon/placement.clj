@@ -808,7 +808,7 @@
            max-x (* chunks +chunk-side+)
            max-z (* chunks +chunk-side+)
            [epic-zone start-x start-z]
-                 (epic-cave-network 15 max-x max-z seed)
+                 (epic-cave-network 15 max-x max-z seed {})
            _ (msg 3 "Finding dungeons ...")
            excess-dunhalls (pmap place-dungeon-in-caves
                                  (repeat epic-zone)
@@ -881,7 +881,8 @@
            max-z (* chunks +chunk-side+)
            max-dim (max max-x max-y max-z)
            [epic-zone start-x start-z]
-               (epic-cave-network n-caves max-x max-y max-z cavern-seed)
+               (epic-cave-network n-caves max-x max-y max-z cavern-seed
+                                  {})
            _ (println "Start is x=" start-x " z=" start-z)
            _ (msg 3 "Finding dungeons ...")
            excess-dunhalls (pmap pick-dungeon-place
