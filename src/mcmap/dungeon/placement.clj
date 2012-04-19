@@ -129,17 +129,24 @@
                         (mem-mc-block :stone-brick-stairs
                                       :face stair-face)))))
 
+(defn box-intersects-octree?
+  "Takes a box and an octree and returns true if and only if the box
+  overlaps at least one box in the octree"
+  ([octree box]
+     (let [ {x0 :x0, y0 :y0, z0 :z0,
+             xd :xd, yd :yd, zd :zd} box]
+       (oct-any-intersecting? octree x0 y0 z0
+                              (+ x0 xd)
+                              (+ y0 yd)
+                              (+ z0 zd)))))
+
 (defn dungeon-intersects-octree?
   "Takes a dungeon and an octree and returns true if and only if at
   least one of the boxes of the dungeon overlaps at least one box in
   the octree"
   ([octree dungeon]
-     (some (fn [ {x0 :x0, y0 :y0, z0 :z0,
-                  xd :xd, yd :yd, zd :zd}]
-             (oct-any-intersecting? octree x0 y0 z0
-                                    (+ x0 xd)
-                                    (+ y0 yd)
-                                    (+ z0 zd)))
+     (some (fn [box]
+             (box-intersects-octree? octree box))
            (rest dungeon))))
 
 (defn oct-assoc-dungeon
