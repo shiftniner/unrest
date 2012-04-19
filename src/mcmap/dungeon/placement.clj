@@ -358,29 +358,32 @@
                                                       seed salt 2 %)
                                           (range n-segments))
                                      [pick-hallway]))
-           octree-size 128
+           octree-size 256
            octree-offset (/ octree-size -2)
            first-segment ( (first segment-fns)
                            orientation (reseed seed salt 3) 1)
+           oct-offset (map - (take 3 (rest first-segment)))
+           placed-first-segment (apply translate-dungeon
+                                       (first first-segment)
+                                       oct-offset)
            segment-tree (octree octree-size 4 octree-offset
                                 octree-offset octree-offset)
            segment-tree (oct-assoc-dungeon segment-tree
-                                           (first first-segment))]
+                                           placed-first-segment)]
        (loop [segment-fns (rest segment-fns)
               segment-tree segment-tree
               hallway first-segment
               orientation (nth first-segment 4)
+              oct-offset oct-offset
               i 4]
          (if-not (seq segment-fns)
            hallway
            (let [new-segment ( (first segment-fns)
                                orientation (reseed seed salt i) 1)
+                 oct-offset (map - oct-offset (take 3 (rest new-segment)))
                  placed-new-segment (apply translate-dungeon
                                            (first new-segment)
-                                           (map -
-                                                (repeat 0)
-                                                (take 3 (rest new-segment))
-                                                (take 3 (rest hallway))))]
+                                           oct-offset)]
              (if (dungeon-intersects-octree? segment-tree
                                              placed-new-segment)
                hallway
@@ -388,6 +391,7 @@
                       (oct-assoc-dungeon segment-tree placed-new-segment)
                       (join-hallways new-segment hallway)
                       (nth new-segment 4)
+                      oct-offset
                       (inc i)))))))))
 
 (defn try-find-place-for-dungeon
