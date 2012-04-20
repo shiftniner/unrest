@@ -376,7 +376,7 @@
                     (spawners 5 3 5 (reseed seed 2)
                               frac)))]
      (let [ [r1 r2] (unit-sum-series 2)
-            [f1 f2] (unit-sum-series 2)]
+            [f1 f2] (unit-sum-series 2 7/10)]
        (fn [y seed]
          (let [open-to-void? (< y 22)
                remove-bottom-side (if open-to-void? 2 0)
