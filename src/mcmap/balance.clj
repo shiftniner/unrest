@@ -285,10 +285,9 @@
               (+ force (/ level 3))]
              :aqua-affinity
              [longevity (inc force)]
-             (:sharpness :looting)
+             (:sharpness :looting :smite)
              [longevity (+ force (* level 3/4))]
-             (:bane-of-arthropods :smite :knockback :fire-aspect :punch
-              :flame)
+             (:bane-of-arthropods :knockback :fire-aspect :punch :flame)
              [longevity (+ force (* level 1/2))]
              :power
              [longevity (* force (+ 5/4 (* level 1/4)))]
