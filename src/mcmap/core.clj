@@ -19,7 +19,7 @@
 ;;; experiment.
 (def ^:dynamic *size-at-which-pmap-faster* 400)
 (def Infinity (- (Math/log 0)))
-(def +default-biome+ 0)
+(def +default-biome+ 2)
 
 (defn zone-x-size
   ([zone]
