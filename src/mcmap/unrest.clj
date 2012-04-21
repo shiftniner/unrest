@@ -196,7 +196,7 @@
                                         "iiiiide?")
                                    (rand-place-fn max-x (- max-y 15)
                                                   max-z)
-                                   (reseed seed 2))
+                                   (reseed seed 3))
            dunhalls (vtake (+ 128 n-dungeons)
                            64 "Dungeons/torch chests: %d"
                            (non-intersecting-dunhalls
