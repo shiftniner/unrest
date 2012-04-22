@@ -1,5 +1,7 @@
 (ns mcmap.octree)
 
+(set! *warn-on-reflection* true)
+
 (defn octree
   "Returns a new empty octree"
   ([max-dim min-dim]

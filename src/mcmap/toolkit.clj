@@ -7,6 +7,8 @@
         mcmap.layout
         mcmap.balance))
 
+(set! *warn-on-reflection* true)
+
 (def +standard-mobs+
      [[0.02 nil]
       [0.04 "Zombie"]

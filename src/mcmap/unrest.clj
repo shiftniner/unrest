@@ -11,6 +11,8 @@
         mcmap.balance
         mcmap.toolkit))
 
+(set! *warn-on-reflection* true)
+
 (defn distribute-prizes
   "Takes a seq of one or more chest content seqs, a seq of hallways,
   and a maximum y coordinate, and returns a seq of :prize values to be

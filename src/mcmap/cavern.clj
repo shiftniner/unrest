@@ -4,6 +4,8 @@
         mcmap.srand
         mcmap.util))
 
+(set! *warn-on-reflection* true)
+
 (def ^:dynamic *min-spiral-radius* 8)
 (def ^:dynamic *max-spiral-radius* 1/2)
 (def ^:dynamic *base-width* 3)
@@ -150,9 +152,9 @@
 
 (defn distance-2d-sloped
   ([x0 z0 x1 z1 x-slope z-slope]
-     (let [x-dist (* (Math/abs (- x0 x1))
+     (let [x-dist (* (Math/abs (double (- x0 x1)))
                      x-slope)
-           z-dist (* (Math/abs (- z0 z1))
+           z-dist (* (Math/abs (double (- z0 z1)))
                      z-slope)]
        (Math/sqrt (+ (* x-dist x-dist)
                      (* z-dist z-dist))))))
@@ -395,6 +397,10 @@
            in-cave?-2 (in-cave?-fn cave-params-2)
            {x1 :cave-x, z1 :cave-z} (in-cave?-1 y)
            {x2 :cave-x, z2 :cave-z} (in-cave?-2 y)
+           x1 (double x1)
+           x2 (double x2)
+           z1 (double z1)
+           z2 (double z2)
            [dx dz t-max]
               (if (> (Math/abs (- x1 x2))
                      (Math/abs (- z1 z2)))

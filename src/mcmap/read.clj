@@ -7,6 +7,8 @@
            java.io.FileInputStream
            java.util.zip.Inflater))
 
+(set! *warn-on-reflection* true)
+
 ;;; Functions for reading existing Minecraft save files
 
 (def +sector-length+ 4096)
@@ -55,7 +57,7 @@
      (let [n-bytes (bytes-to-int (cons 0 (take 4 bs)))
            ret (take (dec n-bytes)
                      (drop 4 bs))]
-       (case (first ret)
+       (case (int (first ret))
              2 (rest ret)
              1 (throw (RuntimeException. "gzipped chunk encountered!"))
              (throw (RuntimeException. (str "unknown compression type "

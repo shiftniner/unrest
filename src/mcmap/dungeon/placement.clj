@@ -9,14 +9,17 @@
         mcmap.dungeons
         mcmap.cavern
         mcmap.layout
-        mcmap.balance))
+        mcmap.balance
+        mcmap.dungeon.box)
+  (:import mcmap.dungeon.box.Box))
 
+(set! *warn-on-reflection* true)
 
 (def +dungeon-placement-retries+ 1000)
 
 (def +air-finder-retries+ 50000)
 
-(def +hello-dungeon+
+(def +hello-dungeon+                    ;XXX this is no longer valid
      [(fn [params])
       {:x0 6,  :y0 0,  :z0 -7,
        :xd 21, :yd 21, :zd 21,
@@ -167,6 +170,7 @@
   from traveling through the hallway, as [hallway xd yd zd]"
   ([orientation seed salt]
      (let [len (int (snorm [10 10 5] seed salt))
+           orientation (int orientation)
            ;; These blocks need to be determined at render time based
            ;; on params
            [x-dim z-dim] (case orientation
@@ -189,15 +193,16 @@
                                         (hall-fn x y z params seed salt)))]
               (deliver p
                        (gen-mcmap-zone x-dim y-dim z-dim zone-fn))))
-          {:x0 x0, :y0 0, :z0 z0,
-           :xd x-dim, :yd y-dim, :zd z-dim,
-           :axis (case orientation
-                       (0 2) :x
-                       (1 3) :z)
-           :range (case orientation
-                        (0 1) (range len)
-                        (2 3) (range (dec len) -1 -1))
-           :zone p}]
+          (Box. x0 0 z0
+                x-dim y-dim z-dim
+                p
+                nil
+                {:axis (case orientation
+                             (0 2) :x
+                             (1 3) :z)
+                 :range (case orientation
+                              (0 1) (range len)
+                              (2 3) (range (dec len) -1 -1))})]
          xd yd zd orientation])))
 
 (defn pick-joint
@@ -206,7 +211,8 @@
   entry orientation, and the x, y, and z deltas from traveling through
   the joint, as [hallway xd yd zd orientation]"
   ([orientation seed salt]
-     (let [dir (sranditem [:left :right] seed salt)
+     (let [orientation (int orientation)
+           dir (sranditem [:left :right] seed salt)
            entry-orientation (mod ( (if (= :left dir) inc dec)
                                     orientation)
                                   4)
@@ -249,15 +255,16 @@
                               0 (hall-fn z y x params seed salt)
                               1 (hall-fn x y z params seed salt))))]
               (deliver p (gen-mcmap-zone x-dim y-dim z-dim zone-fn))))
-          {:x0 x0, :y0 0, :z0 z0,
-           :xd x-dim, :yd y-dim, :zd z-dim,
-           :axis (case orientation
-                       (0 2) :x
-                       (1 3) :z)
-           :range (case orientation
-                        (0 1) (range len)
-                        (2 3) (range (dec len) -1 -1))
-           :zone p}]
+          (Box. x0 0 z0
+                x-dim y-dim z-dim
+                p
+                nil
+                {:axis (case orientation
+                             (0 2) :x
+                             (1 3) :z)
+                 :range (case orientation
+                              (0 1) (range len)
+                              (2 3) (range (dec len) -1 -1))})]
          xd 0 zd entry-orientation])))
 
 (defn pick-stair
@@ -268,6 +275,7 @@
   ([orientation seed salt]
      (let [dir (sranditem [:up :down] seed salt)
            len (int (snorm [10 10 3] seed salt))
+           orientation (int orientation)
            [x-dim z-dim] (case orientation
                                (0 2) [1 7]
                                (1 3) [7 1])
@@ -315,14 +323,15 @@
                                               (zone-fn-fn dist max-y
                                                           flat-floor)))))))
            (for [dist (range (inc len))]
-             {:x0 (+ x0 (* xstep dist))
-              :y0 (* ystep dist)
-              :z0 (+ z0 (* zstep dist))
-              :xd x-dim, :yd y-dim, :zd z-dim,
-              :axis (case orientation (0 2) :x (1 3) :z)
-              :range [0]
-              :stair true
-              :zone (ps dist)})))
+             (Box. (+ x0 (* xstep dist))
+                   (* ystep dist)
+                   (+ z0 (* zstep dist))
+                   x-dim y-dim z-dim
+                   (ps dist)
+                   nil
+                   {:axis (case orientation (0 2) :x (1 3) :z)
+                    :range [0]
+                    :stair true}))))
          xd yd zd orientation])))
 
 (defn has-stairs?

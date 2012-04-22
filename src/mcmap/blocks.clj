@@ -1,5 +1,6 @@
 (ns mcmap.blocks)
 
+(set! *warn-on-reflection* true)
 
 (def +light-levels+
      {:fire                 15

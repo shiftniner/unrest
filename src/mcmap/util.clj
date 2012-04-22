@@ -4,6 +4,8 @@
            java.io.BufferedReader
            java.io.InputStreamReader))
 
+(set! *warn-on-reflection* true)
+
 (defmacro forcat
   "Returns the result of applying concat to the result of the list
   comprehension (for args...)"
@@ -155,7 +157,7 @@
   "Just an abbreviation for applying str and throwing a runtime
   exception"
   ([& args]
-     (throw (RuntimeException. (apply str args)))))
+     (throw (RuntimeException. ^String (apply str args)))))
 
 (defn transition
   "Returns a seq of n duplicates of the two given items, starting at
@@ -263,7 +265,7 @@
      (apply println "WARNING: non-portable run-cmd used, with args:" strs)
      (let [cmd (apply str strs)
            rt (Runtime/getRuntime)
-           pr (.exec rt (into-array ["sh" "-c" cmd]))
+           pr (.exec rt ^"[Ljava.lang.String;" (into-array ["sh" "-c" cmd]))
            input (java.io.BufferedReader.
                   (java.io.InputStreamReader.
                    (.getInputStream pr)))

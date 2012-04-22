@@ -1,5 +1,8 @@
 (ns mcmap.srand
-  (:import java.util.Random))
+  (:import java.util.Random
+           java.security.SecureRandom))
+
+(set! *warn-on-reflection* true)
 
 ;;; CAUTION: I threw this together pretty quickly on a seat-of-the-
 ;;; pants design, so it is probably deeply flawed as a PRNG, but it
@@ -23,7 +26,7 @@
 
 (def +seed-max+ (bit-shift-left 1 48))
 
-(def entropy-pool (java.security.SecureRandom.))
+(def ^java.security.SecureRandom entropy-pool (java.security.SecureRandom.))
 
 (defn- srand-1-long
   ([seed]

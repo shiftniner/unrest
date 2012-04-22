@@ -2,7 +2,11 @@
   (:use mcmap.core
         mcmap.util
         mcmap.dungeon.build
-        mcmap.srand))
+        mcmap.srand
+        mcmap.dungeon.box)
+  (:import mcmap.dungeon.box.Box))
+
+(set! *warn-on-reflection* true)
 
 (def +chest-slots+ 27)
 
@@ -17,11 +21,11 @@
                    (gen-mcmap-zone x-size y-size z-size
                                    (fn [x y z]
                                      (f x y z params)))))
-        {:x0 (int (/ x-size -2))
-         :y0 0
-         :z0 (int (/ z-size -2))
-         :xd x-size, :yd y-size, :zd z-size
-         :zone zone}])))
+        (Box. (int (/ x-size -2))
+              0
+              (int (/ z-size -2))
+              x-size y-size z-size
+              zone)])))
 
 ;;; This is a somewhat lame macro.  It only saves one pair of parens
 ;;; and "fn".
@@ -36,7 +40,9 @@
 
 (defn box
   "Returns a dungeon centered at 0,0,0 and filled with the given zone
-  element; default size is 1x1x1"
+  element; default size is 1x1x1 (the choice of name is unforunate
+  given that a box is a part of a dungeon; this is \"box\" as a verb,
+  not a noun)"
   ([ze]
      (box 1 1 1 ze))
   ([x-size y-size z-size ze]
@@ -140,9 +146,9 @@
                                                    (+ y min-y)
                                                    (+ z min-z))
                              fill))))))
-         {:x0 min-x,  :y0 min-y,  :z0 min-z
-          :xd x-size, :yd y-size, :zd z-size
-          :zone p}])))
+         (Box. min-x min-y min-z
+               x-size y-size z-size
+               p)])))
 
 (defn surround-fn
   "Takes a dungeon and a function of seven arguments (three
@@ -177,9 +183,9 @@
                                                      (+ y min-y -1)
                                                      (+ z min-z -1))
                                fill)))))))
-         {:x0 (dec min-x), :y0 (dec min-y), :z0 (dec min-z)
-          :xd x-size,      :yd y-size,      :zd z-size
-          :zone p}])))
+         (Box. (dec min-x) (dec min-y) (dec min-z)
+               x-size y-size z-size
+               p)])))
 
 (defn surround
   "Takes a dungeon and a zone element and returns a single-box dungeon

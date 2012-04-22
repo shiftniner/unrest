@@ -2,11 +2,18 @@
   (:use mcmap.core
         mcmap.util
         mcmap.blocks
-        mcmap.srand))
+        mcmap.srand
+        mcmap.dungeon.box)
+  (:import mcmap.dungeon.box.Box))
+
+(set! *warn-on-reflection* true)
 
 (defn maybe-box-lookup
-  ([box x y z]
-     (let [{x0 :x0, y0 :y0, z0 :z0, zone :zone} box]
+  ([^Box box x y z]
+     (let [x0 (.x0 box)
+           y0 (.y0 box)
+           z0 (.z0 box)
+           zone (.zone box)]
        (maybe-zone-lookup @zone (- x x0) (- y y0) (- z z0)))))
 
 (defmacro dungeon-max
@@ -141,22 +148,22 @@
   ([box]
      (let [{x0 :x0, y0 :y0, z0 :z0,
             xd :xd, yd :yd, zd :zd} box]
-       {:x0 (- 0 z0 zd) :y0 y0, :z0 x0,
-        :xd zd, :yd yd, :zd xd})))
+       (Box. (- 0 z0 zd) y0 x0
+             zd yd xd nil))))
 
 (defn flip-empty-box
   ([box]
      (let [{x0 :x0, y0 :y0, z0 :z0,
             xd :xd, yd :yd, zd :zd} box]
-       {:x0 (- 0 x0 xd) :y0 y0, :z0 (- 0 z0 zd),
-        :xd xd, :yd yd, :zd zd})))
+       (Box. (- 0 x0 xd) y0 (- 0 z0 zd)
+             xd yd zd nil))))
 
 (defn rotate-empty-box-counterclockwise
   ([box]
      (let [{x0 :x0, y0 :y0, z0 :z0,
             xd :xd, yd :yd, zd :zd} box]
-       {:x0 z0 :y0 y0, :z0 (- 0 x0 xd),
-        :xd zd, :yd yd, :zd xd})))
+       (Box. z0 y0 (- 0 x0 xd)
+             zd yd xd nil))))
 
 (def +rotate-face-90+
      {:north           :east
@@ -202,7 +209,7 @@
   90-degree turns around the origin), and returns a rotated box with
   no :zone"
   ([orientation box]
-     ( (case (mod orientation 4)
+     ( (case (rem (int orientation) 4)
              0 identity
              1 rotate-empty-box-clockwise
              2 flip-empty-box
@@ -244,7 +251,7 @@
   "Takes a zone and an orientation (a number of clockwise-from-overhead
   90-degree turns around the origin), and returns a rotated zone"
   ([orientation zone]
-     ( (case (mod orientation 4)
+     ( (case (rem (int orientation) 4)
              0 identity
              1 rotate-zone-clockwise
              2 flip-zone
@@ -296,14 +303,16 @@
           (space-filling-seq size half-grid))))))
 
 (defn point-in-box
-  ([box x y z]
-     (let [x0 (:x0 box)
-           y0 (:y0 box)
-           z0 (:z0 box)]
-       (and (>= x x0) (>= y y0) (>= z z0)
-            (< x (+ x0 (:xd box)))
-            (< y (+ y0 (:yd box)))
-            (< z (+ z0 (:zd box)))))))
+  ([^Box box x y z]
+     (and (>= x (.x0 box))
+          (>= y (.y0 box))
+          (>= z (.z0 box))
+          (< x (+ (.x0 box)
+                  (.xd box)))
+          (< y (+ (.y0 box)
+                  (.yd box)))
+          (< z (+ (.z0 box)
+                  (.zd box))))))
 
 (defn point-in-dungeon
   ([dungeon [x y z]]

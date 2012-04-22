@@ -6,6 +6,8 @@
         mcmap.srand
         mcmap.util))
 
+(set! *warn-on-reflection* true)
+
 ;;; mcmap.dungeons contains definitions of various dungeons.
 ;;; mcmap.dungeon contains code for placing dungeons in a map.
 

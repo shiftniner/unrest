@@ -2,6 +2,8 @@
   (:use mcmap.srand
         mcmap.blocks))
 
+(set! *warn-on-reflection* true)
+
 ;;; The good news.
 
 (def metaarmor
@@ -353,6 +355,13 @@
                     0)]
        (assoc item :damage damage))))
 
+(defn item-type
+  "Returns the type of the given item"
+  ([item]
+     (if (keyword? item)
+       item
+       (:type item))))
+
 (let [all-items (apply vector (keys power-map))
       swords (apply vector (filter #(.endsWith (str %) "-sword")
                                    all-items))
@@ -417,7 +426,7 @@
   available in vanilla Minecraft for that item), and have not already
   been applied to it"
       ([item]
-         (let [item-type (if (keyword? item) item (:type item))
+         (let [item-type (item-type item)
                possible-enchants
                (concat (when (armor? item-type)
                          [:protection :fire-protection
@@ -480,6 +489,15 @@
                      {:type enchantment
                       :level level})))))
 
+(defn max-stack-size
+  "Returns the maximum stack size for the given item"
+  ([item]
+     (let [item-type (item-type item)]
+       (or ( {:bucket 1
+              :ender-pearl 16}
+             item-type)
+           +max-stack-size+))))
+
 (defn powerup-item
   "Takes params, an item, and a seed and salts and either increases
   the count of the item and/or adds enchantments to it to
@@ -490,7 +508,7 @@
            reward (:reward params)]
        (if (> 0.5 (apply srand 1 seed (concat salts [1])))
          (let [n (int (min (inc (/ reward orig-p))
-                           +max-stack-size+))
+                           (max-stack-size item)))
                new-item (assoc item :count n)
                value-gain (- (item-power params new-item)
                              (item-power params item))]
@@ -499,7 +517,7 @@
          (loop [salt2 1
                 item item
                 new-params params
-                randroll 1]
+                randroll (num 1)]
            (if (> 0.5 randroll)
              [new-params item]
              (let [enchants (available-enchants item)]
