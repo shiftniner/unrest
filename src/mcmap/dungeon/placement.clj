@@ -654,9 +654,9 @@
                          (clobber-params {:prize contents})
                          (surround nil)
                          (strict-dungeon))
-           chests (vec (map rotate-dungeon
-                            (repeat base-dungeon)
-                            (range 4)))]
+           chests (mapv rotate-dungeon
+                        (repeat base-dungeon)
+                        (range 4))]
        ( (fn chest-seq [n]
            (when (pos? n)
              (lazy-seq
@@ -690,9 +690,9 @@
   0 <= z < z-max, and x, y, and z are integers"
   ([x-max y-max z-max]
      (fn [seed & salts]
-       (vec (map #(int (apply srand %1 seed %2 salts))
-                 [x-max y-max z-max]
-                 (range))))))
+       (mapv #(int (apply srand %1 seed %2 salts))
+             [x-max y-max z-max]
+             (range)))))
 
 (defn hallway-y
   "Takes a hallway dungeon and returns the y coordinate of the
@@ -795,10 +795,10 @@
   ([]
      (let [x-size 16
            z-size 16
-           chest-items (vec (map mc-item [:wood :cobble :iron-block
-                                          :diamond-block :leather
-                                          :fire :coal :white-wool
-                                          :string :arrow :steak]))
+           chest-items (mapv mc-item [:wood :cobble :iron-block
+                                      :diamond-block :leather
+                                      :fire :coal :white-wool
+                                      :string :arrow :steak])
            n-chest-items (count chest-items)
            gen-fn (fn [x y z]
                     (cond (< y 64)

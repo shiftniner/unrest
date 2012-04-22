@@ -54,7 +54,7 @@
                                  (rest rest-params))))))))
        ;; not (or (vector? ...) ...) -- i.e., cave-params is a hash:
        (if-let [layers (:layered-cave-params cave-params)]
-         (let [fns (vec (map in-cave?-fn layers))]
+         (let [fns (mapv in-cave?-fn layers)]
            (fn
              ([x y z]
                 (if-let [f (fns (* 2 y))]

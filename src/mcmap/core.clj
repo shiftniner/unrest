@@ -53,13 +53,13 @@
               (> (* y-size z-size)
                  *size-at-which-pmap-faster*))
        (vec (pmap #(vec (for [z (range z-size)]
-                        (vec (for [y (range y-size)]
-                               (f % y z)))))
+                          (mapv (fn [y] (f % y z))
+                                (range y-size))))
                 (range x-size)))
        (vec (for [x (range x-size)]
               (vec (for [z (range z-size)]
-                     (vec (for [y (range y-size)]
-                            (f x y z))))))))))
+                     (mapv (fn [y] (f x y z))
+                           (range y-size)))))))))
 
 (defn ct-gen-mcmap-zone
   "Like gen-mcmap-zone, but guaranteed to evaluate completely within

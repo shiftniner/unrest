@@ -191,13 +191,13 @@
      (format-signs face text :wall-sign))
   ([face text sign-type]
      (let [wrapped-text (sign-wrap-text text)]
-       (vec (map (fn [t]
-                   (if t
-                     (mc-block sign-type
-                               :face face
-                               :text (vec t))
-                     :air))
-                 wrapped-text)))))
+       (mapv (fn [t]
+               (if t
+                 (mc-block sign-type
+                           :face face
+                           :text (vec t))
+                 :air))
+             wrapped-text))))
 
 (defn add-entrance
   "Takes a dungeon, a vector (y and z specify the position for the
