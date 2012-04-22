@@ -575,10 +575,10 @@
                       _ (every? #(dungeon-accepter
                                       (apply maybe-zone-lookup
                                              zone %))
-                                (dungeon-filling-seq dungeon eo
-                                                     (+ ex hx)
-                                                     (+ ey hy)
-                                                     (+ ez hz)))
+                                (dungeon-bordering-seq dungeon eo
+                                                       (+ ex hx)
+                                                       (+ ey hy)
+                                                       (+ ez hz)))
                       _ (hall-accepter zone
                                        (sequence-hallway-slices
                                         hall ex ey ez))]

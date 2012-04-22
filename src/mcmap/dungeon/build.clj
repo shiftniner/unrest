@@ -340,6 +340,85 @@
                             (+ z min-z)])
                          (space-filling-seq grid-size)))))))
 
+(defn plane-filling-seq
+  "Returns a seq of all points, with x and y coordinates >= 0 and <
+  size, in an order such that a large extent of the area is covered
+  relatively quickly"
+  ([size]
+     (cons [0 0]
+           (plane-filling-seq size size)))
+  ([size grid]
+     (if (< grid 2)
+       nil
+       (let [half-grid (/ grid 2)
+             incg (fn [x] (+ x half-grid))]
+         (concat
+          (apply concat
+                 (for [x (range 0 size grid)
+                       y (range 0 size grid)]
+                   [ [(incg x) (incg y)]
+                     [(incg x) y]
+                     [x (incg y)]]))
+          (plane-filling-seq size half-grid))))))
+
+(defn rectangle-filling-seq
+  "Takes opposite corners of a rectangle in two dimensions, the
+  dimension of the plane the rectangle lies in, and the coordinate of
+  that plane, and returns a seq of points filling that rectangle"
+  ([a0 b0 a1 b1 cpos c]
+     (let [ad (- a1 a0)
+           bd (- b1 b0)
+           max-dimension (max ad bd)
+           grid-size (first (filter #(> % max-dimension)
+                                    (iterate #(* 2 %) 1)))]
+       (filter identity
+               (map (fn [[a b]]
+                      (when (and (<= a ad)
+                                 (<= b bd))
+                        (let [a (+ a a0)
+                              b (+ b b0)
+                              ab [a b]]
+                          (vec (concat (take cpos ab)
+                                       [c]
+                                       (drop cpos ab))))))
+                    (plane-filling-seq grid-size))))))
+
+(defn box-bordering-seq
+  "Takes a Box and returns a seq of points within the Box, filling its
+  sides"
+  ([^Box box]
+     (let [x0 (.x0 box)
+           y0 (.y0 box)
+           z0 (.z0 box)
+           x1 (dec (+ (.x0 box) (.xd box)))
+           y1 (dec (+ (.y0 box) (.yd box)))
+           z1 (dec (+ (.z0 box) (.zd box)))
+           x0' (inc x0)
+           y0' (inc y0)
+           z0' (inc z0)
+           x1' (dec x1)
+           y1' (dec y1)
+           z1' (dec z1)]
+       (exhaustive-interleave
+        (rectangle-filling-seq x0  y0  x1  y1  2 z0)
+        (rectangle-filling-seq x0  y0  x1  y1  2 z1)
+        (rectangle-filling-seq x0  z0' x1  z1' 1 y0)
+        (rectangle-filling-seq x0  z0' x1  z1' 1 y1)
+        (rectangle-filling-seq y0' z0' y1' z1' 0 x0)
+        (rectangle-filling-seq y0' z0' y1' z1' 0 x1)))))
+
+(defn dungeon-bordering-seq
+  "Takes a dungeon, an orientation, and offsets by which to move the
+  dungeon, and returns a seq of points that would be within the
+  dungeon's boxes and on the edges of those boxes if it were placed at
+  that orientation and offset"
+  ([dungeon orientation xd yd zd]
+     (let [rotated-dungeon (rotate-dungeon dungeon orientation)
+           placed-dungeon (translate-dungeon rotated-dungeon xd yd zd)
+           box-bordering-seqs
+             (map box-bordering-seq (rest placed-dungeon))]
+       (apply exhaustive-interleave box-bordering-seqs))))
+
 (let [materials [:snow-block :stone-bricks :nether-brick :bedrock]]
   (defn hall-material
     "Takes a pain level, seed, and salts, and returns a block type"
