@@ -9,7 +9,8 @@
         mcmap.dungeons
         mcmap.layout
         mcmap.balance
-        mcmap.toolkit))
+        mcmap.toolkit)
+  (:import java.io.File))
 
 (set! *warn-on-reflection* true)
 
@@ -311,6 +312,7 @@
            start-y (+ 2 (map-height epic-zone
                                     (int start-x)
                                     (int start-z)))]
+       (.mkdirs (File. (str save-dir "/region")))
        (write-file (str save-dir "/parameters.txt")
                    (-> (str "quest chests: " (pr-str quest-chests) "\n"
                             "   game seed: " seed "\n"
