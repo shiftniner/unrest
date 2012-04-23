@@ -117,6 +117,15 @@
                   next-block
                   (cons next-block ret)))))))
 
+(defn- recursive-mcmap-column
+  ([x z y-size prev-column f]
+     (let [map-fn (if prev-column
+                    (fn [y]
+                      (f x y z (prev-column y)))
+                    (fn [y]
+                      (f x y z nil)))]
+       (mapv map-fn (range y-size)))))
+
 (defn falling-recursive-gen-mcmap-zone
   "Takes x and z dimensions (or x, y, and z dimensions), and a
   function of x, y, z, and the result of calling the function on the
@@ -170,9 +179,6 @@
                        (fn [x y z]
                          (zone-lookup tmp-zone x z y))))))
 
-;;; TODO these next two are most in need of rewriting for better
-;;; performance.
-
 (defn eastward-recursive-gen-mcmap-zone
   "Takes x and z dimensions (or x, y, and z dimensions), and a
   function of x, y, z, and the result of calling the function on the
@@ -182,16 +188,19 @@
      (eastward-recursive-gen-mcmap-zone x-size +old-chunk-height+ z-size
                                         f))
   ([x-size y-size z-size f]
-     ; Swap x and y, call rising-recursive-gen-mcmap-zone, then swap x
-     ; and y back
-     (let [tmp-zone
-             (rising-recursive-gen-mcmap-zone
-                y-size x-size z-size
-                (fn [x y z prev]
-                  (f y x z prev)))]
-       (gen-mcmap-zone x-size y-size z-size
-                       (fn [x y z]
-                         (zone-lookup tmp-zone y x z))))))
+     (let [cols-xz (vec (pmap
+                         (fn [z]
+                           (reduce (fn [cols x]
+                                     (conj cols
+                                           (recursive-mcmap-column
+                                            x z y-size (peek cols)
+                                            f)))
+                                   []
+                                   (range x-size)))
+                         (range z-size)))]
+       (vec (for [x (range x-size)]
+              (vec (for [z (range z-size)]
+                     ( (cols-xz z) x))))))))
 
 (defn westward-recursive-gen-mcmap-zone
   "Takes x and z dimensions (or x, y, and z dimensions), and a
@@ -202,16 +211,20 @@
      (westward-recursive-gen-mcmap-zone x-size +old-chunk-height+ z-size
                                         f))
   ([x-size y-size z-size f]
-     ; Swap x and y, call falling-recursive-gen-mcmap-zone, then swap
-     ; x and y back
-     (let [tmp-zone
-             (falling-recursive-gen-mcmap-zone
-                y-size x-size z-size
-                (fn [x y z prev]
-                  (f y x z prev)))]
-       (gen-mcmap-zone x-size y-size z-size
-                       (fn [x y z]
-                         (zone-lookup tmp-zone y x z))))))
+     (let [cols-xz (vec (pmap
+                         (fn [z]
+                           (vec
+                            (reduce (fn [cols x]
+                                      (cons (recursive-mcmap-column
+                                             x z y-size (first cols)
+                                             f)
+                                            cols))
+                                    ()
+                                    (range (dec x-size) -1 -1))))
+                         (range z-size)))]
+       (vec (for [x (range x-size)]
+              (vec (for [z (range z-size)]
+                     ( (cols-xz z) x))))))))
 
 (defn maybe-zone-lookup
   "Like zone-lookup, but returns nil if the coordinates are out of
