@@ -148,16 +148,16 @@
      (southward-recursive-gen-mcmap-zone x-size +old-chunk-height+
                                          z-size f))
   ([x-size y-size z-size f]
-     ; Swap z and y, call rising-recursive-gen-mcmap-zone, then swap z
-     ; and y back
-     (let [tmp-zone
-             (rising-recursive-gen-mcmap-zone
-                x-size z-size y-size
-                (fn [x y z prev]
-                  (f x z y prev)))]
-       (gen-mcmap-zone x-size y-size z-size
-                       (fn [x y z]
-                         (zone-lookup tmp-zone x z y))))))
+     (vec (pmap
+           (fn [x]
+             (reduce (fn [cols z]
+                       (conj cols
+                             (recursive-mcmap-column x z y-size
+                                                     (peek cols)
+                                                     f)))
+                     []
+                     (range z-size)))
+           (range x-size)))))
 
 (defn northward-recursive-gen-mcmap-zone
   "Takes x and z dimensions (or x, y, and z dimensions), and a
@@ -168,16 +168,17 @@
      (northward-recursive-gen-mcmap-zone x-size +old-chunk-height+
                                          z-size f))
   ([x-size y-size z-size f]
-     ; Swap z and y, call falling-recursive-gen-mcmap-zone, then swap
-     ; z and y back
-     (let [tmp-zone
-             (falling-recursive-gen-mcmap-zone
-                x-size z-size y-size
-                (fn [x y z prev]
-                  (f x z y prev)))]
-       (gen-mcmap-zone x-size y-size z-size
-                       (fn [x y z]
-                         (zone-lookup tmp-zone x z y))))))
+     (vec (pmap
+           (fn [x]
+             (vec
+              (reduce (fn [cols z]
+                        (cons (recursive-mcmap-column x z y-size
+                                                      (first cols)
+                                                      f)
+                              cols))
+                      ()
+                      (range (dec z-size) -1 -1))))
+           (range x-size)))))
 
 (defn eastward-recursive-gen-mcmap-zone
   "Takes x and z dimensions (or x, y, and z dimensions), and a
