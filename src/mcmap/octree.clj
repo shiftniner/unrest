@@ -2,6 +2,10 @@
 
 (set! *warn-on-reflection* true)
 
+(defrecord OctreeContents [o
+                           ^long x0 ^long y0 ^long z0
+                           ^long x1 ^long y1 ^long z1])
+
 (defn octree
   "Returns a new empty octree"
   ([max-dim min-dim]
@@ -23,6 +27,7 @@
   "Given an octree node and an object, returns an octree node with the
   object added directly at that node"
   ([oct o]
+     (cast OctreeContents o)
      (assoc oct
        :contents (if-let [c (:contents oct)]
                    (conj c o)
@@ -51,9 +56,7 @@
                     :nodes [nil nil nil nil nil nil nil nil]
                     :contents nil})]
        (if (<= node-size min-dim)
-         (add-to-contents oct {:o o,
-                               :x0 x0, :y0 y0, :z0 z0,
-                               :x1 x1, :y1 y1, :z1 z1})
+         (add-to-contents oct (OctreeContents. o x0 y0 z0 x1 y1 z1))
          (let [half-size (quot node-size 2)
                nodes (:nodes oct)
                x-midpoint (+ node-x0 half-size)
@@ -130,14 +133,13 @@
 (defn- contents-intersecting?
   ([oct x0 y0 z0 x1 y1 z1]
      (let [contents (:contents oct)]
-       (some (fn [ {cx0 :x0, cy0 :y0, cz0 :z0,
-                    cx1 :x1, cy1 :y1, cz1 :z1} ]
-               (and (> x1 cx0)
-                    (> y1 cy0)
-                    (> z1 cz0)
-                    (< x0 cx1)
-                    (< y0 cy1)
-                    (< z0 cz1)))
+       (some (fn [^OctreeContents c]
+               (and (> (long x1) (.x0 c))
+                    (> (long y1) (.y0 c))
+                    (> (long z1) (.z0 c))
+                    (< (long x0) (.x1 c))
+                    (< (long y0) (.y1 c))
+                    (< (long z0) (.z1 c))))
              contents))))
 
 (defn oct-any-intersecting?
@@ -166,36 +168,43 @@
   ([oct x0 y0 z0 x1 y1 z1]
      (let [contents (:contents oct)]
        (map :o
-            (filter (fn [ {cx0 :x0, cy0 :y0, cz0 :z0,
-                           cx1 :x1, cy1 :y1, cz1 :z1} ]
-                      (and (> x1 cx0)
-                           (> y1 cy0)
-                           (> z1 cz0)
-                           (< x0 cx1)
-                           (< y0 cy1)
-                           (< z0 cz1)))
+            (filter (fn [^OctreeContents c]
+                      (and (> (long x1) (.x0 c))
+                           (> (long y1) (.y0 c))
+                           (> (long z1) (.z0 c))
+                           (< (long x0) (.x1 c))
+                           (< (long y0) (.y1 c))
+                           (< (long z0) (.z1 c))))
                     contents)))))
 
 (defn oct-intersecting
   "Given an octree and two coordinates defining a cuboid region,
   returns any contents of the octree intersecting the region"
   ([oct x0 y0 z0 x1 y1 z1]
-     (when oct
-       (if (or (<= x1 (:x0 oct))
-               (<= y1 (:y0 oct))
-               (<= z1 (:z0 oct)))
-         nil
-         (let [size (:size oct)
-               oct-x1 (+ size (:x0 oct))
-               oct-y1 (+ size (:y0 oct))
-               oct-z1 (+ size (:z0 oct))]
-           (if (or (>= x0 oct-x1)
-                   (>= y0 oct-y1)
-                   (>= z0 oct-z1))
-             nil
-             (concat (intersecting-contents oct x0 y0 z0 x1 y1 z1)
-                     (mapcat #(oct-intersecting % x0 y0 z0 x1 y1 z1)
-                             (:nodes oct)))))))))
+     (let [lx0 (long x0) ly0 (long y0) lz0 (long z0)
+           lx1 (long x1) ly1 (long y1) lz1 (long z1)]
+       ( (fn oct-intersecting' [oct]
+           (when oct
+             (let [ox0 (long (:x0 oct))
+                   oy0 (long (:y0 oct))
+                   oz0 (long (:z0 oct))]
+               (if (or (<= lx1 ox0)
+                       (<= ly1 oy0)
+                       (<= lz1 oz0))
+                 nil
+                 (let [size (long (:size oct))
+                       oct-x1 (+ size ox0)
+                       oct-y1 (+ size oy0)
+                       oct-z1 (+ size oz0)]
+                   (if (or (>= lx0 oct-x1)
+                           (>= ly0 oct-y1)
+                           (>= lz0 oct-z1))
+                     nil
+                     (if (:contents oct)
+                       (concat (intersecting-contents oct x0 y0 z0 x1 y1 z1)
+                               (mapcat oct-intersecting' (:nodes oct)))
+                       (mapcat oct-intersecting' (:nodes oct)))))))))
+         oct))))
 
 (defn oct-lookup
   "Given an octree and a point, return a seq of all contents of the
