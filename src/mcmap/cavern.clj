@@ -152,9 +152,9 @@
 
 (defn distance-2d-sloped
   ([x0 z0 x1 z1 x-slope z-slope]
-     (let [x-dist (* (Math/abs (double (- x0 x1)))
+     (let [x-dist (* (Math/abs (- (double x0) (double x1)))
                      x-slope)
-           z-dist (* (Math/abs (double (- z0 z1)))
+           z-dist (* (Math/abs (- (double z0) (double z1)))
                      z-slope)]
        (Math/sqrt (+ (* x-dist x-dist)
                      (* z-dist z-dist))))))
@@ -164,8 +164,8 @@
      (let [in-cave? (in-cave?-fn cave-params)
            x-bound (dec x-max)
            z-bound (dec z-max)
-           ground-cap-x-slope (/ 40 x-max)
-           ground-cap-z-slope (/ 40 z-max)]
+           ground-cap-x-slope (double (/ 40 x-max))
+           ground-cap-z-slope (double (/ 40 z-max))]
        (fn [x y z]
          (let [sloping-cap (distance-2d-sloped
                                     x z x-start z-start
