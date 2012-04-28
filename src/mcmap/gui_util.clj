@@ -1,13 +1,14 @@
 (ns mcmap.gui-util
   (:use mcmap.util)
-  (:import [java.awt.event ActionListener ActionEvent]
+  (:import [java.awt.event ActionListener ActionEvent
+                           WindowListener WindowEvent]
            [javax.swing JButton JPanel JFrame JFormattedTextField
                         text.DefaultFormatter text.JTextComponent
                         text.Document
                         JFormattedTextField$AbstractFormatter JLabel
                         event.DocumentListener event.DocumentEvent]
            [java.awt FlowLayout Component Dimension GridBagLayout
-                     GridBagConstraints]
+                     GridBagConstraints Window]
            [java.text Format]))
 
 (set! *warn-on-reflection* true)
@@ -39,7 +40,7 @@
   a javax.swing.JFormattedTextField) and returns a fn of one
   argument (the JFormattedTextField) that will return a
   javax.swing.event.DocumentListener with the given fn as its method
-  for inserUpdate, removeUpdate, and changedUpdate"
+  for insertUpdate, removeUpdate, and changedUpdate"
   ([f]
      (fn [ftf]
        (proxy [Object DocumentListener]
@@ -49,8 +50,10 @@
          (changedUpdate [x] (f x ftf))))))
 
 (defmacro document-listener
-  "Takes a one-variable binding vector and code, and returns a
-  javax.swing.event.DocumentListener"
+  "Takes a binding vector for a DocumentEvent and the
+  JFormattedTextField on which the event occurred, and code, and
+  returns a javax.swing.event.DocumentListener that evaluates the code
+  for every change to the JFormattedTextField"
   ([bindings & body]
      (when-not (and (vector? bindings)
                     (= 2 (count bindings)))
@@ -62,6 +65,34 @@
                                    ~(with-meta ftf-varname
                                       {:tag `JFormattedTextField})]
                                 ~@body)))))
+
+(defn window-close-listener-fn
+  "Takes a fn of two arguments (a java.awt.event.WindowEvent and a
+  java.awt.Window) and returns a fn of one argument (the
+  java.awt.Window) that will return a java.awt.event.WindowListener
+  with the given fn as its method for windowClosing"
+  ([f]
+     (fn [w]
+       (proxy [Object WindowListener]
+           []
+         #_(windowClosed  [x] (f x w))
+         (windowClosing [x] (f x w))))))
+
+(defmacro window-close-listener
+  "Takes a one-variable binding vector and code, and returns a
+  java.awt.event.WindowListener that evaluates the given code when the
+  window is closed by the user (not by having .dispose called on it)"
+  ([bindings & body]
+     (when-not (and (vector? bindings)
+                    (= 2 (count bindings)))
+       (die "window-close-listener requires a binding vector with two"
+            " variables"))
+     (let [ [we-varname w-varname] bindings]
+       `(window-close-listener-fn (fn [~(with-meta we-varname
+                                          {:tag `WindowEvent})
+                                       ~(with-meta w-varname
+                                          {:tag `Window})]
+                                    ~@body)))))
 
 (defn button
   "Takes a label and a java.awt.event.ActionListener and returns a
@@ -107,13 +138,16 @@
        p)))
 
 (defn frame
-  "Takes a name, x size, y size, and a JPanel (or other component,
-  preferably opaque), and returns a JFrame"
-  (^JFrame [n x y c]
-     (doto (JFrame. ^String n)
-       (.setSize x y)
-       (.setContentPane c)
-       (.setVisible true))))
+  "Takes a name, x size, y size, a JPanel (or other component,
+  preferably opaque), and a java.awt.event.WindowListener, and returns
+  a JFrame"
+  (^JFrame [n x y c wl]
+     (let [fr (JFrame. ^String n)]
+       (.setSize fr x y)
+       (.setContentPane fr c)
+       (.setVisible fr true)
+       (.addWindowListener fr (wl fr))
+       fr)))
 
 (defn formatted-text
   "Takes a java.text.Format or a JFormattedTextField.AbstractFormatter,
@@ -146,7 +180,7 @@
 
 (defn label
   "Takes a string and returns a JLabel, which is always left-justified"
-  ([s]
+  (^JLabel [s]
      (JLabel. ^String s JLabel/LEFT)))
 
 (defn all-text-of-document
@@ -154,6 +188,14 @@
   ([^Document doc]
      (let [len (.getLength doc)]
        (.getText doc 0 len))))
+
+(defn try-format
+  "Tries to parse the given string into an object of the given class;
+  returns nil if the constructor failed, or else an object of class c"
+  ;; FIXME - this is slow and uses eval; there must be a better way
+  ([^Class c s]
+     (try (eval (list 'new (symbol (.getName c)) s))
+          (catch Exception e))))
 
 (defn form
   "Takes a string to use for the window name, a string to use as a
@@ -164,22 +206,53 @@
      (let [state (atom {})
            finished-flag (promise)
            ;; components is a seq of Component/GridBagConstraint pairs
-           components (mapcat
-                       (fn [ [output-key spec] row]
-                         (case (:type spec)
-                               :entry
-                               [ [ (label (:label spec))
-                                   (grid-bag-pos 0 row 1 :east)]
-                                 [ (formatted-text
-                                     (live-formatter (:class spec))
-                                     (:width spec)
-                                     (document-listener [de ftf]
-                                       (swap! state
-                                              assoc output-key
-                                              (.getValue ftf))))
-                                   (grid-bag-pos 1 row 1 :west)]]))
-                       (partition 2 args)
-                       (range))
+           components (reduce
+                       (fn [ [row components]
+                             [output-key spec]]
+                         (let [new-components
+                               (case (:type spec)
+                                     :entry
+                                     [ [ (label (:label spec))
+                                         (grid-bag-pos 0 row 1 :east)]
+                                       [ (formatted-text
+                                          (live-formatter (:class spec))
+                                          (:width spec)
+                                          (document-listener [de ftf]
+                                            (swap! state
+                                                   assoc output-key
+                                                   (.getValue ftf))))
+                                         (grid-bag-pos 1 row 1 :west)]]
+                                     :live-label-entry
+                                     (let [ol (label "")]
+                                       [ [ (label (:label spec))
+                                           (grid-bag-pos 0 row 1 :east)]
+                                         [ (formatted-text
+                                            (live-formatter (:class spec))
+                                            (:width spec)
+                                            (document-listener [de ftf]
+                                              (swap! state
+                                                     assoc output-key
+                                                     (.getValue ftf))
+                                              (.setText
+                                               ol
+                                               ( (:live-text spec)
+                                                 (or (try-format
+                                                      (:class spec)
+                                                      (all-text-of-document
+                                                       (.getDocument de)))
+                                                     (.getValue ftf))))))
+                                           (grid-bag-pos 1 row 1 :west)]
+                                         [ol (grid-bag-pos 1 (inc row)
+                                                           1 :west)]]))
+                               rows-used
+                               (case (:type spec)
+                                     :entry 1
+                                     :live-label-entry 2)]
+                           [ (+ row rows-used)
+                             (reduce conj components new-components)]))
+                       [0 []]
+                       (partition 2 args))
+           components (second components)
            gbl (GridBagLayout.)
            _ (doseq [ [component constraint] components]
                (.addLayoutComponent gbl ^Component component constraint))
@@ -191,7 +264,41 @@
                                                 2 :east))
            window (frame window-name x y
                          (apply panel gbl (concat (map first components)
-                                                  [submit-button])))]
+                                                  [submit-button]))
+                         (window-close-listener [we w]
+                           (.dispose w)
+                           (deliver finished-flag false)))]
        (when @finished-flag
          (.dispose window)
          @state))))
+
+(defn form-exercise-1
+  ([]
+     (form "form test 1"
+           "do the thing"
+           700 400
+           :magic {:label "Quantity of magic to use"
+                   :type :entry
+                   :class Double
+                   :width 250}
+           :more-magic {:label "Quantity of extra magic to use"
+                        :type :entry
+                        :class Double
+                        :width 250})))
+
+(defn form-exercise-2
+  ([]
+     (form "form test 1"
+           "do the thing"
+           700 400
+           :magic {:label "Quantity of magic to use"
+                   :type :entry
+                   :class Double
+                   :width 250}
+           :more-magic {:label "Quantity of extra magic to use"
+                        :type :live-label-entry
+                        :class Double
+                        :width 250
+                        :live-text (fn [v]
+                                     (str v " is " (/ v 2) "x2"))})))
+
