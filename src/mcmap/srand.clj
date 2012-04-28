@@ -56,18 +56,16 @@
   ([max seed & salts]
      (* max (srand-1 seed (concat salts [1])))))
 
-(defn make-seed
-  "Takes any arbitrary string or seq of hashable values and returns a
-  long seed for srand"
-  ([s]
-     (bit-xor (bit-shift-left (hash (partition 1 2 s))
-                              16)
-              (hash (partition 1 2 (drop 1 s))))))
-
 (defn reseed
   "Takes a seed and some salts and returns a new seed"
   ([seed & salts]
      (long (apply srand +seed-max+ seed salts))))
+
+(defn make-seed
+  "Takes any arbitrary string or seq of numbers and returns a long
+  seed for srand"
+  ([s]
+     (apply reseed 42 (map int s))))
 
 (defn snorm
   "Returns a Gaussian deviate with the given mean, standard deviation,
