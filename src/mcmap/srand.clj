@@ -24,7 +24,11 @@
 ;;; intervals can lead to the same cycling problem as producing
 ;;; sequences by recursively reseeding.
 
-(def +seed-max+ (bit-shift-left 1 48))
+(def +seed-bits+ 48)
+
+(def +seed-bytes+ (/ +seed-bits+ 8))
+
+(def +seed-max+ (bit-shift-left 1 +seed-bits+))
 
 (def ^java.security.SecureRandom entropy-pool (java.security.SecureRandom.))
 
@@ -175,5 +179,6 @@
              (concat (scheduler-entropy 0.2)
                      [(hash (Object.))
                       (hash (Object.))])))
-     (bytes-to-int (.generateSeed entropy-pool 6))))
+     (mod (bytes-to-int (.generateSeed entropy-pool +seed-bytes+))
+          +seed-max+)))
 
