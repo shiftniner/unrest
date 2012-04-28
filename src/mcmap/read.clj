@@ -11,6 +11,10 @@
 
 ;;; Functions for reading existing Minecraft save files
 
+;;; Currently all that exists here is what was needed, temporarily, to
+;;; aid manually reverse-engineering .mca files.  I expect it to be
+;;; useful in generating larger maps.
+
 (def +sector-length+ 4096)
 
 (defn read-file
