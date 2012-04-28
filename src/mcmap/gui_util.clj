@@ -151,9 +151,11 @@
 
 (defn formatted-text
   "Takes a java.text.Format or a JFormattedTextField.AbstractFormatter,
-  an x-width, and a javax.swing.event.DocumentListener, and returns a
-  JFormattedTextField"
+  an x-width, a javax.swing.event.DocumentListener, and an optional
+  initial value, and returns a JFormattedTextField"
   ([format x dl]
+     (formatted-text x dl nil))
+  ([format x dl init-val]
      (let [^JFormattedTextField ftf
              (cond (instance? Format format)
                      (JFormattedTextField. ^Format format)
@@ -165,8 +167,11 @@
            preferred-y-size (.height preferred-size)
            new-size (Dimension. x preferred-y-size)]
        (.setPreferredSize ftf new-size)
+       (.setMinimumSize   ftf new-size)
        (.addDocumentListener (.getDocument ftf)
                              (dl ftf))
+       (when init-val
+         (.setValue ftf init-val))
        ftf)))
 
 (defn live-formatter
@@ -176,7 +181,33 @@
   ([c]
      (doto (DefaultFormatter.)
        (.setValueClass c)
-       (.setCommitsOnValidEdit true))))
+       (.setCommitsOnValidEdit true)
+       (.setOverwriteMode false))))
+
+(defn validated-live-formatter
+  "Takes a Class, which must have a one-String-argument constructor
+  and an inverse toString method, a fn that returns a boolean value
+  indicating whether the passed-in string-constructed value is valid,
+  and an optional fn that takes a value and returns a
+  possibly-different value to use, and returns a formatter that
+  updates values with each keystroke that leads to a valid format"
+  ([c v-fn]
+     (validated-live-formatter c v-fn nil))
+  ([c v-fn mod-fn]
+     (doto (proxy [DefaultFormatter]
+               []
+             (stringToValue [s]
+               (let [this ^DefaultFormatter this
+                     v (proxy-super stringToValue s)]
+                 (if (v-fn v)
+                   (if mod-fn
+                     (mod-fn v)
+                     v)
+                   (throw (java.text.ParseException. "Value out of range"
+                                                     0))))))
+       (.setValueClass c)
+       (.setCommitsOnValidEdit true)
+       (.setOverwriteMode false))))
 
 (defn label
   "Takes a string and returns a JLabel, which is always left-justified"
@@ -206,53 +237,58 @@
      (let [state (atom {})
            finished-flag (promise)
            ;; components is a seq of Component/GridBagConstraint pairs
-           components (reduce
-                       (fn [ [row components]
-                             [output-key spec]]
-                         (let [new-components
-                               (case (:type spec)
-                                     :entry
-                                     [ [ (label (:label spec))
-                                         (grid-bag-pos 0 row 1 :east)]
-                                       [ (formatted-text
-                                          (live-formatter (:class spec))
-                                          (:width spec)
-                                          (document-listener [de ftf]
-                                            (swap! state
-                                                   assoc output-key
-                                                   (.getValue ftf))))
-                                         (grid-bag-pos 1 row 1 :west)]]
-                                     :live-label-entry
-                                     (let [ol (label "")]
-                                       [ [ (label (:label spec))
-                                           (grid-bag-pos 0 row 1 :east)]
-                                         [ (formatted-text
-                                            (live-formatter (:class spec))
-                                            (:width spec)
-                                            (document-listener [de ftf]
-                                              (swap! state
-                                                     assoc output-key
-                                                     (.getValue ftf))
-                                              (if-let*
-                                               [v (or (try-format
-                                                       (:class spec)
-                                                       (all-text-of-document
-                                                        (.getDocument de)))
-                                                      (.getValue ftf))
-                                                t ( (:live-text spec)
-                                                    v)]
-                                               (.setText ol t))))
-                                           (grid-bag-pos 1 row 1 :west)]
-                                         [ol (grid-bag-pos 1 (inc row)
-                                                           1 :west)]]))
-                               rows-used
-                               (case (:type spec)
-                                     :entry 1
-                                     :live-label-entry 2)]
-                           [ (+ row rows-used)
-                             (reduce conj components new-components)]))
-                       [0 []]
-                       (partition 2 args))
+           components
+           (reduce
+            (fn [ [row components]
+                  [output-key spec]]
+              (let [new-components
+                    (case (:type spec)
+                          :entry
+                          [ [ (label (:label spec))
+                              (grid-bag-pos 0 row 1 :east)]
+                            [ (formatted-text
+                               (live-formatter (:class spec))
+                               (:width spec)
+                               (document-listener [de ftf]
+                                 (swap! state assoc output-key
+                                        (.getValue ftf)))
+                               (:default spec))
+                              (grid-bag-pos 1 row 1 :west)]]
+                          :live-label-entry
+                          (let [ol (label "")]
+                            [ [ (label (:label spec))
+                                (grid-bag-pos 0 row 1 :east)]
+                              [ (formatted-text
+                                 (if (:validator spec)
+                                   (validated-live-formatter
+                                     (:class spec)
+                                     (:validator spec)
+                                     (:modifier spec))
+                                   (live-formatter (:class spec)))
+                                 (:width spec)
+                                 (document-listener [de ftf]
+                                   (swap! state assoc output-key
+                                          (.getValue ftf))
+                                   (if-let* [v (or (try-format
+                                                    (:class spec)
+                                                    (all-text-of-document
+                                                     (.getDocument de)))
+                                                   (.getValue ftf))
+                                             t ( (:live-text spec)
+                                                 v)]
+                                            (.setText ol t)))
+                                 (:default spec))
+                                (grid-bag-pos 1 row 1 :west)]
+                              [ol (grid-bag-pos 1 (inc row)
+                                                1 :west)]]))
+                    rows-used
+                    (case (:type spec)
+                          :entry 1
+                          :live-label-entry 2)]
+                [ (+ row rows-used)
+                  (reduce conj components new-components)]))
+            [0 []]
+            (partition 2 args))
            components (second components)
            gbl (GridBagLayout.)
            _ (doseq [ [component constraint] components]
@@ -302,4 +338,34 @@
                         :width 250
                         :live-text (fn [v]
                                      (str v " is " (/ v 2) "x2"))})))
+
+(defn form-exercise-3
+  ([]
+     (form "form test 1"
+           "do the thing"
+           700 400
+           :magic {:label "Quantity of magic to use"
+                   :type :entry
+                   :class Double
+                   :width 250}
+           :level {:label "Level"
+                   :type :live-label-entry
+                   :class Double
+                   :width 250
+                   :validator #(<= 0 % 100)
+                   :live-text (fn [v]
+                                (cond (or (> v 100)
+                                          (< v 0))
+                                      nil
+                                      (<= v 10)
+                                      (str "Note: Level " v
+                                           " is extremely easy")
+                                      (>= v 75)
+                                      (str "Note: Level " v
+                                           " is unplayably hard")
+                                      (>= v 50)
+                                      (str "Note: Level " v
+                                           " is extremely hard")
+                                      :else
+                                      " "))})))
 
