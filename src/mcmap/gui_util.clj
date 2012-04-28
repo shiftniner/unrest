@@ -6,6 +6,7 @@
                         text.DefaultFormatter text.JTextComponent
                         text.Document
                         JFormattedTextField$AbstractFormatter
+                        JFormattedTextField$AbstractFormatterFactory
                         JLabel JSeparator JCheckBox
                         event.DocumentListener event.DocumentEvent]
            [java.awt FlowLayout Component Dimension GridBagLayout
@@ -183,6 +184,10 @@
                    (instance? JFormattedTextField$AbstractFormatter format)
                      (JFormattedTextField.
                       ^JFormattedTextField$AbstractFormatter format)
+                   (instance? JFormattedTextField$AbstractFormatterFactory
+                              format)
+                     (JFormattedTextField.
+                      ^JFormattedTextField$AbstractFormatterFactory format)
                    :else (die "bad format class: " format))
            preferred-size (.getPreferredSize ftf)
            preferred-y-size (.height preferred-size)
@@ -205,31 +210,37 @@
        (.setCommitsOnValidEdit true)
        (.setOverwriteMode false))))
 
-(defn validated-live-formatter
+(defn validated-live-formatter-factory
   "Takes a Class, which must have a one-String-argument constructor
   and an inverse toString method, a fn that returns a boolean value
   indicating whether the passed-in string-constructed value is valid,
   and an optional fn that takes a value and returns a
-  possibly-different value to use, and returns a formatter that
-  updates values with each keystroke that leads to a valid format"
+  possibly-different value to use, and returns a formatter factory
+  returning formatters that update values with each keystroke that
+  leads to a valid format"
   ([c v-fn]
-     (validated-live-formatter c v-fn nil))
+     (validated-live-formatter-factory c v-fn nil))
   ([c v-fn mod-fn]
-     (doto (proxy [DefaultFormatter]
-               []
-             (stringToValue [s]
-               (let [this ^DefaultFormatter this
-                     v (proxy-super stringToValue s)]
-                 (if (or (not v-fn)
-                         (v-fn v))
-                   (if mod-fn
-                     (mod-fn v)
-                     v)
-                   (throw (java.text.ParseException. "Value out of range"
-                                                     0))))))
-       (.setValueClass c)
-       (.setCommitsOnValidEdit true)
-       (.setOverwriteMode false))))
+     (proxy [JFormattedTextField$AbstractFormatterFactory]
+         []
+       (getFormatter [tf]
+          (doto (proxy [DefaultFormatter]
+                    []
+                  (stringToValue [s]
+                     (let [this ^DefaultFormatter this
+                           v (proxy-super stringToValue s)]
+                       (if (or (not v-fn)
+                               (v-fn v))
+                         (if mod-fn
+                           (mod-fn v)
+                           v)
+                         (do
+                           (throw (java.text.ParseException.
+                                   "Value out of range"
+                                   0)))))))
+            (.setValueClass c)
+            (.setCommitsOnValidEdit true)
+            (.setOverwriteMode false))))))
 
 (defn label
   "Takes a string and returns a JLabel, which is always left-justified"
@@ -300,7 +311,7 @@
                               (grid-bag-pos 0 row 1 :east)]
                             (let [ftf
                                   (formatted-text
-                                   (validated-live-formatter
+                                   (validated-live-formatter-factory
                                       (:class spec)
                                       (:validator spec)
                                       (:modifier spec))
@@ -312,10 +323,10 @@
                               [ (ftf-with-buttons ftf spec)
                                 (grid-bag-pos 1 row 1 :west)])]
                           :live-label-entry
-                          (let [ol (label "")
+                          (let [ol (label " ")
                                 ftf
                                 (formatted-text
-                                 (validated-live-formatter
+                                 (validated-live-formatter-factory
                                     (:class spec)
                                     (:validator spec)
                                     (:modifier spec))
