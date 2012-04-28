@@ -6,7 +6,7 @@
                         text.DefaultFormatter text.JTextComponent
                         text.Document
                         JFormattedTextField$AbstractFormatter
-                        JLabel JSeparator
+                        JLabel JSeparator JCheckBox
                         event.DocumentListener event.DocumentEvent]
            [java.awt FlowLayout Component Dimension GridBagLayout
                      GridBagConstraints Window]
@@ -104,6 +104,19 @@
   (^JButton [l al]
      (doto (JButton. ^String l)
        (.addActionListener al))))
+
+(defn checkbox
+  "Takes a fn of one argument that will be called with the pressed
+  state (true/false) any time it changes, and an initial pressed
+  state, and returns a JCheckBox"
+  ([action-fn pressed?]
+     (let [cb (JCheckBox.)]
+       (action-fn (#'boolean pressed?))
+       (.setSelected cb (#'boolean pressed?))
+       (.addActionListener cb
+                           (action-listener [_]
+                             (action-fn (.isSelected cb))))
+       cb)))
 
 (defn flow-layout
   "Takes a keyword (:left, :right, :center, :leading, or :trailing),
@@ -333,10 +346,19 @@
                               (grid-bag-pos 0 row 2 :center)]]
                           :space
                           [ [ (spacer (:width spec) (:height spec))
-                              (grid-bag-pos 0 row 2 :center)]])
+                              (grid-bag-pos 0 row 2 :center)]]
+                          :checkbox
+                          [ [ (label (:label spec))
+                              (grid-bag-pos 0 row 1 :east)]
+                            [ (checkbox (fn [pressed]
+                                          (swap! state assoc output-key
+                                                 pressed))
+                                        (:default spec))
+                              (grid-bag-pos 1 row 1 :west)]])
                     rows-used
                     (case (:type spec)
-                          (:entry :label :horizontal-line :space) 1
+                          (:entry :label :horizontal-line :space
+                           :checkbox) 1
                           :live-label-entry 2)]
                 [ (+ row rows-used)
                   (reduce conj components new-components)]))
@@ -396,7 +418,7 @@
   ([]
      (form "form test 1"
            "do the thing"
-           600 300
+           700 400
            :game-seed {:label "Game seed (text or number)"
                        :type :live-label-entry
                        :class Long
@@ -432,18 +454,22 @@
                    :live-text (fn [v]
                                 (cond (or (> v 100)
                                           (< v 0))
-                                      nil
+                                        nil
                                       (<= v 10)
-                                      (str "Note: Level " v
-                                           " is extremely easy")
+                                        (str "Note: Level " v
+                                             " is extremely easy")
                                       (>= v 75)
-                                      (str "Note: Level " v
-                                           " is unplayably hard")
+                                        (str "Note: Level " v
+                                             " is unplayably hard")
                                       (>= v 50)
-                                      (str "Note: Level " v
-                                           " is extremely hard")
+                                        (str "Note: Level " v
+                                             " is extremely hard")
                                       :else
-                                      " "))}
+                                        " "))}
+           :hardcore {:label "Hardcore mode"
+                      :type :checkbox}
+           :creative {:label "Creative mode"
+                      :type :checkbox}
            nil {:type :space
                 :width 1
                 :height 30})))
