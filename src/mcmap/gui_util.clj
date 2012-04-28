@@ -5,11 +5,15 @@
            [javax.swing JButton JPanel JFrame JFormattedTextField
                         text.DefaultFormatter text.JTextComponent
                         text.Document
-                        JFormattedTextField$AbstractFormatter JLabel
+                        JFormattedTextField$AbstractFormatter
+                        JLabel JSeparator
                         event.DocumentListener event.DocumentEvent]
            [java.awt FlowLayout Component Dimension GridBagLayout
                      GridBagConstraints Window]
            [java.text Format]))
+
+;;; Plan: hit Swing and AWT with a hammer until they start to look
+;;; sort of halfway functional
 
 (set! *warn-on-reflection* true)
 
@@ -123,14 +127,15 @@
        (set! (.gridwidth gbc) cols)
        (set! (.anchor gbc)
              (case anchor
-                   :west (GridBagConstraints/WEST)
-                   :east (GridBagConstraints/EAST)))
+                   :west   (GridBagConstraints/WEST)
+                   :center (GridBagConstraints/CENTER)
+                   :east   (GridBagConstraints/EAST)))
        gbc)))
 
 (defn panel
   "Takes a java.awt.LayoutManager and any number of JComponents and
   returns a JPanel"
-  ([lm & components]
+  (^JPanel [lm & components]
      (let [p (JPanel.)]
        (.setLayout p lm)
        (doseq [c components]
@@ -143,8 +148,11 @@
   a JFrame"
   (^JFrame [n x y c wl]
      (let [fr (JFrame. ^String n)]
-       (.setSize fr x y)
        (.setContentPane fr c)
+       (let [preferred-size (.getPreferredSize fr)
+             x (or x (.width  preferred-size))
+             y (or y (.height preferred-size))]
+         (.setSize fr x y))
        (.setVisible fr true)
        (.addWindowListener fr (wl fr))
        fr)))
@@ -214,6 +222,23 @@
   "Takes a string and returns a JLabel, which is always left-justified"
   (^JLabel [s]
      (JLabel. ^String s JLabel/LEFT)))
+
+(defn horizontal-line
+  "Takes a length and returns a JSeparator"
+  (^JSeparator [l]
+     (let [sep (JSeparator.)
+           h (.height (.getPreferredSize sep))]
+       (.setSize sep l h)
+       (.setPreferredSize sep (Dimension. l h))
+       sep)))
+
+(defn spacer
+  "Takes width and height and returns a blank component of those
+  dimensions"
+  ([x y]
+     (doto (panel (flow-layout :left))
+       (.setSize x y)
+       (.setPreferredSize (Dimension. x y)))))
 
 (defn all-text-of-document
   "Takes a javax.swing.text.Document and returns its full text"
@@ -302,10 +327,16 @@
                                                 1 :west)]])
                           :label
                           [ [ (label (:label spec))
-                              (grid-bag-pos 0 row 2 :west)]])
+                              (grid-bag-pos 0 row 2 :west)]]
+                          :horizontal-line
+                          [ [ (horizontal-line (:width spec))
+                              (grid-bag-pos 0 row 2 :center)]]
+                          :space
+                          [ [ (spacer (:width spec) (:height spec))
+                              (grid-bag-pos 0 row 2 :center)]])
                     rows-used
                     (case (:type spec)
-                          (:entry :label) 1
+                          (:entry :label :horizontal-line :space) 1
                           :live-label-entry 2)]
                 [ (+ row rows-used)
                   (reduce conj components new-components)]))
@@ -319,7 +350,7 @@
                                  (action-listener [ae]
                                    (deliver finished-flag true)))
            _ (.addLayoutComponent gbl submit-button
-                                  (grid-bag-pos 0 (count components)
+                                  (grid-bag-pos 0 (inc (count components))
                                                 2 :east))
            window (frame window-name x y
                          (apply panel gbl (concat (map first components)
@@ -365,7 +396,7 @@
   ([]
      (form "form test 1"
            "do the thing"
-           700 400
+           600 300
            :game-seed {:label "Game seed (text or number)"
                        :type :live-label-entry
                        :class Long
@@ -388,6 +419,8 @@
                        :live-text (fn [v]
                                     (str "Numeric value: " v))
                        :width 250}
+           nil {:type :horizontal-line
+                :width 400}
            nil {:label (str "Recommended level range: 15-20 for"
                             " hardcore mode, 18-25 for non-hardcore mode")
                 :type :label}
@@ -410,5 +443,8 @@
                                       (str "Note: Level " v
                                            " is extremely hard")
                                       :else
-                                      " "))})))
+                                      " "))}
+           nil {:type :space
+                :width 1
+                :height 30})))
 
