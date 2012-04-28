@@ -233,14 +233,15 @@
                                               (swap! state
                                                      assoc output-key
                                                      (.getValue ftf))
-                                              (.setText
-                                               ol
-                                               ( (:live-text spec)
-                                                 (or (try-format
-                                                      (:class spec)
-                                                      (all-text-of-document
-                                                       (.getDocument de)))
-                                                     (.getValue ftf))))))
+                                              (if-let*
+                                               [v (or (try-format
+                                                       (:class spec)
+                                                       (all-text-of-document
+                                                        (.getDocument de)))
+                                                      (.getValue ftf))
+                                                t ( (:live-text spec)
+                                                    v)]
+                                               (.setText ol t))))
                                            (grid-bag-pos 1 row 1 :west)]
                                          [ol (grid-bag-pos 1 (inc row)
                                                            1 :west)]]))
