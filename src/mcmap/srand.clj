@@ -99,7 +99,7 @@
        (clojure.lang.RT/vector (.toArray al)))))
 
 ;;; The below functions are for generating non-deterministic random
-;;; seeds; there is no need to preserve results, so any flaws in the
+;;; seeds; there is no need to preserve behavior, so any flaws in the
 ;;; algorithm may be corrected.
 
 (defn add-entropy-ints
