@@ -59,8 +59,7 @@
   ([bindings then]
      `(if-let* ~bindings ~then nil))
   ([bindings then else]
-     (when (= 1 (mod (count bindings)
-                     2))
+     (when (odd? (count bindings))
        (throw (IllegalArgumentException.
                (str "if-let* requires an even number of forms in"
                     " binding vector"))))
