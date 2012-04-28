@@ -226,7 +226,8 @@
   returns nil if the constructor failed, or else an object of class c"
   ;; FIXME - this is slow and uses eval; there must be a better way
   ([^Class c s]
-     (try (eval (list 'new (symbol (.getName c)) s))
+     (try (eval (list 'new (symbol (.getName c))
+                      s))
           (catch Exception e))))
 
 (defn form
@@ -237,6 +238,18 @@
   ([window-name submit-name x y & args]
      (let [state (atom {})
            finished-flag (promise)
+           ftf-with-buttons
+           (fn [^JFormattedTextField ftf spec]
+             (let [buttons (map (fn [b]
+                                  (button
+                                   (:label b)
+                                   (action-listener [ae]
+                                     (let [new-val ( (:swap-val b)
+                                                     (.getValue ftf))]
+                                       (.setValue ftf new-val)))))
+                                (:buttons spec))]
+               (apply panel (flow-layout :left)
+                      ftf buttons)))
            ;; components is a seq of Component/GridBagConstraint pairs
            components
            (reduce
@@ -247,25 +260,27 @@
                           :entry
                           [ [ (label (:label spec))
                               (grid-bag-pos 0 row 1 :east)]
-                            [ (formatted-text
-                               (live-formatter (:class spec))
-                               (:width spec)
-                               (document-listener [de ftf]
-                                 (swap! state assoc output-key
-                                        (.getValue ftf)))
-                               (:default spec))
-                              (grid-bag-pos 1 row 1 :west)]]
-                          :live-label-entry
-                          (let [ol (label "")]
-                            [ [ (label (:label spec))
-                                (grid-bag-pos 0 row 1 :east)]
-                              [ (formatted-text
-                                 (if (:validator spec)
+                            (let [ftf
+                                  (formatted-text
                                    (validated-live-formatter
-                                     (:class spec)
-                                     (:validator spec)
-                                     (:modifier spec))
-                                   (live-formatter (:class spec)))
+                                      (:class spec)
+                                      (:validator spec)
+                                      (:modifier spec))
+                                   (:width spec)
+                                   (document-listener [de ftf]
+                                     (swap! state assoc output-key
+                                            (.getValue ftf)))
+                                   (:default spec))]
+                              [ (ftf-with-buttons ftf spec)
+                                (grid-bag-pos 1 row 1 :west)])]
+                          :live-label-entry
+                          (let [ol (label "")
+                                ftf
+                                (formatted-text
+                                 (validated-live-formatter
+                                    (:class spec)
+                                    (:validator spec)
+                                    (:modifier spec))
                                  (:width spec)
                                  (document-listener [de ftf]
                                    (swap! state assoc output-key
@@ -278,13 +293,19 @@
                                              t ( (:live-text spec)
                                                  v)]
                                             (.setText ol t)))
-                                 (:default spec))
+                                 (:default spec))]
+                            [ [ (label (:label spec))
+                                (grid-bag-pos 0 row 1 :east)]
+                              [ (ftf-with-buttons ftf spec)
                                 (grid-bag-pos 1 row 1 :west)]
                               [ol (grid-bag-pos 1 (inc row)
-                                                1 :west)]]))
+                                                1 :west)]])
+                          :label
+                          [ [ (label (:label spec))
+                              (grid-bag-pos 0 row 2 :west)]])
                     rows-used
                     (case (:type spec)
-                          :entry 1
+                          (:entry :label) 1
                           :live-label-entry 2)]
                 [ (+ row rows-used)
                   (reduce conj components new-components)]))
@@ -345,11 +366,32 @@
      (form "form test 1"
            "do the thing"
            700 400
-           :magic {:label "Quantity of magic to use"
-                   :type :entry
-                   :class Double
-                   :width 250}
-           :level {:label "Level"
+           :game-seed {:label "Game seed (text or number)"
+                       :type :live-label-entry
+                       :class Long
+                       :buttons [{:label "randomize"
+                                  :swap-val (fn [_]
+                                              (-> (bit-shift-left
+                                                   1 48)
+                                                  rand long))}]
+                       :live-text (fn [v]
+                                    (str "Numeric value: " v))
+                       :width 250}
+           :cave-seed {:label "Cavern seed (text or number)"
+                       :type :live-label-entry
+                       :class Long
+                       :buttons [{:label "randomize"
+                                  :swap-val (fn [_]
+                                              (-> (bit-shift-left
+                                                   1 48)
+                                                  rand long))}]
+                       :live-text (fn [v]
+                                    (str "Numeric value: " v))
+                       :width 250}
+           nil {:label (str "Recommended level range: 15-20 for"
+                            " hardcore mode, 18-25 for non-hardcore mode")
+                :type :label}
+           :level {:label "Level (0-100)"
                    :type :live-label-entry
                    :class Double
                    :width 250
