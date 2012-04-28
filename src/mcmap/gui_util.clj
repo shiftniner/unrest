@@ -199,7 +199,8 @@
              (stringToValue [s]
                (let [this ^DefaultFormatter this
                      v (proxy-super stringToValue s)]
-                 (if (v-fn v)
+                 (if (or (not v-fn)
+                         (v-fn v))
                    (if mod-fn
                      (mod-fn v)
                      v)
