@@ -1,8 +1,7 @@
 (ns mcmap.util
   (:import java.text.SimpleDateFormat
            java.util.Date
-           java.io.BufferedReader
-           java.io.InputStreamReader))
+           [java.io BufferedReader InputStreamReader]))
 
 (set! *warn-on-reflection* true)
 
