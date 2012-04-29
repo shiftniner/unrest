@@ -8,7 +8,8 @@
                         JFormattedTextField$AbstractFormatter
                         JFormattedTextField$AbstractFormatterFactory
                         JLabel JSeparator JCheckBox
-                        event.DocumentListener event.DocumentEvent]
+                        event.DocumentListener event.DocumentEvent
+                        SwingUtilities]
            [java.awt FlowLayout Component Dimension GridBagLayout
                      GridBagConstraints Window]
            [java.text Format]))
@@ -17,6 +18,26 @@
 ;;; sort of halfway functional
 
 (set! *warn-on-reflection* true)
+
+(defmacro in-swing-thread
+  "Evaluates the given forms in the Swing event dispatching thread and
+  returns the result; catches exceptions from the Swing thread and
+  rethrows them in the current thread
+
+  See
+  http://docs.oracle.com/javase/6/docs/api/javax/swing/package-summary.html#threading
+  for rationale"
+  ([& forms]
+     `(let [result# (promise)]
+       (SwingUtilities/invokeLater
+        #(try
+           (let [r# (do ~@forms)]
+             (deliver result# {:return r#}))
+           (catch Exception e#
+             (deliver result# {:exception e#}))))
+       (when-let [e# (:exception @result#)]
+         (throw e#))
+       (:return @result#))))
 
 (defn action-listener-fn
   "Takes a fn of one argument (a java.awt.event.ActionEvent) and
@@ -80,7 +101,6 @@
      (fn [w]
        (proxy [Object WindowListener]
            []
-         #_(windowClosed  [x] (f x w))
          (windowClosing [x] (f x w))))))
 
 (defmacro window-close-listener
@@ -161,15 +181,16 @@
   preferably opaque), and a java.awt.event.WindowListener, and returns
   a JFrame"
   (^JFrame [n x y c wl]
-     (let [fr (JFrame. ^String n)]
-       (.setContentPane fr c)
-       (let [preferred-size (.getPreferredSize fr)
-             x (or x (.width  preferred-size))
-             y (or y (.height preferred-size))]
-         (.setSize fr x y))
-       (.setVisible fr true)
-       (.addWindowListener fr (wl fr))
-       fr)))
+     (in-swing-thread
+      (let [fr (JFrame. ^String n)]
+        (.setContentPane fr c)
+        (let [preferred-size (.getPreferredSize fr)
+              x (or x (.width  preferred-size))
+              y (or y (.height preferred-size))]
+          (.setSize fr x y))
+        (.setVisible fr true)
+        (.addWindowListener fr (wl fr))
+        fr))))
 
 (defn formatted-text
   "Takes a java.text.Format or a JFormattedTextField.AbstractFormatter,
@@ -339,6 +360,8 @@
                                                     (all-text-of-document
                                                      (.getDocument de)))
                                                    (.getValue ftf))
+                                             _ (or (not (:validator spec))
+                                                   ( (:validator spec) v))
                                              t ( (:live-text spec)
                                                  v)]
                                             (.setText ol t)))
