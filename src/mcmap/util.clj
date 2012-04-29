@@ -1,7 +1,7 @@
 (ns mcmap.util
   (:import java.text.SimpleDateFormat
            java.util.Date
-           [java.io BufferedReader InputStreamReader]))
+           [java.io BufferedReader InputStreamReader File]))
 
 (set! *warn-on-reflection* true)
 
@@ -308,3 +308,8 @@
           (concat (map first ss)
                   (apply exhaustive-interleave
                          (map rest ss))))))))
+
+(defn dir-exists
+  "Returns true if a directory with the given pathname exists"
+  ([p]
+     (.isDirectory (File. ^String p))))
