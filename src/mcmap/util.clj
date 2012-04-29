@@ -161,7 +161,10 @@
 (defn transition
   "Returns a seq of n duplicates of the two given items, starting at
   100% item a, and gradually including increasing amounts of item b,
-  ending at 100% item b"
+  ending at 100% item b; seq is typically not symmetric and will
+  include more than half of item a whether n is even or odd"
+  ;; Yes, the latter caveat could easily be improved upon, but it
+  ;; would change map generation, and is just not necessary
   ([n a b]
      (transition n a b n 0))
   ([n a b n-max balance]
