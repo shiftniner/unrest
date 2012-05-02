@@ -7,7 +7,7 @@
                         text.Document
                         JFormattedTextField$AbstractFormatter
                         JFormattedTextField$AbstractFormatterFactory
-                        JLabel JSeparator JCheckBox
+                        JLabel JSeparator JCheckBox JComboBox
                         event.DocumentListener event.DocumentEvent
                         SwingUtilities]
            [java.awt FlowLayout Component Dimension GridBagLayout
@@ -139,6 +139,24 @@
                              (action-fn (.isSelected cb))))
        cb)))
 
+(defn combo-box
+  "Takes choices in the form of a vector of an even number of elements
+  (strings to show in the combo-box alternating with values to
+  return), a fn of one argument that will be called with the selected
+  value any time it changes, and an initial selection (which must be
+  present in the given map), and returns a JComboBox"
+  ([choices action-fn init-str]
+     (let [cb (JComboBox.)
+           strs (take-nth 2 choices)
+           str->val (apply hash-map choices)]
+       (doseq [s strs]
+         (.addItem cb s))
+       (.addActionListener cb
+                           (action-listener [_]
+                             (action-fn (str->val (.getSelectedItem cb)))))
+       (.setSelectedItem cb init-str)
+       cb)))
+
 (defn flow-layout
   "Takes a keyword (:left, :right, :center, :leading, or :trailing),
   and returns the corresponding java.awt.FlowLayout"
@@ -189,7 +207,8 @@
               y (or y (.height preferred-size))]
           (.setSize fr x y))
         (.setVisible fr true)
-        (.addWindowListener fr (wl fr))
+        (when wl
+          (.addWindowListener fr (wl fr)))
         fr))))
 
 (defn formatted-text
@@ -388,12 +407,20 @@
                                           (swap! state assoc output-key
                                                  pressed))
                                         (:default spec))
+                              (grid-bag-pos 1 row 1 :west)]]
+                          :combo-box
+                          [ [ (label (:label spec))
+                              (grid-bag-pos 0 row 1 :east)]
+                            [ (combo-box (:choices spec)
+                                         (fn [selected]
+                                           (swap! state assoc output-key
+                                                  selected))
+                                         (:default spec))
                               (grid-bag-pos 1 row 1 :west)]])
                     rows-used
                     (case (:type spec)
-                          (:entry :label :horizontal-line :space
-                           :checkbox) 1
-                          :live-label-entry 2)]
+                          :live-label-entry 2
+                          1)]
                 [ (+ row rows-used)
                   (reduce conj components new-components)]))
             [0 []]
