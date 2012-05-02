@@ -98,6 +98,13 @@
        (java.util.Collections/shuffle al r)
        (clojure.lang.RT/vector (.toArray al)))))
 
+(defn sround
+  "Rounds the given n up with probability n-floor(n) (otherwise down),
+  using the given seed and salts"
+  ([n seed & salts]
+     (let [r (apply srand 1 seed salts)]
+       (int (Math/floor (+ n r))))))
+
 ;;; The below functions are for generating non-deterministic random
 ;;; seeds; there is no need to preserve behavior, so any flaws in the
 ;;; algorithm may be corrected.
