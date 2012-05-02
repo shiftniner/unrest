@@ -109,7 +109,13 @@
                                           (str "Note: Level " v
                                                " is extremely hard")
                                         :else
-                                          " "))}
+                                        " "))}
+             :size {:label "Map size"
+                    :type :combo-box
+                    :choices ["Normal (2-5 hours)"   :normal
+                              "Small (1-2 hours)"    :small
+                              "Tiny (30-60 minutes)" :tiny]
+                    :default "Normal (2-5 hours)"}
              :hardcore {:label "Hardcore mode"
                         :type :checkbox}
              :creative {:label "Creative mode"
@@ -129,8 +135,9 @@
 
 (defmacro with-mapgen-progress-bar
   "Evaluates the given forms with *out* passing through a parser that
-  finds signs of map-generation progress and estimates the time
-  remaining"
+  finds signs of map-generation progress, estimates the time
+  remaining, and provides a cancel button that immediately exits the
+  application"
   ([& forms]
      ;; TODO
      `(do ~@forms)))
@@ -139,9 +146,18 @@
   ([& args]
      (if-let [form-data (map-form)]
        (let [gen-fn record-quest-map
+             [n-caves n-dungeons map-side map-height]
+               ( {:normal [15 64 256 128]
+                  :small  [6  25 192  96]
+                  :tiny   [3  13 160  70]}
+                 (:size form-data))
              opts {:level-name (:save-name form-data)
                    :creative   (:creative  form-data)
-                   :hardcore   (:hardcore  form-data)}]
+                   :hardcore   (:hardcore  form-data)
+                   :n-caves    n-caves
+                   :n-dungeons n-dungeons
+                   :map-side   map-side
+                   :map-height map-height}]
          (with-mapgen-progress-bar
            (gen-fn (numericize-seed (:game-seed form-data))
                    (numericize-seed (:cave-seed form-data))
