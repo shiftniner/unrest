@@ -313,10 +313,13 @@
 (defn try-format
   "Tries to parse the given string into an object of the given class;
   returns nil if the constructor failed, or else an object of class c"
-  ;; FIXME - this is slow and uses eval; there must be a better way
   ([^Class c s]
-     (try (eval (list 'new (symbol (.getName c))
-                      s))
+     ;; In case the clojure.lang.Compiler hack breaks, use the eval,
+     ;; which is equivalent but approximately 1000 times slower.
+     (try (.eval (clojure.lang.Compiler$NewExpr. c
+                    [(clojure.lang.Compiler/analyze nil s)] 0))
+          #_(eval (list 'new (symbol (.getName c))
+                        s))
           (catch Exception e))))
 
 (defn form
