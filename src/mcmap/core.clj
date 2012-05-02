@@ -926,8 +926,9 @@
   <byte-buffer>"
   ([mmcmap x z]
      (pfor [chunk-x (range 32) chunk-z (range 32)
-            mcmap (:mcmaps mmcmap)
-            :when (chunk-in-mcmap? mcmap x z chunk-x chunk-z)]
+            mcmap (take 1 (filter #(chunk-in-mcmap? % x z chunk-x
+                                                    chunk-z)
+                                  (:mcmaps mmcmap)))]
        (extract-chunk mcmap x z chunk-x chunk-z))))
 
 (defn mmcmap-to-anvil-chunks
@@ -936,8 +937,9 @@
   <byte-buffer>"
   ([mmcmap x z]
      (pfor [chunk-x (range 32) chunk-z (range 32)
-            mcmap (:mcmaps mmcmap)
-            :when (chunk-in-mcmap? mcmap x z chunk-x chunk-z)]
+            mcmap (take 1 (filter #(chunk-in-mcmap? % x z chunk-x
+                                                    chunk-z)
+                                  (:mcmaps mmcmap)))]
        (extract-anvil-chunk mcmap x z chunk-x chunk-z))))
 
 (defn locations
