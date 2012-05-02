@@ -11,17 +11,14 @@
   ([max-dim min-dim]
      (octree max-dim min-dim 0 0 0))
   ([max-dim min-dim x0 y0 z0]
-     (let [point-size (first (drop-while #(> % 1)
-                                         (iterate #(/ % 2) max-dim)))]
-       (when (not= 1 point-size)
-         (throw (RuntimeException. (str "size " max-dim
-                                        " is not a power of two")))))
-     {:max-dim max-dim
-      :min-dim min-dim
-      :x0 x0, :y0 y0, :z0 z0
-      :size max-dim
-      :nodes [nil nil nil nil nil nil nil nil]
-      :contents nil}))
+     (let [max-dim (first (drop-while #(< % max-dim)
+                                      (iterate #(* % 2) 1)))]
+       {:max-dim max-dim
+        :min-dim min-dim
+        :x0 x0, :y0 y0, :z0 z0
+        :size max-dim
+        :nodes [nil nil nil nil nil nil nil nil]
+        :contents nil})))
 
 (defn- add-to-contents
   "Given an octree node and an object, returns an octree node with the
