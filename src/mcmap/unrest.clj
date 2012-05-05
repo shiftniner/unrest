@@ -294,7 +294,10 @@
                                             (< r 0.012) uncommon-wall
                                             :else       cavern-wall))
                                          ze))))
-           main-mcmap (gen-mcmap max-x (+ max-y 16) max-z generator)
+           main-mcmap (gen-mcmap max-x
+                                 (* 16 (int (/ (+ max-y 16)
+                                               16)))
+                                 max-z generator)
            _ (msg 0 "Counting spawners ...")
            _ (count-spawners (:block-zone main-mcmap))
            buffer-mcmap (gen-mcmap 128 96 128, -128 -128
@@ -303,15 +306,17 @@
                                        (mem-mc-block
                                         :smooth-stone-half-slab)
                                        :bedrock)))
-           buffer-mcmaps (for [x0 (range -128 257 128)
-                               z0 (range -128 257 128)
-                               :when (not (and (<= 0 x0 255)
-                                               (<= 0 z0 255)))]
-                           (dup-mcmap buffer-mcmap x0 z0))
-           mmcmap (mcmaps-to-mmcmap (cons main-mcmap buffer-mcmaps))
-           start-y (+ 2 (map-height epic-zone
-                                    (int start-x)
-                                    (int start-z)))]
+           buffer-mcmaps (list*
+                          (dup-mcmap buffer-mcmap -128 -128)
+                          (dup-mcmap buffer-mcmap -128 max-z)
+                          (dup-mcmap buffer-mcmap max-x -128)
+                          (dup-mcmap buffer-mcmap max-x max-z)
+                          (forcat [n (range -128 (+ 127 max-dim) 128)]
+                                  [ (dup-mcmap buffer-mcmap n -128)
+                                    (dup-mcmap buffer-mcmap -128 n)
+                                    (dup-mcmap buffer-mcmap n max-z)
+                                    (dup-mcmap buffer-mcmap max-x n)]))
+           mmcmap (mcmaps-to-mmcmap (cons main-mcmap buffer-mcmaps))]
        (.mkdirs (File. (str save-dir "/region")))
        (write-file (str save-dir "/parameters.txt")
                    (-> (str "quest chests: " (pr-str quest-chests) "\n"
