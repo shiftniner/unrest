@@ -178,7 +178,10 @@
                                 2 [0  6]
                                 3 [-1 0])]
          [ (translate-dungeon hall-dungeon xoff yoff zoff)
-           xd yd zd dungeon-orientation])
+           (+ xoff xd)
+           (+ yoff yd)
+           (+ zoff zd)
+           dungeon-orientation])
        hallway)))
 
 (defn pick-hallway
