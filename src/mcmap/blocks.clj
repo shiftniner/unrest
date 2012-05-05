@@ -47,6 +47,8 @@
                                  :obsidian
                                  :diamond-ore
                                  :diamond-block
+                                 :redstone-ore
+                                 :glowing-redstone-ore
                                  :snow-block
                                  :pumpkin
                                  :glowstone
@@ -200,6 +202,8 @@
               :cobble-stairs          67
               :wall-sign              68
               :wood-pressure-plate    72
+              :redstone-ore           73
+              :glowing-redstone-ore   74
               :redstone-torch-off     75
               :redstone-torch-on      76
               :button                 77
