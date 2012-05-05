@@ -16,6 +16,8 @@
 
 (def +min-start-height+ 63)
 
+(def +default-n-dungeons+ 64)
+
 (defn distribute-prizes
   "Takes a seq of one or more chest content seqs, a seq of hallways,
   and a maximum y coordinate, and returns a seq of :prize values to be
@@ -124,6 +126,24 @@
            (tag-int "rainTime" 20)
            (tag-int "generatorVersion" 1)])])))
 
+(defn add-more-chests
+  "Takes a maximum dimension and a seq of non-intersecting dunhalls,
+  followed by any number of argument pairs each consisting of
+  near-unlimited seqs of possibly-intersecting chest dunhalls and the
+  number of non-intersecting ones to add from that seq, and returns a
+  seq of non-intersecting dunhalls including chests"
+  ([max-dim nid]
+     nid)
+  ([max-dim nid id n & more]
+     (let [n-nid (count nid)
+           n-tot (+ n-nid n)]
+       (apply add-more-chests
+              max-dim
+              (take n-tot
+                    (non-intersecting-dunhalls (concat nid id)
+                                               max-dim))
+              more))))
+
 (defn bedrock-height
   "Given a block zone and x and z coordinates, returns the y
   coordinate of the highest bedrock block at that x and z"
@@ -193,36 +213,9 @@
            prizes (distribute-prizes quest-chests
                                      (map second dunhalls)
                                      max-y)
-           torch-chests (add-chests epic-zone 1000
-                                    (prize-items -1 :torch)
-                                    ["" "Torches"]
-                                    (rand-place-fn max-x (- max-y 5)
-                                                   max-z)
-                                    (reseed seed 2))
-           rail-chests (add-chests epic-zone 1000
-                                   (prize-items +chest-slots+
-                                                -1/100 :minecart
-                                                -4 :powered-rail
-                                                -4 :redstone-torch-on
-                                                -1/100 :button
-                                                -1/100 :detector-rail
-                                                -1/100 :redstone-dust
-                                                -20 :rail)
-                                   (str "Catch a riiiiiiiiiiiiiiiiiiiii"
-                                        "iiiiide?")
-                                   (rand-place-fn max-x (- max-y 15)
-                                                  max-z)
-                                   (reseed seed 3))
-           dunhalls (vtake (+ 128 n-dungeons)
-                           64 "Dungeons/torch chests: %d"
-                           (non-intersecting-dunhalls
-                            (concat dunhalls
-                                    (interleave-n 3 torch-chests
-                                                  1 rail-chests))
-                            max-dim))
+           _ (msg 3 "Rendering dungeons ...")
            dungeons (map first dunhalls)
            hallways (map second dunhalls)
-           _ (msg 3 "Rendering dungeons ...")
            _ (dorun (pmap render-dungeon
                           (apply concat dunhalls)
                           (dup-seq
@@ -243,8 +236,87 @@
                                      :prize prize}))
                                 hallways dungeons (concat prizes
                                                           (repeat nil))))))
-           _ (msg 3 (str "Got " (count actual-dungeons) " dungeons"))
+           torch-chests (add-chests epic-zone 1000
+                                    (prize-items -1 :torch)
+                                    ["" "Torches"]
+                                    (rand-place-fn max-x (- max-y 5)
+                                                   max-z)
+                                    (reseed seed 2))
+           rail-chests (add-chests epic-zone 1000
+                                   (prize-items +chest-slots+
+                                                -1/100 :minecart
+                                                -4 :powered-rail
+                                                -4 :redstone-torch-on
+                                                -1/100 :button
+                                                -1/100 :detector-rail
+                                                -1/100 :redstone-dust
+                                                -20 :rail)
+                                   (str "Catch a riiiiiiiiiiiiiiiiiiiii"
+                                        "iiiiide?")
+                                   (rand-place-fn max-x (- max-y 15)
+                                                  max-z)
+                                   (reseed seed 3))
+           worchbench-chests (add-chests epic-zone 1000
+                                         (prize-items +chest-slots+
+                                                      1 :air
+                                                      4 :wood-double-slab)
+                                         ["" "Worchbench" "level 40"]
+                                         (rand-place-fn max-x (/ max-y 2)
+                                                        max-z)
+                                         (reseed seed 4))
+           bucket-chests (add-chests epic-zone 1000
+                                     (prize-items +chest-slots+
+                                                  1 :air
+                                                  2 :iron-ingot
+                                                  1 :air
+                                                  1 :iron-ingot)
+                                     ["" "Free" "bucket"]
+                                     (rand-place-fn max-x (/ max-y 2)
+                                                    max-z)
+                                     (reseed seed 5))
+           sapling-chests (add-chests epic-zone 1000
+                                      (prize-items +chest-slots+
+                                                   1 :dead-bush
+                                                   3 :air
+                                                   1 :fire)
+                                      ["" "Sapling" "incubator"]
+                                      (rand-place-fn max-x (/ max-y 2)
+                                                     max-z)
+                                      (reseed seed 6))
+           saddle-chests (add-chests epic-zone 1000
+                                     (prize-items 1 :saddle)
+                                     ["" "Win the game"]
+                                     (rand-place-fn max-x (/ max-y 2)
+                                                    max-z)
+                                     (reseed seed 6))
+           dunhalls (add-more-chests max-dim
+                                     dunhalls
+                                     torch-chests
+                                     (sround (* 96 cavern-size-factor)
+                                             seed cavern-seed 1)
+                                     rail-chests
+                                     (sround (* 32 cavern-size-factor)
+                                             seed cavern-seed 2)
+                                     worchbench-chests
+                                     (sround (* 3 cavern-size-factor)
+                                             seed cavern-seed 3)
+                                     bucket-chests
+                                     (sround (* 3 cavern-size-factor)
+                                             seed cavern-seed 4)
+                                     sapling-chests
+                                     (sround (* 2 cavern-size-factor)
+                                             seed cavern-seed 5)
+                                     saddle-chests
+                                     (sround (* 2 cavern-size-factor)
+                                             seed cavern-seed 6))
+           _ (msg 3 "Got " (count actual-dungeons) " dungeons")
+           _ (dorun (pmap render-dungeon
+                          (apply concat (drop (count actual-dungeons)
+                                              dunhalls))
+                          (repeat {})))
            _ (msg 3 "Placing dungeons and hallways ...")
+           dungeons (map first dunhalls)
+           hallways (map second dunhalls)
            epic-zone (place-dungeons epic-zone dungeons hallways)
            _ (msg 3 "Adding crisp bedrock crust ...")
            bedrock-generator (fn [x y z]
