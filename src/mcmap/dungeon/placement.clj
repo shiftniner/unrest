@@ -163,12 +163,30 @@
   ([octree d1 d2 & more]
      (reduce oct-assoc-dungeon octree (list* d1 d2 more))))
 
+(defn offset-hallway
+  "Takes a flag indicating whether to offset the given hallway, an
+  orientation, and a hallway ([hallway-dungeon xd yd zd orientation]),
+  and returns a hallway translated to align properly with an air
+  finder position"
+  ([offset? ^long orientation hallway]
+     (if offset?
+       (let [ [hall-dungeon xd yd zd dungeon-orientation] hallway
+              yoff -1
+              [xoff zoff] (case orientation
+                                0 [5 -1]
+                                1 [6  5]
+                                2 [0  6]
+                                3 [-1 0])]
+         [ (translate-dungeon hall-dungeon xoff yoff zoff)
+           xd yd zd dungeon-orientation])
+       hallway)))
+
 (defn pick-hallway
   "Given a _dungeon_ orientation (not necessarily the orientation at
   which the player will enter the hallway), seed, and salt, returns a
   randomly-chosen hallway (in dungeon form), and x, y, and z deltas
   from traveling through the hallway, as [hallway xd yd zd]"
-  ([orientation seed salt]
+  ([orientation seed salt offset?]
      (let [len (int (snorm [10 10 5] seed salt))
            orientation (int orientation)
            ;; These blocks need to be determined at render time based
@@ -185,32 +203,36 @@
                    3 [0 (- len) 0 (- len)])
            yd 0
            p (promise)]
-       [ [(fn [params]
-            (let [zone-fn (case orientation
-                                (0 2) (fn [x y z]
-                                        (hall-fn z y x params seed salt))
-                                (1 3) (fn [x y z]
-                                        (hall-fn x y z params seed salt)))]
-              (deliver p
-                       (gen-mcmap-zone x-dim y-dim z-dim zone-fn))))
-          (Box. x0 0 z0
-                x-dim y-dim z-dim
-                p
-                nil
-                {:axis (case orientation
-                             (0 2) :x
-                             (1 3) :z)
-                 :range (case orientation
-                              (0 1) (range len)
-                              (2 3) (range (dec len) -1 -1))})]
-         xd yd zd orientation])))
+       (offset-hallway
+        offset? orientation
+        [ [(fn [params]
+             (let [zone-fn (case orientation
+                                 (0 2) (fn [x y z]
+                                         (hall-fn z y x params seed salt))
+                                 (1 3) (fn [x y z]
+                                         (hall-fn x y z params seed salt)))]
+               (deliver p
+                        (gen-mcmap-zone x-dim y-dim z-dim zone-fn))))
+           (Box. x0 0 z0
+                 x-dim y-dim z-dim
+                 p
+                 nil
+                 {:axis (case orientation
+                              (0 2) :x
+                              (1 3) :z)
+                  :range (case orientation
+                               (0 1) (range len)
+                               (2 3) (range (dec len) -1 -1))})]
+          xd yd zd orientation]))))
 
 (defn pick-joint
   "Given an exit orientation, seed, and salt, returns either a
   leftward bending joint or a rightward bending joint hallway, the
   entry orientation, and the x, y, and z deltas from traveling through
   the joint, as [hallway xd yd zd orientation]"
-  ([orientation seed salt]
+  ([orientation seed salt offset?]
+     (when offset?
+       (die "pick-joint can only be called with offset? false"))
      (let [orientation (int orientation)
            dir (sranditem [:left :right] seed salt)
            entry-orientation (mod ( (if (= :left dir) inc dec)
@@ -272,7 +294,9 @@
   or downward staircase hallway, the entry orientation, and the x, y,
   and z deltas from traveling through the hallway, as [hallway xd yd
   zd orientation]"
-  ([orientation seed salt]
+  ([orientation seed salt offset?]
+     (when offset?
+       (die "pick-stair can only be called with offset? false"))
      (let [dir (sranditem [:up :down] seed salt)
            len (int (snorm [10 10 3] seed salt))
            orientation (int orientation)
@@ -358,7 +382,9 @@
 (defn pick-complex-hallway
   "Given an exit orientation, seed, and salt, returns a hallway
   composed of one or more segments"
-  ([orientation seed salt]
+  ([orientation seed salt offset?]
+     (when-not offset?
+       (die "pick-complex-hallway can only be called with offset? true"))
      (let [n-segments (+ 4 (int (srand 7 seed salt 1)))
            segment-fns (uniq (concat [pick-hallway]
                                      (map #(sranditem [pick-hallway
@@ -370,7 +396,7 @@
            octree-size 256
            octree-offset (/ octree-size -2)
            first-segment ( (first segment-fns)
-                           orientation (reseed seed salt 3) 1)
+                           orientation (reseed seed salt 3) 1 false)
            oct-offset (map - (take 3 (rest first-segment)))
            placed-first-segment (apply translate-dungeon
                                        (first first-segment)
@@ -386,16 +412,16 @@
               oct-offset oct-offset
               i 4]
          (if-not (seq segment-fns)
-           hallway
+           (offset-hallway offset? orientation hallway)
            (let [new-segment ( (first segment-fns)
-                               orientation (reseed seed salt i) 1)
+                               orientation (reseed seed salt i) 1 false)
                  oct-offset (map - oct-offset (take 3 (rest new-segment)))
                  placed-new-segment (apply translate-dungeon
                                            (first new-segment)
                                            oct-offset)]
              (if (dungeon-intersects-octree? segment-tree
                                              placed-new-segment)
-               hallway
+               (offset-hallway offset? orientation hallway)
                (recur (rest segment-fns)
                       (oct-assoc-dungeon segment-tree placed-new-segment)
                       (join-hallways new-segment hallway)
@@ -409,7 +435,7 @@
   succeeds"
   ([dungeon zone accept-fn pick-place-fn seed salt]
      (let [ [xt yt zt orientation] (pick-place-fn seed salt)
-            hallvect (pick-hallway orientation seed salt)
+            hallvect (pick-hallway orientation seed salt true)
             [hallway xh yh zh] hallvect
             ;; Only really need to check the surfaces of the boxes
             blocks-to-check (dungeon-filling-seq dungeon orientation
@@ -455,17 +481,11 @@
                              ( #{:air}
                                (zone-lookup zone (+ x x0) (+ y y0) (+ z z0))))
                            air-check-seq)
-                     (let [ [x-offset z-offset]
-                              (case orientation
-                                    0 [2 -1]
-                                    1 [6  2]
-                                    2 [3  6]
-                                    3 [-1 3])]
-                       [(+ x0 x-offset) (dec y0) (+ z0 z-offset) orientation])
+                     [x0 y0 z0 orientation]
                    (pos? salt2)
                      (recur (dec salt2))
                    :else
-                     (throw (RuntimeException. "air-finder failed")))))))))
+                     nil)))))))
 
 (defn new-air-finder
   ([zone seed & salts]
@@ -568,7 +588,7 @@
        (when (< salt +dungeon-placement-retries+)
          (let [dungeon-name (sranditem d-names seed salt 1)]
            (if-let* [ [ex ey ez eo] (entrance-finder zone seed salt 2)
-                      [hall hx hy hz] (hall-chooser eo seed salt)
+                      [hall hx hy hz] (hall-chooser eo seed salt true)
                       dungeon (apply get-dungeon dungeon-name (+ ey hy)
                                      (reseed seed salt 3)
                                      dg-args)
@@ -1067,3 +1087,31 @@
            [h hx hy hz o] (reduce join-hallways [h3 hj2 h2 hj1 h1])]
        (translate-dungeon h (- (dungeon-min-x h))
                           0 0))))
+
+(defn placement-exercise-6
+  "Fixing alignment of entrances to hallways with the blocks of air
+  found by air-finder"
+  ([seed]
+     (let [chunks 4
+           max-x (* chunks 16)
+           max-y 64
+           max-z (* chunks 16)
+           [epz start-x start-z]
+               (binding [*min-spiral-radius* 16]
+                 (epic-cave-network 1 max-x max-y max-z seed {}))
+           [ex ey ez eo] (new-air-finder epz seed 2)
+           _ (msg 0 "orientation: " eo)
+           [hall hx hy hz] (pick-complex-hallway eo seed 3 true)
+           placed-hall (translate-dungeon hall ex ey ez)
+           _ (render-dungeon placed-hall {:pain 0.02})
+           epz (place-dungeons epz [placed-hall] [+null-dungeon+])
+           air-marker (fn [x y z]
+                        (if (and (#{ex (+ ex 4)} x)
+                                 (#{ey (+ ey 4)} y)
+                                 (#{ez (+ ez 4)} z))
+                          (mc-block :glowstone)
+                          (let [ze (zone-lookup epz x y z)]
+                            (case ze
+                                  (:ground :cavern-wall) :redstone-ore
+                                  ze))))]
+       (generic-map-maker chunks max-y chunks air-marker))))
