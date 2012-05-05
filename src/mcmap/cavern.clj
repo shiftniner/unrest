@@ -225,6 +225,13 @@
                             (* z-chunks +chunk-side+)
                             generator)]
        (count-spawners (:block-zone mcmap))
+       (mcmap-to-mca-binary mcmap 0 0)))
+  ([x-chunks y-height z-chunks generator]
+     (let [mcmap (gen-mcmap (* x-chunks +chunk-side+)
+                            y-height
+                            (* z-chunks +chunk-side+)
+                            generator)]
+       (count-spawners (:block-zone mcmap))
        (mcmap-to-mca-binary mcmap 0 0))))
 
 (defn random-cave
