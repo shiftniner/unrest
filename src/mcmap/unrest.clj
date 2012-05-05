@@ -14,6 +14,8 @@
 
 (set! *warn-on-reflection* true)
 
+(def +min-start-height+ 63)
+
 (defn distribute-prizes
   "Takes a seq of one or more chest content seqs, a seq of hallways,
   and a maximum y coordinate, and returns a seq of :prize values to be
@@ -122,6 +124,15 @@
            (tag-int "rainTime" 20)
            (tag-int "generatorVersion" 1)])])))
 
+(defn bedrock-height
+  "Given a block zone and x and z coordinates, returns the y
+  coordinate of the highest bedrock block at that x and z"
+  ([zone x z]
+     (inc (or (first (filter #(= :bedrock (zone-lookup zone x % z))
+                             (range (dec (zone-y-size zone))
+                                    -1 -1)))
+              -1))))
+
 (defn quest-cavern-map
   "Given a seq of one or more chest content seqs describing quest
   items, a game seed, an optional separate cavern seed, a level, and a
@@ -131,8 +142,10 @@
      (quest-cavern-map quest-chests seed seed level save-dir options))
   ([quest-chests seed cavern-seed level save-dir options]
      (let [n-caves    (or (:n-caves    options) 15)
-           n-dungeons (or (:n-dungeons options) 64)
-           chunks 16
+           n-dungeons (or (:n-dungeons options) +default-n-dungeons+)
+           max-x      (or (:map-side   options) 256)
+           max-y      (or (:map-height options) 128)
+           max-z      (or (:map-side   options) 256)
            map-difficulty (/ level 100)
            start-difficulty (- 1 map-difficulty)
            cavern-wall   (mc-block :sandstone)
@@ -145,9 +158,9 @@
            reward-start (* 100 (dec (scale-pain reward-frac
                                                 (max 0.01 map-difficulty))))
 
-           max-x (* chunks +chunk-side+)
-           max-y 128
-           max-z (* chunks +chunk-side+)
+           cavern-size-factor (* (/ n-caves 15)
+                                 (/ max-y 128)
+                                 1.0)
            max-dim (max max-x max-y max-z)
            [epic-zone start-x start-z]
                (epic-cave-network n-caves max-x max-y max-z cavern-seed
@@ -246,11 +259,23 @@
            _ (msg 3 "Adding creamy middle ...")
            x-bound (dec max-x)
            z-bound (dec max-z)
+           int-start-x (int start-x)
+           int-start-z (int start-z)
+           height-at-spawn (map-height epic-zone int-start-x int-start-z)
+           bedrock-height-at-spawn (bedrock-height epic-zone int-start-x
+                                                   int-start-z)
+           start-y (+ 2 (max +min-start-height+ height-at-spawn))
            generator (fn [x y z]
                        (let [ze (when (< y max-y)
                                   (zone-lookup epic-zone x y z))
                              neighbors (neighbors-of epic-zone x y z)]
-                         (cond (>= y max-y)
+                         (cond (and (>= y bedrock-height-at-spawn)
+                                    (<= y +min-start-height+)
+                                    (< y start-y)
+                                    (= x int-start-x)
+                                    (= z int-start-z))
+                                 (mc-block :bedrock)
+                               (>= y max-y)
                                  (mc-block :air)
                                (or (zero? x) (zero? z)
                                    (= x-bound x) (= z-bound z))
