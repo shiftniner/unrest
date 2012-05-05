@@ -328,8 +328,18 @@
                    (gzip-compress (new-level-dat start-x start-y start-z
                                                  options))))))
 
-(def record-quest-map
-     "Given a game seed, optional separate cavern seed, level, and an
+(defn record-quest-map
+  "Given a game seed, optional separate cavern seed, level, and an
   existing Minecraft save directory (which will be overwritten)
-  generates a gold-record-quest game map"
-     (partial quest-cavern-map [(prize-items 1 :13-disc)]))
+  generates a record-quest game map"
+  ([& args]
+     (let [options (last args)
+           n-dungeons (or (:n-dungeons options)
+                          +default-n-dungeons+)
+           [record min-spiral-radius]
+             (cond (> n-dungeons 45) [:13-disc   8]
+                   (> n-dungeons 20) [:cat-disc  12]
+                   :else             [:mall-disc 16])]
+       (binding [*min-spiral-radius* min-spiral-radius]
+         (apply quest-cavern-map [(prize-items 1 record)]
+                args)))))
