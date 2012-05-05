@@ -112,10 +112,10 @@
                                         " "))}
              :size {:label "Map size"
                     :type :combo-box
-                    :choices ["Normal (2-5 hours)"   :normal
-                              "Small (1-2 hours)"    :small
-                              "Tiny (30-60 minutes)" :tiny]
-                    :default "Normal (2-5 hours)"}
+                    :choices ["Normal (2-8 hours)"   :normal
+                              "Small (1-3 hours)"    :small
+                              "Tiny (30-90 minutes)" :tiny]
+                    :default "Normal (2-8 hours)"}
              :hardcore {:label "Hardcore mode"
                         :type :checkbox}
              :creative {:label "Creative mode"
