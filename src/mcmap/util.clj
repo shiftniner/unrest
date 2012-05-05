@@ -313,3 +313,15 @@
   "Returns true if a directory with the given pathname exists"
   ([p]
      (.isDirectory (File. ^String p))))
+
+(defn mac-hint
+  "Type-hints a symbol in a macro"
+  ([sym c]
+     (with-meta sym {:tag c})))
+
+(defn objects
+  "Casts to Object[]"
+  {:inline (fn [xs]
+             (mac-hint xs "[Ljava.lang.Object;"))}
+  (^"[Ljava.lang.Object;" [xs]
+    xs))
