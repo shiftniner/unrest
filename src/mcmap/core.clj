@@ -21,6 +21,8 @@
 (def Infinity (- (Math/log 0)))
 (def +default-biome+ 2)
 
+(def ^:dynamic *map-gen-version* 1)
+
 (defn zone-x-size
   ([zone]
      (count zone)))

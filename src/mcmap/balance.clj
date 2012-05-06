@@ -4,6 +4,8 @@
 
 (set! *warn-on-reflection* true)
 
+(def ^:dynamic *balance-version* [1 2 5 :a])
+
 ;;; The good news.
 
 (def metaarmor
