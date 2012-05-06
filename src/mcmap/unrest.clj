@@ -155,12 +155,10 @@
 
 (defn quest-cavern-map
   "Given a seq of one or more chest content seqs describing quest
-  items, a game seed, an optional separate cavern seed, a level, and a
-  Minecraft save directory, creates an epic cave network and puts
-  dungeons in it, one or more of which have quest items"
-  ([quest-chests seed level save-dir options]
-     (quest-cavern-map quest-chests seed seed level save-dir options))
-  ([quest-chests seed cavern-seed level save-dir options]
+  items, a game seed, a cavern seed, a level, returns a generator for
+  an epic cave network with dungeons in it, one or more of which have
+  quest items"
+  ([quest-chests seed cavern-seed level options]
      (let [n-caves    (or (:n-caves    options) 15)
            n-dungeons (or (:n-dungeons options) +default-n-dungeons+)
            max-x      (or (:map-side   options) 256)
@@ -390,30 +388,46 @@
                                             (< r 0.002) rare-wall
                                             (< r 0.012) uncommon-wall
                                             :else       cavern-wall))
-                                         ze))))
-           main-mcmap (gen-mcmap max-x
-                                 (* 16 (int (/ (+ max-y 16)
-                                               16)))
-                                 max-z generator)
-           _ (msg 0 "Counting spawners ...")
-           _ (count-spawners (:block-zone main-mcmap))
-           buffer-mcmap (gen-mcmap 128 96 128, -128 -128
-                                   (fn [x y z]
-                                     (if (= y 95)
-                                       (mem-mc-block
-                                        :smooth-stone-half-slab)
-                                       :bedrock)))
-           buffer-mcmaps (list*
-                          (dup-mcmap buffer-mcmap -128 -128)
-                          (dup-mcmap buffer-mcmap -128 max-z)
-                          (dup-mcmap buffer-mcmap max-x -128)
-                          (dup-mcmap buffer-mcmap max-x max-z)
-                          (forcat [n (range -128 (+ 127 max-dim) 128)]
-                                  [ (dup-mcmap buffer-mcmap n -128)
-                                    (dup-mcmap buffer-mcmap -128 n)
-                                    (dup-mcmap buffer-mcmap n max-z)
-                                    (dup-mcmap buffer-mcmap max-x n)]))
-           mmcmap (mcmaps-to-mmcmap (cons main-mcmap buffer-mcmaps))]
+                                         ze))))]
+       [generator
+        max-x max-y max-z max-dim
+        start-x start-y start-z])))
+
+(defn write-quest-cavern-map
+  "Given a seq of one or more chest content seqs describing quest
+  items, a game seed, an optional separate cavern seed, a level, and a
+  Minecraft save directory, creates an epic cave network and puts
+  dungeons in it, one or more of which have quest items"
+  ([quest-chests seed level save-dir options]
+     (write-quest-cavern-map quest-chests seed seed level save-dir
+                             options))
+  ([quest-chests seed cavern-seed level save-dir options]
+     (let [ [generator max-x max-y max-z max-dim start-x start-y start-z]
+              (quest-cavern-map quest-chests seed cavern-seed level
+                                options)
+            main-mcmap (gen-mcmap max-x
+                                  (* 16 (int (/ (+ max-y 16)
+                                                16)))
+                                  max-z generator)
+            _ (msg 0 "Counting spawners ...")
+            _ (count-spawners (:block-zone main-mcmap))
+            buffer-mcmap (gen-mcmap 128 96 128, -128 -128
+                                    (fn [x y z]
+                                      (if (= y 95)
+                                        (mem-mc-block
+                                         :smooth-stone-half-slab)
+                                        :bedrock)))
+            buffer-mcmaps (list*
+                           (dup-mcmap buffer-mcmap -128 -128)
+                           (dup-mcmap buffer-mcmap -128 max-z)
+                           (dup-mcmap buffer-mcmap max-x -128)
+                           (dup-mcmap buffer-mcmap max-x max-z)
+                           (forcat [n (range -128 (+ 127 max-dim) 128)]
+                                   [ (dup-mcmap buffer-mcmap n -128)
+                                     (dup-mcmap buffer-mcmap -128 n)
+                                     (dup-mcmap buffer-mcmap n max-z)
+                                     (dup-mcmap buffer-mcmap max-x n)]))
+            mmcmap (mcmaps-to-mmcmap (cons main-mcmap buffer-mcmaps))]
        (.mkdirs (File. (str save-dir "/region")))
        (write-file (str save-dir "/parameters.txt")
                    (-> (str "quest chests: " (pr-str quest-chests) "\n"
@@ -443,5 +457,5 @@
                    (> n-dungeons 20) [:cat-disc  12]
                    :else             [:mall-disc 16])]
        (binding [*min-spiral-radius* min-spiral-radius]
-         (apply quest-cavern-map [(prize-items 1 record)]
+         (apply write-quest-cavern-map [(prize-items 1 record)]
                 args)))))
