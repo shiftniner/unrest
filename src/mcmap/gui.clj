@@ -7,14 +7,18 @@
 
 (set! *warn-on-reflection* true)
 
+(def +old-seed-min+ (- (bit-shift-left 1 (dec +seed-bits+))))
+
 (defn numericize-seed
   "Takes a string and returns it as a long if it is formatted as an
   integer between 0 and +seed-max+, or else converts it using
   make-seed"
   ([s]
      (if-let* [n (try-format Long s)
-               _ (< -1 n +seed-max+)]
-        n
+               _ (< (dec +old-seed-min+) n +seed-max+)]
+        (if (neg? n)
+          (mod n +seed-max+)
+          n)
         (make-seed s))))
 
 (def +host-os+
