@@ -325,3 +325,32 @@
              (mac-hint xs "[Ljava.lang.Object;"))}
   (^"[Ljava.lang.Object;" [xs]
     xs))
+
+;;; Borrowed from the Wikipedia page on Clojure; I can't take credit
+;;; for this -- hope the Wikipedia license is compatible with the EPL
+
+(def bit-bucket-writer
+     (proxy [java.io.Writer] []
+       (write [buf] nil)
+       (close []    nil)
+       (flush []    nil)))
+
+(defmacro noprint
+  "Evaluates the given expressions with all printing to *out* silenced."
+  [& forms]
+  `(binding [*out* bit-bucket-writer]
+     ~@forms))
+
+(defmacro bignum
+  "Returns the number whose decimal representation is the
+  concatenation of the decimal representations of the given numbers,
+  which must be compile-time constants"
+  ([& smallnums]
+     `(BigInteger. ~(apply str smallnums))))
+
+(defn set=
+  "Takes two collections and returns true if they have the same sets
+  of elements"
+  ([a b]
+     (= (set a)
+        (set b))))
