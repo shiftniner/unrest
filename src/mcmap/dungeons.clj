@@ -505,6 +505,11 @@
                        ["" "Life in a Glass House"]
                        (reseed seed 1))))))
 
+(defn dungeon-types
+  "Returns the available dungeon types"
+  ([]
+     (keys +dungeon-type-map+)))
+
 (defn get-dungeons
   "Returns a vector of keywords naming all dungeons of the given
   type"
