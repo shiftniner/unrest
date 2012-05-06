@@ -11,8 +11,8 @@
 ;;; outputs of #(srand 1 s1...sN %) for any series of seeds and salts
 ;;; s1...sN have a slight but statistically significant correlation.
 ;;; I intend not to fix this, because the results still look more than
-;;; good enough for my purposes, and I have already picked out some
-;;; epic-cave-network seeds I like.)
+;;; good enough for my purposes, and I don't want to break
+;;; compatibility with past outputs for a given seed.)
 
 ;;; Correct usage is to generate pseudorandom sequences by
 ;;; incrementing a salt, NOT by using value n as the seed to produce
