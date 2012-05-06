@@ -446,6 +446,8 @@
   ([n-caves max-x max-z seed opts]
      (epic-cave-network n-caves max-x +old-chunk-height+ max-z seed opts))
   ([n-caves max-x max-y max-z seed opts]
+     (when (< max-y 49)
+       (die "cave height " max-y " is below the minimum, 49"))
      (msg 1 "Generating cave network ...")
      (let [gen-twisted-cave #(twist-cave (random-cave max-x max-y max-z
                                                       (long
