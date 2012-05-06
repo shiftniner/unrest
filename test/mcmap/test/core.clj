@@ -1,5 +1,5 @@
 (ns mcmap.test.core
-  (:use [mcmap core cavern util balance toolkit dungeons blocks]
+  (:use [mcmap core cavern util balance toolkit dungeons blocks srand]
         [mcmap.dungeon build]
         [clojure.test]))
 
@@ -60,6 +60,50 @@
     (is (= (zone-checksum (gen-mcmap-zone 8 8 8 (fn [x y z] :a)))
            (bignum 7031538355156702668427685792414433255295429105897687
                    "0278235343144045588512257")))))
+
+(deftest prng
+  (testing "Testing the deterministic pseudorandom number generator"
+    (is (= (srand 1 1 1)
+           0.08155282211232773))
+    (is (= (srand 1 1 1 1)
+           0.35557215488548655))
+    (is (= (checksum-seq
+            (map #(hash (srand 1 2 %))
+                 (range 1000)))
+           (bignum 9824952054612774021870932819786049127345506123810497
+                   7485335467017169485807721)))
+    (is (= (checksum-seq
+            (map #(reseed 1 2 %)
+                 (range 1000)))
+           (bignum 7398901432784089773031875579681418679263958856023163
+                   1208839608935665604524691)))
+    (is (= (checksum-seq
+            (map #(hash (snorm [1.0 0.5 0.2 1.8] 1 2 %))
+                 (range 1000)))
+           (bignum 9180888462161956113035356052743695509081875512129894
+                   1983551021239782922593507)))
+    (is (= (checksum-seq
+            (map #(hash (sranditem [:a :b :c :d :e :f :g :h :i :j :k]
+                                   1 2 %))
+                 (range 1000)))
+           (bignum 3301869143399570609235029850189903263621321357006372
+                   8117672329456545254462345)))
+    (is (= (checksum-seq
+            (map #(hash (sshuffle [:a :b :c :d :e :f :g :h :i :j :k]
+                                  1 2 %))
+                 (range 1000)))
+           (bignum 4761875820561524687369556550649362716089672838199582
+                   "0633501087769515193280553")))
+    (is (= (checksum-seq
+            (map #(sround 1.1 2 %)
+                 (range 1000)))
+           (bignum 1095129250671158472754078507424360796771977470809572
+                   93054552138480518656813447)))
+    (is (= (checksum-seq
+            (map #(sround 1.8 2 %)
+                 (range 1000)))
+           (bignum 5173222064496105673860884757422854283652177484803608
+                   1134236686480364203114755)))))
 
 (deftest caverns
   (testing "Testing cavern generation"
