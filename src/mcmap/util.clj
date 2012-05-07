@@ -5,6 +5,11 @@
 
 (set! *warn-on-reflection* true)
 
+(defn pmapcat
+  "Parallel mapcat"
+  ([& args]
+     (apply concat (apply pmap args))))
+
 (defmacro forcat
   "Returns the result of applying concat to the result of the list
   comprehension (for args...)"
@@ -76,6 +81,16 @@
             (if (= result# ~false-sym)
               ~else
               result#))))))
+
+(defmacro when-let*
+  "bindings => (binding-form test)*
+
+  When all tests are true, evaluates body with each binding-form bound
+  to the value of its respective test"
+  ([bindings & body]
+     `(if-let* ~bindings
+        (do
+          ~@body))))
 
 (defmacro pfor
   "Parallelized list comprehension.  Takes a vector of one or more
