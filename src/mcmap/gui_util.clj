@@ -9,7 +9,7 @@
                         JFormattedTextField$AbstractFormatterFactory
                         JLabel JSeparator JCheckBox JComboBox
                         event.DocumentListener event.DocumentEvent
-                        SwingUtilities]
+                        SwingUtilities ProgressMonitor]
            [java.awt FlowLayout Component Dimension GridBagLayout
                      GridBagConstraints Window]
            [java.text Format]))
@@ -210,6 +210,13 @@
         (when wl
           (.addWindowListener fr (wl fr)))
         fr))))
+
+(defn progress-bar
+  "Returns a new ProgressMonitor, with minimum 0 and maximum 1e6"
+  (^ProgressMonitor [title]
+     (doto (ProgressMonitor. nil title "" 0 (int 1e6))
+       (.setMillisToDecideToPopup 0)
+       (.setMillisToPopup 0))))
 
 (defn formatted-text
   "Takes a java.text.Format or a JFormattedTextField.AbstractFormatter,
@@ -441,7 +448,7 @@
            window (frame window-name x y
                          (apply panel gbl (concat (map first components)
                                                   [submit-button]))
-                         (window-close-listener [we w]
+                         (window-close-listener [_ w]
                            (.dispose w)
                            (deliver finished-flag false)))]
        (when @finished-flag
