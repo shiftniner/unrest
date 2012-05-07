@@ -203,17 +203,22 @@
 
 (defn count-spawners
   ([zone]
-     (let [counts (sum-counts (map (fn [ze]
-                                     (cond (and (map? ze)
-                                                (= :mob-spawner
-                                                   (:type ze)))
-                                             { (keyword
-                                                (str (:mob ze)
-                                                     " spawner"))
-                                               1}
-                                           (= ze :glowstone)
-                                             {:Glowstone 1}))
-                                   (all-zone-elements zone)))
+     (let [counts (sum-counts
+                   (pfor [x (range (zone-x-size zone))]
+                     (sum-counts
+                      (map (fn [ze]
+                             (cond (and (map? ze)
+                                        (= :mob-spawner
+                                           (:type ze)))
+                                   { (keyword
+                                      (str (:mob ze)
+                                           " spawner"))
+                                     1}
+                                   (= ze :glowstone)
+                                   {:Glowstone 1}))
+                           (for [z (range (zone-z-size zone))
+                                 y (range (zone-y-size zone))]
+                             (zone-lookup zone x y z))))))
            blocks (sort-by counts (keys counts))]
        (doseq [b blocks]
          (println (str (name b)
