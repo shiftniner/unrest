@@ -1,8 +1,7 @@
 (ns mcmap.gui
-  (:use mcmap.util
-        mcmap.gui-util
-        mcmap.unrest
-        mcmap.srand)
+  (:use [mcmap util gui-util unrest srand])
+  (:import [java.io PipedReader PipedWriter BufferedReader]
+           [javax.swing ProgressMonitor JOptionPane])
   (:gen-class))
 
 (set! *warn-on-reflection* true)
@@ -11,8 +10,8 @@
 
 (defn numericize-seed
   "Takes a string and returns it as a long if it is formatted as an
-  integer between 0 and +seed-max+, or else converts it using
-  make-seed"
+  integer between the lowest (deprecated) negative signed seed and
+  +seed-max+, or else converts it using make-seed"
   ([s]
      (if-let* [n (try-format Long s)
                _ (< (dec +old-seed-min+) n +seed-max+)]
@@ -137,14 +136,88 @@
                   :width 1
                   :height 30}))))
 
+(defn recalc-progress
+  "Takes a line of output as produced by request-quest-map and returns
+  the fraction, from 0.0 to 1.0, of the way through map generation
+  that the process is when it outputs that line"
+  ([s]
+     (let [trimmed-line (second (re-find #" - (.*)" s))]
+       ( {"Carving ..." (/ 0.1 297)
+          "Finding dungeons ..." (/ 19.0 297)
+          "Placing dungeons and hallways ..." (/ 49.0 297)
+          "Adding crisp bedrock crust ..." (/ 107.0 297)
+          "Adding creamy middle ..." (/ 143.0 297)
+          "Counting spawners ..." (/ 209.0 297)
+          "Extracting chunks for Anvil region 0.0 ..." (/ 232.0 297)
+          "Extracting chunks for Anvil region 0.-1 ..." (/ 272.0 297)
+          "Extracting chunks for Anvil region -1.0 ..." (/ 283.0 297)
+          "Extracting chunks for Anvil region -1.-1 ..." (/ 293.0 297)}
+         trimmed-line))))
+
+(defn rough-time
+  "Takes a number of minutes and returns an English phrase
+  approximating that amount of time"
+  ([n]
+     (cond (> n 65) "more than an hour"
+           (> n 50) "about an hour"
+           (> n 15) (str "about " (* 5 (inc (int (/ n 5))))
+                         " minutes")
+           (> n 2.25) (str "about " (inc (int n))
+                         " minutes")
+           (> n 1.75) "about 2 minutes"
+           (> n 1.25) "less than 2 minutes"
+           (> n 0.85) "about a minute"
+           (> n 0.6)  "less than a minute"
+           (> n 0.3)  "about 30 seconds"
+           (> n 0.1)  "about ten seconds"
+           :else      "a few seconds")))
+
+(defn mapgen-progress-bar-fn
+  ([f]
+     (let [rdr (PipedReader.)
+           pipe (PipedWriter. rdr)
+           line-rdr (BufferedReader. rdr)
+           bar (progress-bar "Generating Map")
+           start-time (System/currentTimeMillis)
+           orig-out *out*]
+       (send-off (agent nil)
+                 (fn [_]
+                   (loop []
+                     (let [line (.readLine line-rdr)]
+                       (when line
+                         (binding [*out* orig-out]
+                           (println line))
+                         (if-let [progress (recalc-progress line)]
+                           (in-swing-thread
+                            (when-let* [cur-time (System/currentTimeMillis)
+                                        elapsed (- cur-time start-time)
+                                        est-total (/ elapsed progress)
+                                        eta-mins (/ (- est-total elapsed)
+                                                    60000)
+                                        rough-est (rough-time eta-mins)]
+                               (msg 0 "eta: " eta-mins " (" rough-est
+                                    ")")
+                               (.setNote bar
+                                         (str "Time remaining: "
+                                              rough-est)))
+                            (.setProgress bar (int (* 1e6 progress)))))
+                         (recur))))))
+       (binding [*out* pipe]
+         (try
+           (f)
+           (finally (.close bar)
+                    (.close pipe)
+                    (.close rdr)))))))
+
 (defmacro with-mapgen-progress-bar
   "Evaluates the given forms with *out* passing through a parser that
   finds signs of map-generation progress, estimates the time
   remaining, and provides a cancel button that immediately exits the
   application"
   ([& forms]
-     ;; TODO
-     `(do ~@forms)))
+     `(mapgen-progress-bar-fn
+       (fn []
+         (do ~@forms)))))
 
 (defn -main
   ([& args]
@@ -167,5 +240,6 @@
                    (numericize-seed (:cave-seed form-data))
                    (:level form-data)
                    (save-name->dir (:save-name form-data))
-                   opts))))))
+                   opts))
+         (JOptionPane/showMessageDialog nil "Map generated successfully")))))
 
