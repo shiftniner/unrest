@@ -1,6 +1,7 @@
 (ns mcmap.test.core
-  (:use [mcmap core cavern util balance toolkit dungeons blocks srand]
-        [mcmap.dungeon build]
+  (:use [mcmap core cavern util balance toolkit dungeons blocks srand
+               unrest layout]
+        [mcmap.dungeon build placement]
         [clojure.test]))
 
 ;;; I don't want to break anyone's favorite seed.  Unlike some people.
@@ -239,10 +240,77 @@
              (bignum 88600566095165161654648427037754123071731850324372
                      982754055045373658789731048))))))
 
+(defn checksum-dunhall-boxes
+  "Takes a dunhall and returns a checksum based solely on the position
+  of its boxes -- zones do not need to be rendered"
+  ([dunhall]
+     (checksum-seq
+      (map #(checksum-seq
+             (mapcat (fn [box]
+                       (map (partial get box)
+                            [:x0 :y0 :z0 :xd :yd :zd]))
+                     (rest %)))
+           dunhall))))
+
+(deftest dungeon-placement
+  (testing "Testing dungeon placement"
+    (let [cave-zone (noprint (first (epic-cave-network 4 128 64 128 3 {})))
+          excess-dunhalls (pmap pick-dungeon-place
+                                (repeat cave-zone)
+                                (map #(reseed 10 %)
+                                     (range 1000))
+                                (repeat new-air-finder)
+                                (repeat #{:ground})
+                                (transition 1000
+                                            pick-hallway
+                                            pick-complex-hallway)
+                                (repeat cave-hallway-accepter)
+                                (repeat (apply get-dungeons
+                                               (concat
+                                                (repeat 6 :std)
+                                                (repeat 3 :uncommon)
+                                                (repeat 1 :rare))))
+                                (repeat nil))]
+      (is (= (checksum-seq (map checksum-dunhall-boxes excess-dunhalls))
+             (bignum 63647619842551145190250510626828066975794914467077
+                     238304874969402304751578746))))))
+
+(defn record-quest-map-zone
+  "Takes a seed and level and returns a tiny record quest map zone,
+  and the spawn coordinates for that map"
+  ([seed level]
+     (binding [*min-spiral-radius* 16
+               *map-gen-version* 1
+               *balance-version* [1 2 5 :a]]
+       (let [ map-side 160
+              map-height 70
+              [generator max-x max-y max-z _ start-x start-y start-z]
+                (noprint
+                 (quest-cavern-map [(prize-items 1 :mall-disc)]
+                                   seed seed level
+                                   {:n-caves 3
+                                    :n-dungeons 13
+                                    :map-side map-side
+                                    :map-height map-height}))]
+         [ (gen-mcmap-zone map-side map-height map-side generator)
+           start-x start-y start-z]))))
+
 (deftest whole-map
   (testing (str "Integration test of full record-quest map generation"
                 " (short of .mca binary formatting)")
-    
-    ))
-
-
+    (let [ [zone start-x start-y start-z]
+             (record-quest-map-zone 1 10)]
+      (is (= (zone-checksum zone)
+             (bignum 59209781605433196212747568230295761435298914661302
+                     963094548602822189616440901)))
+      (is (= start-x 43.43106540706475))
+      (is (= start-y 69))
+      (is (= start-z 83.32181557155305)))
+    (let [ [zone start-x start-y start-z]
+             (record-quest-map-zone 2 40)]
+      (is (= (zone-checksum zone)
+             (bignum 11103282315036867596172962933804447267358724359281
+                     1659772742696545173247668728)))
+      (is (= start-x 91.431385278553))
+      (is (= start-y 67))
+      (is (= start-z 53.027816498064816)))))
