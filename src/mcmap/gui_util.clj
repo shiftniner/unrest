@@ -220,7 +220,8 @@
                              (apply str (repeat width \space))
                              0 (int 1e6))
        (.setMillisToDecideToPopup 0)
-       (.setMillisToPopup 0))))
+       (.setMillisToPopup 0)
+       (.setProgress 1))))
 
 (defn formatted-text
   "Takes a java.text.Format or a JFormattedTextField.AbstractFormatter,

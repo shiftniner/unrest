@@ -142,16 +142,16 @@
   that the process is when it outputs that line"
   ([s]
      (let [trimmed-line (second (re-find #" - (.*)" s))]
-       ( {"Carving ..." (/ 0.1 297)
-          "Finding dungeons ..." (/ 19.0 297)
-          "Placing dungeons and hallways ..." (/ 49.0 297)
-          "Adding crisp bedrock crust ..." (/ 107.0 297)
-          "Adding creamy middle ..." (/ 143.0 297)
-          "Counting spawners ..." (/ 209.0 297)
-          "Extracting chunks for Anvil region 0.0 ..." (/ 232.0 297)
-          "Extracting chunks for Anvil region 0.-1 ..." (/ 272.0 297)
-          "Extracting chunks for Anvil region -1.0 ..." (/ 283.0 297)
-          "Extracting chunks for Anvil region -1.-1 ..." (/ 293.0 297)}
+       ( {"Carving ..." (/ 0.1 280)
+          "Finding dungeons ..." (/ 19.0 280)
+          "Placing dungeons and hallways ..." (/ 65.0 280)
+          "Adding crisp bedrock crust ..." (/ 107.0 280)
+          "Adding creamy middle ..." (/ 143.0 280)
+          "Counting spawners ..." (/ 209.0 280)
+          "Extracting chunks for Anvil region 0.0 ..." (/ 215.0 280)
+          "Extracting chunks for Anvil region 0.-1 ..." (/ 255.0 280)
+          "Extracting chunks for Anvil region -1.0 ..." (/ 266.0 280)
+          "Extracting chunks for Anvil region -1.-1 ..." (/ 276.0 280)}
          trimmed-line))))
 
 (defn rough-time
@@ -169,6 +169,7 @@
            (> n 0.85) "about a minute"
            (> n 0.6)  "less than a minute"
            (> n 0.3)  "about 30 seconds"
+           (> n 0.2)  "about 15 seconds"
            (> n 0.1)  "about ten seconds"
            :else      "a few seconds")))
 
@@ -188,19 +189,22 @@
                          (binding [*out* orig-out]
                            (println line))
                          (if-let [progress (recalc-progress line)]
-                           (in-swing-thread
-                            (when-let* [cur-time (System/currentTimeMillis)
-                                        elapsed (- cur-time start-time)
-                                        est-total (/ elapsed progress)
-                                        eta-mins (/ (- est-total elapsed)
-                                                    60000)
-                                        rough-est (rough-time eta-mins)]
-                               (msg 0 "eta: " eta-mins " (" rough-est
-                                    ")")
-                               (.setNote bar
-                                         (str "Time remaining: "
-                                              rough-est)))
-                            (.setProgress bar (int (* 1e6 progress)))))
+                           (let [cur-time (System/currentTimeMillis)
+                                 elapsed (- cur-time start-time)
+                                 est-total (/ elapsed progress)
+                                 eta-mins (/ (- est-total elapsed)
+                                             60000)
+                                 rough-est (rough-time eta-mins)]
+                             (msg 0 "eta: " eta-mins " (" rough-est
+                                  ")")
+                             (when (< elapsed 1000)
+                               (Thread/sleep (int (- 1000 elapsed))))
+                             (in-swing-thread
+                              (.setNote bar
+                                        (str "Time remaining: "
+                                             rough-est
+                                             "                "))
+                              (.setProgress bar (int (* 1e6 progress))))))
                          (recur))))))
        (binding [*out* pipe]
          (try
