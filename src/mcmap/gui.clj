@@ -177,7 +177,7 @@
      (let [rdr (PipedReader.)
            pipe (PipedWriter. rdr)
            line-rdr (BufferedReader. rdr)
-           bar (progress-bar "Generating Map")
+           bar (progress-bar "Generating Map" 150)
            start-time (System/currentTimeMillis)
            orig-out *out*]
        (send-off (agent nil)

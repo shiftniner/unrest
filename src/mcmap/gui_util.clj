@@ -212,9 +212,13 @@
         fr))))
 
 (defn progress-bar
-  "Returns a new ProgressMonitor, with minimum 0 and maximum 1e6"
-  (^ProgressMonitor [title]
-     (doto (ProgressMonitor. nil title "" 0 (int 1e6))
+  "Takes a title and a width (measured in spaces) to allocate for a
+  note field, and returns a new ProgressMonitor, with minimum 0 and
+  maximum 1e6"
+  (^ProgressMonitor [title width]
+     (doto (ProgressMonitor. nil title
+                             (apply str (repeat width \space))
+                             0 (int 1e6))
        (.setMillisToDecideToPopup 0)
        (.setMillisToPopup 0))))
 
