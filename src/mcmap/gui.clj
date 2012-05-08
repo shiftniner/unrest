@@ -180,7 +180,17 @@
            line-rdr (BufferedReader. rdr)
            bar (progress-bar "Generating Map" 150)
            start-time (System/currentTimeMillis)
-           orig-out *out*]
+           orig-out *out*
+           main-mapgen-thread (Thread/currentThread)
+           finished (atom false)]
+       (send-off (agent nil)
+                 (fn [_]
+                   (loop []
+                     (Thread/sleep 1000)
+                     (when (.isCanceled bar)
+                       (.stop main-mapgen-thread))
+                     (when-not @finished
+                       (recur)))))
        (send-off (agent nil)
                  (fn [_]
                    (loop []
@@ -211,7 +221,8 @@
            (f)
            (finally (.close bar)
                     (.close pipe)
-                    (.close rdr)))))))
+                    (.close rdr)
+                    (swap! finished (fn [_] true))))))))
 
 (defmacro with-mapgen-progress-bar
   "Evaluates the given forms with *out* passing through a parser that
