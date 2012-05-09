@@ -136,10 +136,11 @@
                   :width 1
                   :height 30}))))
 
-(defn recalc-progress
-  "Takes a line of output as produced by request-quest-map and returns
-  the fraction, from 0.0 to 1.0, of the way through map generation
-  that the process is when it outputs that line"
+(defn recalc-progress-normal
+  "Takes a line of output as produced by request-quest-map for a
+  normal-sized map and returns the fraction, from 0.0 to 1.0, of the
+  way through map generation that the process is when it outputs that
+  line"
   ([s]
      (let [trimmed-line (second (re-find #" - (.*)" s))]
        ( {"Carving ..." (/ 0.1 280)
@@ -152,6 +153,42 @@
           "Extracting chunks for Anvil region 0.-1 ..." (/ 255.0 280)
           "Extracting chunks for Anvil region -1.0 ..." (/ 266.0 280)
           "Extracting chunks for Anvil region -1.-1 ..." (/ 276.0 280)}
+         trimmed-line))))
+
+(defn recalc-progress-small
+  "Takes a line of output as produced by request-quest-map for a small
+  map and returns the fraction, from 0.0 to 1.0, of the way through
+  map generation that the process is when it outputs that line"
+  ([s]
+     (let [trimmed-line (second (re-find #" - (.*)" s))]
+       ( {"Carving ..." (/ 0.04 138.2)
+          "Finding dungeons ..." (/ 3.8 138.2)
+          "Placing dungeons and hallways ..." (/ 12.7 138.2)
+          "Adding crisp bedrock crust ..." (/ 34.3 138.2)
+          "Adding creamy middle ..." (/ 50.0 138.2)
+          "Counting spawners ..." (/ 78.9 138.2)
+          "Extracting chunks for Anvil region 0.0 ..." (/ 84.8 138.2)
+          "Extracting chunks for Anvil region 0.-1 ..." (/ 112.7 138.2)
+          "Extracting chunks for Anvil region -1.0 ..." (/ 123.8 138.2)
+          "Extracting chunks for Anvil region -1.-1 ..." (/ 134.8 138.2)}
+         trimmed-line))))
+
+(defn recalc-progress-tiny
+  "Takes a line of output as produced by request-quest-map for a tiny
+  map and returns the fraction, from 0.0 to 1.0, of the way through
+  map generation that the process is when it outputs that line"
+  ([s]
+     (let [trimmed-line (second (re-find #" - (.*)" s))]
+       ( {"Carving ..." (/ 0.03 104)
+          "Finding dungeons ..." (/ 1.5 104)
+          "Placing dungeons and hallways ..." (/ 12.0 104)
+          "Adding crisp bedrock crust ..." (/ 22.9 104)
+          "Adding creamy middle ..." (/ 31.4 104)
+          "Counting spawners ..." (/ 46.0 104)
+          "Extracting chunks for Anvil region 0.0 ..." (/ 52.0 104)
+          "Extracting chunks for Anvil region 0.-1 ..." (/ 77.0 104)
+          "Extracting chunks for Anvil region -1.0 ..." (/ 88.5 104)
+          "Extracting chunks for Anvil region -1.-1 ..." (/ 100.1 104)}
          trimmed-line))))
 
 (defn rough-time
@@ -174,7 +211,7 @@
            :else      "a few seconds")))
 
 (defn mapgen-progress-bar-fn
-  ([f]
+  ([recalc-progress f]
      (let [rdr (PipedReader.)
            pipe (PipedWriter. rdr)
            line-rdr (BufferedReader. rdr)
@@ -207,8 +244,8 @@
                                  rough-est (rough-time eta-mins)]
                              (msg 0 "eta: " eta-mins " (" rough-est
                                   ")")
-                             (when (< elapsed 1000)
-                               (Thread/sleep (int (- 1000 elapsed))))
+                             (when (< elapsed 200)
+                               (Thread/sleep (int (- 200 elapsed))))
                              (in-swing-thread
                               (.setNote bar
                                         (str "Time remaining: "
@@ -229,8 +266,9 @@
   finds signs of map-generation progress, estimates the time
   remaining, and provides a cancel button that immediately exits the
   application"
-  ([& forms]
+  ([recalc-progress & forms]
      `(mapgen-progress-bar-fn
+       ~recalc-progress
        (fn []
          (do ~@forms)))))
 
@@ -238,10 +276,10 @@
   ([& args]
      (if-let [form-data (map-form)]
        (let [gen-fn record-quest-map
-             [n-caves n-dungeons map-side map-height]
-               ( {:normal [15 64 256 128]
-                  :small  [6  25 192  96]
-                  :tiny   [3  13 160  70]}
+             [n-caves n-dungeons map-side map-height recalc-progress]
+               ( {:normal [15 64 256 128 recalc-progress-normal]
+                  :small  [6  25 192  96 recalc-progress-small]
+                  :tiny   [3  13 160  70 recalc-progress-tiny]}
                  (:size form-data))
              opts {:level-name (:save-name form-data)
                    :creative   (:creative  form-data)
@@ -250,7 +288,7 @@
                    :n-dungeons n-dungeons
                    :map-side   map-side
                    :map-height map-height}]
-         (with-mapgen-progress-bar
+         (with-mapgen-progress-bar recalc-progress
            (gen-fn (numericize-seed (:game-seed form-data))
                    (numericize-seed (:cave-seed form-data))
                    (:level form-data)
