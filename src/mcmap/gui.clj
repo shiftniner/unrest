@@ -272,8 +272,8 @@
        (fn []
          (do ~@forms)))))
 
-(defn -main
-  ([& args]
+(defn unrest-map-generator
+  ([]
      (if-let [form-data (map-form)]
        (let [gen-fn record-quest-map
              [n-caves n-dungeons map-side map-height recalc-progress]
@@ -296,3 +296,9 @@
                    opts))
          (JOptionPane/showMessageDialog nil "Map generated successfully")))))
 
+(defn -main
+  ([& args]
+     (let [t (Thread. ^Runnable unrest-map-generator)]
+       (.start t)
+       (.join t))
+     (System/exit 0)))
