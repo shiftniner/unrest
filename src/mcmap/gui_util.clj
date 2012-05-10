@@ -364,17 +364,24 @@
                           :entry
                           [ [ (label (:label spec))
                               (grid-bag-pos 0 row 1 :east)]
-                            (let [ftf
-                                  (formatted-text
-                                   (validated-live-formatter-factory
-                                      (:class spec)
-                                      (:validator spec)
-                                      (:modifier spec))
-                                   (:width spec)
-                                   (document-listener [de ftf]
-                                     (swap! state assoc output-key
-                                            (.getValue ftf)))
-                                   (:default spec))]
+                          (let [ftf
+                                (formatted-text
+                                 (validated-live-formatter-factory
+                                  (:class spec)
+                                  (:validator spec)
+                                  (:modifier spec))
+                                 (:width spec)
+                                 (document-listener [de ftf]
+                                   (if-let* [v (or (try-format
+                                                    (:class spec)
+                                                    (all-text-of-document
+                                                     (.getDocument de)))
+                                                   (.getValue ftf))
+                                             _ (or (not (:validator spec))
+                                                   ( (:validator spec) v))]
+                                     (swap! state assoc
+                                            output-key v)))
+                                 (:default spec))]
                               [ (ftf-with-buttons ftf spec)
                                 (grid-bag-pos 1 row 1 :west)])]
                           :live-label-entry
@@ -387,8 +394,6 @@
                                     (:modifier spec))
                                  (:width spec)
                                  (document-listener [de ftf]
-                                   (swap! state assoc output-key
-                                          (.getValue ftf))
                                    (if-let* [v (or (try-format
                                                     (:class spec)
                                                     (all-text-of-document
@@ -396,9 +401,12 @@
                                                    (.getValue ftf))
                                              _ (or (not (:validator spec))
                                                    ( (:validator spec) v))
+                                             _ (or (swap! state assoc
+                                                          output-key v)
+                                                   true)
                                              t ( (:live-text spec)
                                                  v)]
-                                            (.setText ol t)))
+                                     (.setText ol t)))
                                  (:default spec))]
                             [ [ (label (:label spec))
                                 (grid-bag-pos 0 row 1 :east)]
