@@ -143,7 +143,7 @@
   line"
   ([s]
      (let [trimmed-line (second (re-find #" - (.*)" s))]
-       ( {"Carving ..." (/ 0.1 280)
+       ( {"Carving ..." (/ 0.3 280)
           "Finding dungeons ..." (/ 19.0 280)
           "Placing dungeons and hallways ..." (/ 65.0 280)
           "Adding crisp bedrock crust ..." (/ 107.0 280)
@@ -161,7 +161,7 @@
   map generation that the process is when it outputs that line"
   ([s]
      (let [trimmed-line (second (re-find #" - (.*)" s))]
-       ( {"Carving ..." (/ 0.04 138.2)
+       ( {"Carving ..." (/ 0.24 138.2)
           "Finding dungeons ..." (/ 3.8 138.2)
           "Placing dungeons and hallways ..." (/ 12.7 138.2)
           "Adding crisp bedrock crust ..." (/ 34.3 138.2)
@@ -179,8 +179,8 @@
   map generation that the process is when it outputs that line"
   ([s]
      (let [trimmed-line (second (re-find #" - (.*)" s))]
-       ( {"Carving ..." (/ 0.03 104)
-          "Finding dungeons ..." (/ 1.5 104)
+       ( {"Carving ..." (/ 0.13 104)
+          "Finding dungeons ..." (/ 2.5 104)
           "Placing dungeons and hallways ..." (/ 12.0 104)
           "Adding crisp bedrock crust ..." (/ 22.9 104)
           "Adding creamy middle ..." (/ 31.4 104)
