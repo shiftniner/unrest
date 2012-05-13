@@ -84,6 +84,46 @@
        (form "Unrest map generator v1.0.0"
              "generate map"
              700 450
+             nil {:type :readme
+                  :title "Unrest map generator 1.0.0 README"
+                  :label "README"
+                  :text "Were you disappointed by how easy Nightmare
+Realms was?  Are you tired of inventing challenges and artificial
+restrictions just to try to make vanilla Minecraft hard?  Would a
+bucket be a game-changer right about now?  If you answered \"yes\" to
+any of these questions, you have come to the right place.
+
+<p>The Unrest map generator makes cave-and-dungeon maps for Minecraft
+that are as hard as you could possibly want them to be.  At level 100,
+you will be spawn camped by cave spiders, ghasts, and blazes, and you
+won't find a single wood sword or pair of leather boots on the map.
+At level 0, the entire cavern system is lit with glowstone, and every
+dungeon is overflowing with armor, food, and weapons.  In between,
+there is sure to be just the right difficulty level (decimals are
+allowed) to stretch your melee skills and stomach for zombie flesh to
+the limit.
+
+<p>In one chest, somewhere on the map, there is a record.  The goal:
+find the record and remove it from its dungeon, or else lock that
+dungeon down so that no mobs can spawn.
+
+<p>Choose your parameters and click the \"generate map\" button, and then
+run Minecraft, where you should find the newly generated map at the
+top of your single-player game list.
+
+<p>WARNING: As with any external map generator or editor, you <b>MUST</b> exit
+Minecraft completely (not just exit to the title screen, but actually
+quit the program) if you are going to overwrite or modify an existing
+save game, or else that save game will become corrupted.
+
+<p>Note that the Unrest map generator will use all your cores, so you
+may hear your CPU fans do things you've never heard them do before.
+This is normal.
+
+<p>Dedicated to sweetjuices.
+
+<p>Here is a link to Google for no reason: <a
+href=\"http://www.google.com/\">www.google.com</a>"}
              :game-seed (assoc seed-entry
                           :label "Game seed (text or number)"
                           :default (str (choose-random-seed)))
@@ -112,8 +152,8 @@
                                           (str "Note: Level " v
                                                " is extremely hard")
                                         :else
-                                        " "))}
-             :size {:label "Map size"
+                                          " "))}
+             :size {:label "Map size (gameplay time)"
                     :type :combo-box
                     :choices ["Normal (2-8 hours)"   :normal
                               "Small (1-3 hours)"    :small
