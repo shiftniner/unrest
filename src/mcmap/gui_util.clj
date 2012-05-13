@@ -9,7 +9,8 @@
                         JFormattedTextField$AbstractFormatterFactory
                         JLabel JSeparator JCheckBox JComboBox
                         event.DocumentListener event.DocumentEvent
-                        SwingUtilities ProgressMonitor]
+                        SwingUtilities ProgressMonitor
+                        JEditorPane JScrollPane]
            [java.awt FlowLayout Component Dimension GridBagLayout
                      GridBagConstraints Window]
            [java.text Format]))
@@ -18,6 +19,8 @@
 ;;; sort of halfway functional
 
 (set! *warn-on-reflection* true)
+
+(def ^:dynamic *in-swing-thread* false)
 
 (defmacro in-swing-thread
   "Evaluates the given forms in the Swing event dispatching thread and
@@ -28,16 +31,18 @@
   http://docs.oracle.com/javase/6/docs/api/javax/swing/package-summary.html#threading
   for rationale"
   ([& forms]
-     `(let [result# (promise)]
-       (SwingUtilities/invokeLater
-        #(try
-           (let [r# (do ~@forms)]
-             (deliver result# {:return r#}))
-           (catch Exception e#
-             (deliver result# {:exception e#}))))
-       (when-let [e# (:exception @result#)]
-         (throw e#))
-       (:return @result#))))
+     `(when-not *in-swing-thread*
+        (let [result# (promise)]
+          (SwingUtilities/invokeLater
+           #(try
+              (binding [*in-swing-thread* true]
+                (let [r# (do ~@forms)]
+                  (deliver result# {:return r#})))
+              (catch Exception e#
+                (deliver result# {:exception e#}))))
+          (when-let [e# (:exception @result#)]
+            (throw e#))
+          (:return @result#)))))
 
 (defn action-listener-fn
   "Takes a fn of one argument (a java.awt.event.ActionEvent) and
@@ -101,7 +106,11 @@
      (fn [w]
        (proxy [Object WindowListener]
            []
-         (windowClosing [x] (f x w))))))
+         (windowClosing [x] (f x w))
+         (windowOpened [_])
+         (windowActivated [_])
+         (windowDeactivated [_])
+         (windowClosed [_])))))
 
 (defmacro window-close-listener
   "Takes a one-variable binding vector and code, and returns a
@@ -334,6 +343,51 @@
                         s))
           (catch Exception e))))
 
+(defn ftf-with-buttons
+  "Takes a JFormattedTextField and a field spec that may or may not
+  have :buttons, and returns a JPanel with the JFormattedTextField and
+  JButtons"
+  ([^JFormattedTextField ftf spec]
+     (let [buttons (map (fn [b]
+                          (button
+                           (:label b)
+                           (action-listener [ae]
+                             (let [new-val ( (:swap-val b)
+                                             (.getValue ftf))]
+                               (.setValue ftf new-val)))))
+                        (:buttons spec))]
+       (apply panel (flow-layout :left)
+              ftf buttons))))
+
+(defn text-display
+  "Takes a string and returns a scrollable text-display component"
+  ([^String text x y]
+     (let [textarea (JEditorPane. "text/html" text)
+           scrollpane (JScrollPane. textarea)]
+       (doto textarea
+         (.setEditable false))
+       (doto scrollpane
+         (.setPreferredSize (Dimension. x y)))
+       scrollpane)))
+
+(defn readme
+  "Takes two strings and displays a window with the first string as
+  its title and the second string as text, and an OK button that
+  returns from the function"
+  ([title text]
+     (let [ok? (promise)
+           window (frame title 520 500
+                         (panel (flow-layout :center)
+                                (text-display text 495 435)
+                                (button "OK"
+                                        (action-listener [ae]
+                                          (deliver ok? true))))
+                         (window-close-listener [_ w]
+                           (.dispose w)
+                           (deliver ok? false)))]
+       (when @ok?
+         (.dispose window)))))
+
 (defn form
   "Takes a string to use for the window name, a string to use as a
   label for a final \"submit\" button, x and y sizes, and arguments
@@ -341,19 +395,7 @@
   window, and returns the values filled out in a hash"
   ([window-name submit-name x y & args]
      (let [state (atom {})
-           finished-flag (promise)
-           ftf-with-buttons
-           (fn [^JFormattedTextField ftf spec]
-             (let [buttons (map (fn [b]
-                                  (button
-                                   (:label b)
-                                   (action-listener [ae]
-                                     (let [new-val ( (:swap-val b)
-                                                     (.getValue ftf))]
-                                       (.setValue ftf new-val)))))
-                                (:buttons spec))]
-               (apply panel (flow-layout :left)
-                      ftf buttons)))
+           submitted? (promise)
            ;; components is a seq of Component/GridBagConstraint pairs
            components
            (reduce
@@ -439,7 +481,15 @@
                                            (swap! state assoc output-key
                                                   selected))
                                          (:default spec))
-                              (grid-bag-pos 1 row 1 :west)]])
+                              (grid-bag-pos 1 row 1 :west)]]
+                          :readme
+                          [ [ (button (:label spec)
+                                      (action-listener [ae]
+                                        (send-off (agent nil)
+                                          (fn [_]
+                                            (readme (:title spec)
+                                                    (:text spec))))))
+                              (grid-bag-pos 0 row 2 :center)]])
                     rows-used
                     (case (:type spec)
                           :live-label-entry 2
@@ -454,7 +504,7 @@
                (.addLayoutComponent gbl ^Component component constraint))
            submit-button (button submit-name
                                  (action-listener [ae]
-                                   (deliver finished-flag true)))
+                                   (deliver submitted? true)))
            _ (.addLayoutComponent gbl submit-button
                                   (grid-bag-pos 0 (inc (count components))
                                                 2 :east))
@@ -463,8 +513,8 @@
                                                   [submit-button]))
                          (window-close-listener [_ w]
                            (.dispose w)
-                           (deliver finished-flag false)))]
-       (when @finished-flag
+                           (deliver submitted? false)))]
+       (when @submitted?
          (.dispose window)
          @state))))
 
