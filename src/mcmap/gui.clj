@@ -98,13 +98,13 @@
              "generate map"
              700 450
              nil {:type :readme
-                  :title "Unrest map generator 1.0.0 README"
                   :label "README"
-                  :text "Were you disappointed by how easy Nightmare
-Realms was?  Are you tired of inventing challenges and artificial
-restrictions just to try to make vanilla Minecraft hard?  Would a
-bucket be a game-changer right about now?  If you answered \"yes\" to
-any of these questions, you have come to the right place.
+                  :title "Unrest map generator 1.0.0 README"
+                  :text (str "Were you disappointed by how easy
+Nightmare Realms was?  Are you tired of inventing challenges and
+artificial restrictions just to try to make vanilla Minecraft hard?
+Would a bucket be a game-changer right about now?  If you answered
+\"yes\" to any of these questions, you have come to the right place.
 
 <p>The Unrest map generator makes cave-and-dungeon maps for Minecraft
 that are as hard as you could possibly want them to be.  At level 100,
@@ -120,23 +120,31 @@ the limit.
 find the record and remove it from its dungeon, or else lock that
 dungeon down so that no mobs can spawn.
 
-<p>Choose your parameters and click the \"generate map\" button, and then
-run Minecraft, where you should find the newly generated map at the
-top of your single-player game list.
+<p>The rules: don't leave the map boundaries and enter vanilla
+Minecraft terrain, and remember: creeper records are piracy.  (You
+wouldn't download a minecart.)
 
-<p>WARNING: As with any external map generator or editor, you <b>MUST</b> exit
-Minecraft completely (not just exit to the title screen, but actually
-quit the program) if you are going to overwrite or modify an existing
-save game, or else that save game will become corrupted.
+<p>Choose your parameters and click the \"generate map\" button, and
+then run Minecraft, where you should find the newly generated map at
+the top of your single-player game list.
+
+<p>WARNING: As with any external map generator or editor, you
+<b>MUST</b> exit Minecraft completely (not just exit to the title
+screen, but actually quit the program) if you are going to overwrite
+or modify an existing save game, or else that save game will become
+corrupted.
 
 <p>Note that the Unrest map generator will use all your cores, so you
 may hear your CPU fans do things you've never heard them do before.
 This is normal.
 
-<p>Dedicated to sweetjuices.
+<p><center>Dedicated to sweetjuices.</center>
 
-<p>Here is a link to Google for no reason: <a
-href=\"http://www.google.com/\">www.google.com</a>"}
+<p>The Unrest map generator is distributed under the Eclipse Public
+License, version 1.0: " (a-href "www.eclipse.org/legal/epl-v10.html")
+" Source code is on github: " (a-href "www.github.com/") " Share, hack,
+and enjoy.
+")}
              :game-seed (assoc seed-entry
                           :label "Game seed (text or number)"
                           :default (str (choose-random-seed)))
@@ -153,7 +161,7 @@ href=\"http://www.google.com/\">www.google.com</a>"}
                      :class Double
                      :validator #(<= 0 % 100)
                      :default 23.0
-                     :width 250
+                     :width 100
                      :live-text (fn [v]
                                   (cond (<= v 10)
                                           (str "Note: Level " v
