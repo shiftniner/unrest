@@ -71,6 +71,19 @@
            (recur (inc n))
            sg)))))
 
+(defn a-href
+  "Takes a URL and returns an HTML \"A\" tag linking to that URL, with
+  an optional second argument specifying the link text, defaulting to
+  the URL"
+  ([url]
+     (a-href url url))
+  ([url txt]
+     (let [clean-url (if (.startsWith ^String url "http://")
+                       url
+                       (str "http://" url))]
+       ;; TODO: add quoting/escaping
+       (str "<a href=\"" clean-url "\">" txt "</a>"))))
+
 (defn map-form
   ([]
      (let [seed-entry {:type :live-label-entry
