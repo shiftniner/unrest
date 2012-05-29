@@ -11,9 +11,12 @@
                         event.DocumentListener event.DocumentEvent
                         SwingUtilities ProgressMonitor
                         JEditorPane JScrollPane]
+           [javax.swing.event HyperlinkListener HyperlinkEvent
+                              HyperlinkEvent$EventType]
            [java.awt FlowLayout Component Dimension GridBagLayout
                      GridBagConstraints Window]
-           [java.text Format]))
+           [java.text Format]
+           [java.net URL]))
 
 ;;; Plan: hit Swing and AWT with a hammer until they start to look
 ;;; sort of halfway functional
@@ -360,15 +363,70 @@
               ftf buttons))))
 
 (defn text-display
-  "Takes a string and returns a scrollable text-display component"
-  ([^String text x y]
+  "Takes a string, dimensions, and a
+  javax.swing.event.HyperlinkListener, and returns a scrollable
+  text-display component"
+  ([^String text x y hl]
      (let [textarea (JEditorPane. "text/html" text)
            scrollpane (JScrollPane. textarea)]
        (doto textarea
-         (.setEditable false))
+         (.setEditable false)
+         (.addHyperlinkListener hl))
        (doto scrollpane
          (.setPreferredSize (Dimension. x y)))
        scrollpane)))
+
+(defn dynamic-get-service-object
+  "Returns either an object implementing the javax.jnlp.BasicService
+  interface (with its showDocument method -- the one we care about),
+  or nil if the platform (i.e., Mac OS X) does not provide one, in
+  which case the \"open\" command must be used to launch a browser
+  instead"
+  ([]
+     (try
+       (let [srv-mgr-class (Class/forName "javax.jnlp.ServiceManager")
+             lookup-method (.getMethod srv-mgr-class "lookup"
+                                       (into-array [String]))]
+         (.invoke lookup-method
+                  nil
+                  (to-array ["javax.jnlp.BasicService"])))
+       (catch Exception e
+         nil))))
+
+(def service-object (dynamic-get-service-object))
+
+(no-warn-reflection
+ (defn open-url
+   "Opens the given URL using the system default browser"
+   ([url]
+      (if service-object
+        (.showDocument service-object url)
+        (run-cmd "open" url)))))
+
+(defn hyperlink-listener-fn
+  "Takes a fn of one argument (a URL), and returns a
+  javax.swing.event.HyperlinkListener that calls the fn for each
+  ACTIVATED HyperlinkEvent it receives"
+  ([f]
+     (proxy [Object HyperlinkListener]
+         []
+       (hyperlinkUpdate [^HyperlinkEvent e]
+                        (when (= HyperlinkEvent$EventType/ACTIVATED
+                                 (.getEventType e))
+                          (let [u (.getURL e)]
+                            (f u)))))))
+
+(defmacro hyperlink-listener
+  "Takes a one-variable binding vector (for a URL variable) and code,
+  and returns a javax.swing.event.HyperlinkListener that evaluates the
+  code for each ACTIVATED HyperlinkEvent it receives"
+  ([bindings & body]
+     (when-not (and (vector? bindings)
+                    (= 1 (count bindings)))
+       (die "hyperlink-listener requires a binding vector with a"
+            " single variable"))
+     (let [ [varname] bindings]
+       `(hyperlink-listener-fn (fn [~varname] ~@body)))))
 
 (defn readme
   "Takes two strings and displays a window with the first string as
@@ -378,7 +436,9 @@
      (let [ok? (promise)
            window (frame title 520 500
                          (panel (flow-layout :center)
-                                (text-display text 495 435)
+                                (text-display text 495 435
+                                              (hyperlink-listener [u]
+                                                (open-url u)))
                                 (button "OK"
                                         (action-listener [ae]
                                           (deliver ok? true))))

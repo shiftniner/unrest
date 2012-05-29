@@ -275,14 +275,22 @@
              {}
              ms)))
 
+(defn shell-quote
+  "Takes a string and returns a quoted version that can be passed to a
+  shell"
+  ([s]
+     (str \'
+          (.replaceAll (str s) "'" "'\\\\''")
+          \')))
+
 (defn run-cmd
   "Runs the given command synchronously, printing its output, and
   returning the exit code"
   ([& strs]
-     (apply println "WARNING: non-portable run-cmd used, with args:" strs)
-     (let [cmd (apply str strs)
+     (let [cmd (apply str (interpose " " (map shell-quote strs)))
            rt (Runtime/getRuntime)
-           pr (.exec rt ^"[Ljava.lang.String;" (into-array ["sh" "-c" cmd]))
+           pr (.exec rt
+                     ^"[Ljava.lang.String;" (into-array ["sh" "-c" cmd]))
            input (java.io.BufferedReader.
                   (java.io.InputStreamReader.
                    (.getInputStream pr)))
@@ -369,3 +377,15 @@
   ([a b]
      (= (set a)
         (set b))))
+
+(defmacro no-warn-reflection
+  "Evaluates the given forms with reflection warnings suppressed; must
+  be used at the top level, with defns below it"
+  ;; Note: This is needed because using binding causes
+  ;; *warn-on-reflection* to become false at the wrong time
+  ([& body]
+     (let [old-warn-on-reflection *warn-on-reflection*]
+       (set! *warn-on-reflection* false)
+       `(do
+          ~@body
+          (set! *warn-on-reflection* ~old-warn-on-reflection)))))
