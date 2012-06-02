@@ -395,13 +395,14 @@
 
 (def service-object (dynamic-get-service-object))
 
-(no-warn-reflection
- (defn open-url
-   "Opens the given URL using the system default browser"
-   ([url]
-      (if service-object
-        (.showDocument service-object url)
-        (run-cmd "open" url)))))
+(defn open-url
+  "Opens the given URL using the system default browser; returns nil"
+  ([url]
+     (do
+       (if service-object
+         (no-warn-reflection (.showDocument service-object url))
+         (run-cmd "open" url))
+       nil)))
 
 (defn hyperlink-listener-fn
   "Takes a fn of one argument (a URL), and returns a

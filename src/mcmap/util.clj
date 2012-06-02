@@ -378,14 +378,23 @@
      (= (set a)
         (set b))))
 
+(defmacro compile-time-set!
+  "Sets the given variable at compile time and evaluates to the
+  substitution form"
+  ([var new-value substitution]
+     (do
+       (eval `(set! ~var ~new-value))
+       substitution)))
+
 (defmacro no-warn-reflection
-  "Evaluates the given forms with reflection warnings suppressed; must
-  be used at the top level, with defns below it"
-  ;; Note: This is needed because using binding causes
-  ;; *warn-on-reflection* to become false at the wrong time
+  "Evaluates the given forms with reflection warnings suppressed"
+  ;; Note: This is needed because using binding directly causes
+  ;; *warn-on-reflection* to become false at the wrong time -- at
+  ;; execution time rather than compilation time, when the warning is
+  ;; generated
   ([& body]
-     (let [old-warn-on-reflection *warn-on-reflection*]
-       (set! *warn-on-reflection* false)
-       `(do
-          ~@body
-          (set! *warn-on-reflection* ~old-warn-on-reflection)))))
+     `(let [_# (compile-time-set! *warn-on-reflection* false nil)
+            ret# (do ~@body)]
+        (compile-time-set! *warn-on-reflection*
+                           ~*warn-on-reflection*
+                           ret#))))
