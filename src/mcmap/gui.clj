@@ -100,11 +100,13 @@
              nil {:type :readme
                   :label "README"
                   :title "Unrest map generator 1.0.0 README"
-                  :text (str "Were you disappointed by how easy
-Nightmare Realms was?  Are you tired of inventing challenges and
-artificial restrictions just to try to make vanilla Minecraft hard?
-Would a bucket be a game-changer right about now?  If you answered
-\"yes\" to any of these questions, you have come to the right place.
+                  :text (str "<font
+face=\"Verdana,Helvetica,Arial,sans-serif\">Were you disappointed by
+how easy Nightmare Realms was?  Are you tired of inventing challenges
+and artificial restrictions just to try to make vanilla Minecraft
+hard?  Would a bucket be a game-changer right about now?  If you
+answered \"yes\" to any of these questions, you have come to the right
+place.
 
 <p>The Unrest map generator makes cave-and-dungeon maps for Minecraft
 that are as hard as you could possibly want them to be.  At level 100,
@@ -144,6 +146,7 @@ This is normal.
 License, version 1.0: " (a-href "www.eclipse.org/legal/epl-v10.html")
 ". Source code is on github: " (a-href "https://github.com/") " Share,
 hack, and enjoy.
+</font>
 ")}
              :game-seed (assoc seed-entry
                           :label "Game seed (text or number)"
