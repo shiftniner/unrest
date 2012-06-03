@@ -1,5 +1,5 @@
 (ns mcmap.gui
-  (:use [mcmap util gui-util unrest srand])
+  (:use [mcmap util gui-util quest-map srand])
   (:import [java.io PipedReader PipedWriter BufferedReader]
            [javax.swing ProgressMonitor JOptionPane])
   (:gen-class))

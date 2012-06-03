@@ -1,4 +1,4 @@
-(ns mcmap.unrest
+(ns mcmap.quest-map
   (:use mcmap.core
         mcmap.cavern
         mcmap.srand
