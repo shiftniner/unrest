@@ -488,6 +488,12 @@
            items (cons item (take-nth 2 (rest more)))
            ns-sum (reduce + ns)
            subslots (scale-ints slots ns)]
+       (when (> (count ns) slots)
+         (die "Too many types of items given to prize-items: "
+              (count ns) " item types, " slots " slots"))
+       (when (some neg? subslots)
+         (die "Negative slot count in prize-items with args: "
+              slots n item " & " (pr-str more)))
        (mapcat prize-items subslots ns items))))
 
 (defn set-prize

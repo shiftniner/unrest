@@ -211,7 +211,9 @@
               first-ret (if (> first-ret
                                (inc (- target (count is))))
                           (inc (- target (count is)))
-                          first-ret)]
+                          first-ret)
+              first-ret (if (zero? first-ret)
+                          -1 first-ret)]
           (cons first-ret
                 (scale-ints (- target first-ret)
                             (- sum (first is))
