@@ -1,4 +1,4 @@
-(ns mcmap.octree)
+(ns unrest.octree)
 
 (set! *warn-on-reflection* true)
 

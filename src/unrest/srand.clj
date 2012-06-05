@@ -1,4 +1,4 @@
-(ns mcmap.srand
+(ns unrest.srand
   (:import java.util.Random
            java.security.SecureRandom))
 

@@ -1,4 +1,4 @@
-(ns mcmap.blocks)
+(ns unrest.blocks)
 
 (set! *warn-on-reflection* true)
 
@@ -104,7 +104,7 @@
              (keys +color+))))
 
 (defn mc-block
-  "Returns the specified block in mcmap's internal data format"
+  "Returns the specified block in unrest's internal data format"
   ([type]
      #=(eval
         (list*

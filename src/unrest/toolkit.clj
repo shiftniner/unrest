@@ -1,11 +1,11 @@
-(ns mcmap.toolkit
-  (:use mcmap.core
-        mcmap.util
-        mcmap.blocks
-        mcmap.dungeon.build
-        mcmap.srand
-        mcmap.layout
-        mcmap.balance))
+(ns unrest.toolkit
+  (:use unrest.core
+        unrest.util
+        unrest.blocks
+        unrest.dungeon.build
+        unrest.srand
+        unrest.layout
+        unrest.balance))
 
 (set! *warn-on-reflection* true)
 

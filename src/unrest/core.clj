@@ -1,6 +1,6 @@
-(ns mcmap.core
-  (:use mcmap.blocks
-        mcmap.util)
+(ns unrest.core
+  (:use unrest.blocks
+        unrest.util)
   (:import java.nio.ByteBuffer
            java.util.zip.DeflaterOutputStream
            java.util.zip.GZIPOutputStream

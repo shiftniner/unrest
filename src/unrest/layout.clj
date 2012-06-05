@@ -1,10 +1,10 @@
-(ns mcmap.layout
-  (:use mcmap.core
-        mcmap.util
-        mcmap.dungeon.build
-        mcmap.srand
-        mcmap.dungeon.box)
-  (:import mcmap.dungeon.box.Box))
+(ns unrest.layout
+  (:use unrest.core
+        unrest.util
+        unrest.dungeon.build
+        unrest.srand
+        unrest.dungeon.box)
+  (:import unrest.dungeon.box.Box))
 
 (set! *warn-on-reflection* true)
 

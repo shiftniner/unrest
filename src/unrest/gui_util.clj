@@ -1,5 +1,5 @@
-(ns mcmap.gui-util
-  (:use mcmap.util)
+(ns unrest.gui-util
+  (:use unrest.util)
   (:import [java.awt.event ActionListener ActionEvent
                            WindowListener WindowEvent]
            [javax.swing JButton JPanel JFrame JFormattedTextField

@@ -1,8 +1,8 @@
-(ns mcmap.cavern
-  (:use mcmap.core
-        mcmap.blocks
-        mcmap.srand
-        mcmap.util))
+(ns unrest.cavern
+  (:use unrest.core
+        unrest.blocks
+        unrest.srand
+        unrest.util))
 
 (set! *warn-on-reflection* true)
 

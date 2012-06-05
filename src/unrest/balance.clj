@@ -1,6 +1,6 @@
-(ns mcmap.balance
-  (:use mcmap.srand
-        mcmap.blocks))
+(ns unrest.balance
+  (:use unrest.srand
+        unrest.blocks))
 
 (set! *warn-on-reflection* true)
 

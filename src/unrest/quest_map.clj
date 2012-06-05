@@ -1,15 +1,15 @@
-(ns mcmap.quest-map
-  (:use mcmap.core
-        mcmap.cavern
-        mcmap.srand
-        mcmap.blocks
-        mcmap.util
-        mcmap.dungeon.placement
-        mcmap.dungeon.build
-        mcmap.dungeons
-        mcmap.layout
-        mcmap.balance
-        mcmap.toolkit)
+(ns unrest.quest-map
+  (:use unrest.core
+        unrest.cavern
+        unrest.srand
+        unrest.blocks
+        unrest.util
+        unrest.dungeon.placement
+        unrest.dungeon.build
+        unrest.dungeons
+        unrest.layout
+        unrest.balance
+        unrest.toolkit)
   (:import java.io.File))
 
 (set! *warn-on-reflection* true)

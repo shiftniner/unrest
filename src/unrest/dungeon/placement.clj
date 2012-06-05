@@ -1,17 +1,17 @@
-(ns mcmap.dungeon.placement
-  (:use mcmap.core
-        mcmap.util
-        mcmap.blocks
-        mcmap.dungeon.build
-        mcmap.toolkit
-        mcmap.srand
-        mcmap.octree
-        mcmap.dungeons
-        mcmap.cavern
-        mcmap.layout
-        mcmap.balance
-        mcmap.dungeon.box)
-  (:import mcmap.dungeon.box.Box))
+(ns unrest.dungeon.placement
+  (:use unrest.core
+        unrest.util
+        unrest.blocks
+        unrest.dungeon.build
+        unrest.toolkit
+        unrest.srand
+        unrest.octree
+        unrest.dungeons
+        unrest.cavern
+        unrest.layout
+        unrest.balance
+        unrest.dungeon.box)
+  (:import unrest.dungeon.box.Box))
 
 (set! *warn-on-reflection* true)
 
@@ -72,8 +72,8 @@
        (compare-and-set! dungeons-dump @dungeons-dump dungeons)
        (compare-and-set! hallways-dump @hallways-dump hallways)
        (die "dungeon or hallway not rendered; dungeons dumped to"
-            " @mcmap.placement/dungeons-dump, and hallways dumped to"
-            " @mcmap.placement/hallways-dump"))
+            " @unrest.placement/dungeons-dump, and hallways dumped to"
+            " @unrest.placement/hallways-dump"))
      (let [zone-size (max (zone-x-size zone)
                           (zone-z-size zone)
                           (zone-y-size zone))

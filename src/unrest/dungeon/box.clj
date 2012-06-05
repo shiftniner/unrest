@@ -1,4 +1,4 @@
-(ns mcmap.dungeon.box)
+(ns unrest.dungeon.box)
 
 ;;; Defines the 'Box' datatype, collections of which compose dungeons.
 

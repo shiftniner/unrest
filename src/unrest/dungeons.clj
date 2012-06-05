@@ -1,15 +1,15 @@
-(ns mcmap.dungeons
-  (:use mcmap.layout
-        mcmap.toolkit
-        mcmap.blocks
-        mcmap.core
-        mcmap.srand
-        mcmap.util))
+(ns unrest.dungeons
+  (:use unrest.layout
+        unrest.toolkit
+        unrest.blocks
+        unrest.core
+        unrest.srand
+        unrest.util))
 
 (set! *warn-on-reflection* true)
 
-;;; mcmap.dungeons contains definitions of various dungeons.
-;;; mcmap.dungeon contains code for placing dungeons in a map.
+;;; unrest.dungeons contains definitions of various dungeons.
+;;; unrest.dungeon contains code for placing dungeons in a map.
 
 (letfn [(dungeon-type-match
          ;; returns true if d either is, or is a

@@ -1,8 +1,8 @@
-(ns mcmap.read
-  (:use mcmap.core
-        mcmap.blocks
-        mcmap.srand  ; XXX for bytes-to-int; move to util.clj
-        mcmap.util)
+(ns unrest.read
+  (:use unrest.core
+        unrest.blocks
+        unrest.srand  ; XXX for bytes-to-int; move to util.clj
+        unrest.util)
   (:import java.nio.ByteBuffer
            java.io.FileInputStream
            java.util.zip.Inflater))
