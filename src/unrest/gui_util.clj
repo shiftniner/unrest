@@ -10,7 +10,8 @@
                         JLabel JSeparator JCheckBox JComboBox
                         event.DocumentListener event.DocumentEvent
                         SwingUtilities ProgressMonitor
-                        JEditorPane JScrollPane]
+                        JEditorPane JScrollPane
+                        SpringLayout Spring]
            [javax.swing.event HyperlinkListener HyperlinkEvent
                               HyperlinkEvent$EventType]
            [java.awt FlowLayout Component Dimension GridBagLayout
@@ -435,14 +436,37 @@
   returns from the function"
   ([title text]
      (let [ok? (promise)
+           sl (SpringLayout.)
+           td (text-display text 495 435
+                            (hyperlink-listener [u]
+                              (open-url u)))
+           bt (button "OK"
+                      (action-listener [ae]
+                        (deliver ok? true)))
+           p (panel sl td bt)
+           _ (do
+               (doseq [ [^String dir offset]
+                        [[SpringLayout/NORTH  18]
+                         [SpringLayout/EAST  -18]
+                         [SpringLayout/WEST   18]]]
+                 (.putConstraint sl
+                                 dir ^Component td
+                                 (Spring/constant offset)
+                                 dir ^Component p))
+               (doseq [ [^String dir offset]
+                        [[SpringLayout/SOUTH -18]
+                         [SpringLayout/EAST  -18]
+                         [SpringLayout/WEST   18]]]
+                 (.putConstraint sl
+                                 dir ^Component bt
+                                 (Spring/constant offset)
+                                 dir ^Component p))
+               (.putConstraint sl
+                               SpringLayout/SOUTH ^Component td
+                               (Spring/constant -16)
+                               SpringLayout/NORTH ^Component bt))
            window (frame title 520 500
-                         (panel (flow-layout :center)
-                                (text-display text 495 435
-                                              (hyperlink-listener [u]
-                                                (open-url u)))
-                                (button "OK"
-                                        (action-listener [ae]
-                                          (deliver ok? true))))
+                         p
                          (window-close-listener [_ w]
                            (.dispose w)
                            (deliver ok? false)))]
@@ -669,3 +693,10 @@
                 :width 1
                 :height 30})))
 
+(defn readme-exercise-1
+  ([]
+     (readme "counting to 1000"
+             (apply str
+                    "<html>"
+                    (concat (interpose " " (range 1000))
+                            ["</html>"])))))
