@@ -140,14 +140,13 @@ corrupted.
 may hear your CPU fans do things you've never heard them do before.
 This is normal.
 
-<p><center>Dedicated to sweetjuices.</center>
-
 <p>The Unrest map generator is distributed under the Eclipse Public
 License, version 1.0: " (a-href "www.eclipse.org/legal/epl-v10.html")
 ". Source code is on github: " (a-href "https://github.com/") " Share,
 hack, and enjoy.
-</font>
-")}
+
+<p><center>Dedicated to sweetjuices.</center>
+</font>")}
              :game-seed (assoc seed-entry
                           :label "Game seed (text or number)"
                           :default (str (choose-random-seed)))
