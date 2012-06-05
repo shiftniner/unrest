@@ -259,7 +259,9 @@ hack, and enjoy.
   "Takes a number of minutes and returns an English phrase
   approximating that amount of time"
   ([n]
-     (cond (> n 65) "more than an hour"
+     (cond (> n 90) (str "about " (int (/ (+ n 45) 60))
+                         " hours")
+           (> n 65) "more than an hour"
            (> n 50) "about an hour"
            (> n 15) (str "about " (* 5 (inc (int (/ n 5))))
                          " minutes")
@@ -279,7 +281,7 @@ hack, and enjoy.
      (let [rdr (PipedReader.)
            pipe (PipedWriter. rdr)
            line-rdr (BufferedReader. rdr)
-           bar (progress-bar "Generating Map" 150)
+           bar (progress-bar "Generating Map" 100)
            start-time (System/currentTimeMillis)
            orig-out *out*
            main-mapgen-thread (Thread/currentThread)
