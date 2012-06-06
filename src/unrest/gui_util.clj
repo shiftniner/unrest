@@ -440,9 +440,10 @@
            td (text-display text 495 435
                             (hyperlink-listener [u]
                               (open-url u)))
-           bt (button "OK"
-                      (action-listener [ae]
-                        (deliver ok? true)))
+           bt (panel (flow-layout :center)
+                     (button "OK"
+                             (action-listener [ae]
+                               (deliver ok? true))))
            p (panel sl td bt)
            _ (do
                (doseq [ [^String dir offset]
@@ -454,7 +455,7 @@
                                  (Spring/constant offset)
                                  dir ^Component p))
                (doseq [ [^String dir offset]
-                        [[SpringLayout/SOUTH -18]
+                        [[SpringLayout/SOUTH -8]
                          [SpringLayout/EAST  -18]
                          [SpringLayout/WEST   18]]]
                  (.putConstraint sl
@@ -463,7 +464,7 @@
                                  dir ^Component p))
                (.putConstraint sl
                                SpringLayout/SOUTH ^Component td
-                               (Spring/constant -16)
+                               (Spring/constant -6)
                                SpringLayout/NORTH ^Component bt))
            window (frame title 520 500
                          p
