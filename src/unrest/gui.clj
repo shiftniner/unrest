@@ -146,6 +146,7 @@ License, version 1.0: " (a-href "www.eclipse.org/legal/epl-v10.html")
 hack, and enjoy.
 
 <p><center>Dedicated to sweetjuices.</center>
+<br><br>
 </font>")}
              :game-seed (assoc seed-entry
                           :label "Game seed (text or number)"
