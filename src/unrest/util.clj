@@ -400,3 +400,23 @@
         (compile-time-set! *warn-on-reflection*
                            ~*warn-on-reflection*
                            ret#))))
+
+(defmacro in-new-thread
+  "Executes the given potentially-blocking forms in another thread;
+  returns nil"
+  ([& body]
+     `(do
+        (send-off (agent nil)
+                  (fn [_#]
+                    ~@body))
+        nil)))
+
+(defmacro in-pool-thread
+  "Executes the given non-blocking forms in another thread; returns
+  nil"
+  ([& body]
+     `(do
+        (send (agent nil)
+              (fn [_#]
+                ~@body))
+        nil)))

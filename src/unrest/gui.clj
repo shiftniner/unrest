@@ -286,39 +286,34 @@ hack, and enjoy.
            orig-out *out*
            main-mapgen-thread (Thread/currentThread)
            finished (atom false)]
-       (send-off (agent nil)
-                 (fn [_]
-                   (loop []
-                     (Thread/sleep 1000)
-                     (when (.isCanceled bar)
-                       (.stop main-mapgen-thread))
-                     (when-not @finished
-                       (recur)))))
-       (send-off (agent nil)
-                 (fn [_]
-                   (loop []
-                     (let [line (.readLine line-rdr)]
-                       (when line
-                         (binding [*out* orig-out]
-                           (println line))
-                         (if-let [progress (recalc-progress line)]
-                           (let [cur-time (System/currentTimeMillis)
-                                 elapsed (- cur-time start-time)
-                                 est-total (/ elapsed progress)
-                                 eta-mins (/ (- est-total elapsed)
-                                             60000)
-                                 rough-est (rough-time eta-mins)]
-                             (msg 0 "eta: " eta-mins " (" rough-est
-                                  ")")
-                             (when (< elapsed 200)
-                               (Thread/sleep (int (- 200 elapsed))))
-                             (in-swing-thread
-                              (.setNote bar
-                                        (str "Time remaining: "
-                                             rough-est
-                                             "                "))
-                              (.setProgress bar (int (* 1e6 progress))))))
-                         (recur))))))
+       (in-new-thread
+        (loop []
+          (Thread/sleep 1000)
+          (when (.isCanceled bar)
+            (.stop main-mapgen-thread))
+          (when-not @finished
+            (recur))))
+       (in-new-thread
+        (loop []
+          (let [line (.readLine line-rdr)]
+            (when line
+              (binding [*out* orig-out]
+                (println line))
+              (if-let [progress (recalc-progress line)]
+                (let [cur-time (System/currentTimeMillis)
+                      elapsed (- cur-time start-time)
+                      est-total (/ elapsed progress)
+                      eta-mins (/ (- est-total elapsed)
+                                  60000)
+                      rough-est (rough-time eta-mins)]
+                  (msg 0 "eta: " eta-mins " (" rough-est ")")
+                  (when (< elapsed 200)
+                    (Thread/sleep (int (- 200 elapsed))))
+                  (in-swing-thread
+                   (.setNote bar (str "Time remaining: " rough-est
+                                      "                "))
+                   (.setProgress bar (int (* 1e6 progress))))))
+              (recur)))))
        (binding [*out* pipe]
          (try
            (f)
