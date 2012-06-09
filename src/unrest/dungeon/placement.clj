@@ -746,7 +746,7 @@
      (let [hall-seed (long (rand +seed-max+))
            _ (msg 1 "hall seed: " hall-seed)
            [hallway hx hy hz]
-             (hallway-fn 0 hall-seed 1)
+             (hallway-fn 0 hall-seed 1 true)
            dunhall-merged (merge-dungeons hallway
                                           (translate-dungeon
                                            dungeon hx hy hz))
