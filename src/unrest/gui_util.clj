@@ -35,7 +35,8 @@
   http://docs.oracle.com/javase/6/docs/api/javax/swing/package-summary.html#threading
   for rationale"
   ([& forms]
-     `(when-not *in-swing-thread*
+     `(if *in-swing-thread*
+        (do ~@forms)
         (let [result# (promise)]
           (SwingUtilities/invokeLater
            #(try
