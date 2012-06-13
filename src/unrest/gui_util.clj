@@ -26,6 +26,25 @@
 
 (def ^:dynamic *in-swing-thread* false)
 
+(defn in-swing-thread-fn
+  "Calls the given no-args fn in the Swing event dispatching thread
+  and returns the result; catches exceptions from the Swing thread and
+  rethrows them in the current thread"
+  ([f]
+     (if *in-swing-thread*
+       (f)
+       (let [result (promise)]
+         (SwingUtilities/invokeLater
+          #(try
+             (binding [*in-swing-thread* true]
+               (let [r (f)]
+                 (deliver result {:return r})))
+             (catch Exception e
+               (deliver result {:exception e}))))
+         (when-let [e (:exception @result)]
+           (throw e))
+         (:return @result)))))
+
 (defmacro in-swing-thread
   "Evaluates the given forms in the Swing event dispatching thread and
   returns the result; catches exceptions from the Swing thread and
@@ -35,19 +54,7 @@
   http://docs.oracle.com/javase/6/docs/api/javax/swing/package-summary.html#threading
   for rationale"
   ([& forms]
-     `(if *in-swing-thread*
-        (do ~@forms)
-        (let [result# (promise)]
-          (SwingUtilities/invokeLater
-           #(try
-              (binding [*in-swing-thread* true]
-                (let [r# (do ~@forms)]
-                  (deliver result# {:return r#})))
-              (catch Exception e#
-                (deliver result# {:exception e#}))))
-          (when-let [e# (:exception @result#)]
-            (throw e#))
-          (:return @result#)))))
+     `(in-swing-thread-fn (fn [] ~@forms))))
 
 (defn action-listener-fn
   "Takes a fn of one argument (a java.awt.event.ActionEvent) and
