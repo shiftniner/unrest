@@ -309,6 +309,15 @@ hack, and enjoy.
                                   60000)
                       rough-est (rough-time eta-mins)]
                   (msg 0 "eta: " eta-mins " (" rough-est ")")
+                  ;; XXX Updating the progress bar with new text too
+                  ;; soon after it is created sometimes causes the
+                  ;; initial whitepace text, used for sizing the
+                  ;; window, never to render, causing the window to be
+                  ;; too narrow.  A hardcoded 200 ms is not ideal; on
+                  ;; a very slow or overloaded computer, that might
+                  ;; not be enough time to render the initial window.
+                  ;; On a very fast computer, it might theoretically
+                  ;; be enough time for the pipe buffer to fill up.
                   (when (< elapsed 200)
                     (Thread/sleep (int (- 200 elapsed))))
                   (in-swing-thread
