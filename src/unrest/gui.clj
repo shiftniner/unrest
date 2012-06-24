@@ -84,29 +84,13 @@
        ;; TODO: add quoting/escaping
        (str "<a href=\"" clean-url "\">" txt "</a>"))))
 
-(defn map-form
-  ([]
-     (let [seed-entry {:type :live-label-entry
-                       :class String
-                       :buttons [{:label "randomize"
-                                  :swap-val (fn [_]
-                                              (str (choose-random-seed)))}]
-                       :live-text #(str "Numeric value: "
-                                        (numericize-seed %))
-                       :width 250}]
-       (form "Unrest map generator v1.0.0"
-             "generate map"
-             700 450
-             nil {:type :readme
-                  :label "README"
-                  :title "Unrest map generator 1.0.0 README"
-                  :text (str "<font
-face=\"Verdana,Helvetica,Arial,sans-serif\">Were you disappointed by
-how easy Nightmare Realms was?  Are you tired of inventing challenges
-and artificial restrictions just to try to make vanilla Minecraft
-hard?  Would a bucket be a game-changer right about now?  If you
-answered \"yes\" to any of these questions, you have come to the right
-place.
+(def +map-form-readme-text+
+     (str "<font face=\"Verdana,Helvetica,Arial,sans-serif\">Were you
+disappointed by how easy Nightmare Realms was?  Are you tired of
+inventing challenges and artificial restrictions just to try to make
+vanilla Minecraft hard?  Would a bucket be a game-changer right about
+now?  If you answered \"yes\" to any of these questions, you have come
+to the right place.
 
 <p>The Unrest map generator makes cave-and-dungeon maps for Minecraft
 that are as hard as you could possibly want them to be.  At level 100,
@@ -147,7 +131,25 @@ hack, and enjoy.
 
 <p><center>Dedicated to sweetjuices.</center>
 <br><br>
-</font>")}
+</font>"))
+
+(defn map-form
+  ([]
+     (let [seed-entry {:type :live-label-entry
+                       :class String
+                       :buttons [{:label "randomize"
+                                  :swap-val (fn [_]
+                                              (str (choose-random-seed)))}]
+                       :live-text #(str "Numeric value: "
+                                        (numericize-seed %))
+                       :width 250}]
+       (form "Unrest map generator v1.0.0"
+             "generate map"
+             700 450
+             nil {:type :readme
+                  :label "README"
+                  :title "Unrest map generator 1.0.0 README"
+                  :text +map-form-readme-text+}
              :game-seed (assoc seed-entry
                           :label "Game seed (text or number)"
                           :default (str (choose-random-seed)))
