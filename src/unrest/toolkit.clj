@@ -167,10 +167,8 @@
      (unit-sum-series n 1))
   ([n total]
      (let [denom (reduce + (range (inc n)))]
-       (map #(* %3 (/ %1 %2))
-            (range 1 (inc n))
-            (repeat denom)
-            (repeat total)))))
+       (map #(* total (/ % denom))
+            (range 1 (inc n))))))
 
 (defn supply-chest
   "Returns a 1x1x1 dungeon consisting of a prize chest, ignoring
