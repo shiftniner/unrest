@@ -108,7 +108,7 @@
            (tag-int "GameType" (if (or (:creative opts)
                                        (:semi-creative opts))
                                  1 0))
-           (tag-byte "MapFeatures" 0)
+           (tag-byte "MapFeatures" 1)
            (tag-int "version" 19133)
            (tag-long "Time" 0)
            (tag-byte "raining" 1)
