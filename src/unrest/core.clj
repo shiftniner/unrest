@@ -284,41 +284,43 @@
   will be folded), returns a byte buffer"
   ([bs]
      ;; XXX try adding a lazy-seq here; see if it's faster
-     (let [ba (into-array Byte/TYPE
-                          (map #(if (> % 127)
-                                  (bit-xor % -256)
-                                  %)
-                               bs))]
-       (list (count ba)
-             (ByteBuffer/wrap ba)))))
+     (lazy-seq
+      (let [ba (into-array Byte/TYPE
+                           (map #(if (> % 127)
+                                   (bit-xor % -256)
+                                   %)
+                                bs))]
+        (list (count ba)
+              (ByteBuffer/wrap ba))))))
 
 (defn concat-bytes
   "Takes any number of byte buffers and concatenates them into a
   single byte buffer"
   ;; XXX try a recursive approach to concatenate more buffers?
   ([& byte-buffers]
-     (if (= 1 (count byte-buffers))
-       byte-buffers
-       (let [buffer-length-sums (reductions +
-                                            (map first byte-buffers))
-             num-short-buffers
-               (count (take-while
-                         (partial > +byte-buffer-concat-threshold+)
-                         buffer-length-sums))
-             short-buffers (take num-short-buffers byte-buffers)
-             long-buffers (drop num-short-buffers byte-buffers)
-             new-len (last buffer-length-sums)
-             new-buffers (cond (= 0 num-short-buffers)
-                               nil
-                               (= 1 num-short-buffers)
-                               (rest (first short-buffers))
-                               :else
-                               (rest (byte-buffer
-                                      (mapcat #(.array ^ByteBuffer %)
-                                              (mapcat rest short-buffers)))))
-             new-buffers (concat new-buffers
-                                 (mapcat rest long-buffers))]
-         (cons new-len new-buffers)))))
+     (lazy-seq
+      (if (= 1 (count byte-buffers))
+        byte-buffers
+        (let [buffer-length-sums (reductions + (map first byte-buffers))
+              num-short-buffers
+                (count (take-while
+                        (partial > +byte-buffer-concat-threshold+)
+                        buffer-length-sums))
+              short-buffers (take num-short-buffers byte-buffers)
+              long-buffers (drop num-short-buffers byte-buffers)
+              new-len (last buffer-length-sums)
+              new-buffers (cond (= 0 num-short-buffers)
+                                  nil
+                                (= 1 num-short-buffers)
+                                  (rest (first short-buffers))
+                                :else
+                                  (rest (byte-buffer
+                                         (mapcat #(.array ^ByteBuffer %)
+                                                 (mapcat rest
+                                                         short-buffers)))))
+              new-buffers (concat new-buffers
+                                  (mapcat rest long-buffers))]
+          (cons new-len new-buffers))))))
 
 (defn byte-buffer-size
   "Returns the length in bytes of the given byte buffer"
