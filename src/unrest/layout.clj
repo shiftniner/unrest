@@ -270,8 +270,8 @@
             (apply sequence-dungeons
                    (cons (fn [params]
                            (when-not (dungeon-rendered? d1)
-                             (render-dungeon d1 params)
-                             (render-dungeon d2 params)))
+                             (render-dungeon d1 params))
+                           (render-dungeon d2 params))
                          (rest d2))
                    ds)))))
 
