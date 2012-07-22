@@ -101,6 +101,7 @@
   "Returns true if the given dungeon has been rendered, or has no boxes"
   ([d]
      (or (not (:zone (second d)))
+         (not (instance? clojure.lang.IPending (:zone (second d))))
          (realized? (:zone (second d))))))
 
 (defn round-to-chunk-size
