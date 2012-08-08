@@ -28,6 +28,7 @@
      (apply hash-map
                                  ;; opaque
             (concat (interleave [:stone
+                                 :grass
                                  :dirt
                                  :cobble
                                  :bedrock
@@ -158,6 +159,7 @@
                      (:type ze)))
        (or ( {:air                     0
               :stone                   1
+              :grass                   2
               :dirt                    3
               :cobble                  4
               :bedrock                 7
@@ -170,12 +172,21 @@
               :iron-ore               15
               :coal-ore               16
 ;              :wood                   17
+              :sponge                 19
               :glass                  20
+              :lapis-ore              21
+              :lapis-block            22
               :dispenser              23
               :sandstone              24
+              :note-block             25
               :powered-rail           27
               :detector-rail          28
+              :sticky-piston          29
+              :cobweb                 30
+              :tall-grass             31
               :dead-bush              32
+              :piston                 33
+              :piston-extension       34
               :wool                   35
               :piston-target          36
               :dandelion              37
@@ -184,7 +195,9 @@
               :iron-block             42
               :double-slab            43
               :slab                   44
+              :bricks                 45
               :tnt                    46
+              :bookshelf              47
               :moss-stone             48
               :obsidian               49
               :torch                  50
@@ -196,31 +209,72 @@
               :redstone-wire          55
               :diamond-ore            56
               :diamond-block          57
+              :farmland               60
+              :furnace                61
+              :burning-furnace        62
               :sign-post              63
+              :wood-door              64
               :ladder                 65
               :rail                   66
               :cobble-stairs          67
               :wall-sign              68
+              :lever                  69
+              :stone-pressure-plate   70
+              :iron-door              71
               :wood-pressure-plate    72
               :redstone-ore           73
               :glowing-redstone-ore   74
               :redstone-torch-off     75
               :redstone-torch-on      76
               :button                 77
+              :snow                   78
               :ice                    79
               :snow-block             80
+              :cactus                 81
+              :clay-block             82
+              :sugar-cane             83
+              :jukebox                84
+              :fence                  85
               :pumpkin                86
+              :netherrack             87
+              :soul-sand              88
               :glowstone              89
+              :portal                 90
               :jack-o-lantern         91
+              :cake                   92
               :redstone-repeater-off  93
               :redstone-repeater-on   94
+              :locked-chest           95
+              :trapdoor               96
+              :monster-egg            97
               :stone-bricks           98
               :iron-bars             101
+              :glass-pane            102
               :vines                 106
+              :fence-gate            107
               :brick-stairs          108
               :stone-brick-stairs    109
+              :mycelium              110
+              :lily-pad              111
               :nether-brick          112
-              :nether-brick-stairs   114}
+              :nether-brick-fence    113
+              :nether-brick-stairs   114
+              :end-portal            119
+              :end-portal-frame      120
+              :end-stone             121
+              :dragon-egg            122
+              :redstone-lamp-off     123
+              :redstone-lamp-on      124
+              :sandstone-stairs      128
+              :emerald-ore           129
+              :ender-chest           130
+              :tripwire-hook         131
+              :tripwire              132
+              :emerald-block         133
+              :spruce-wood-stairs    134
+              :birch-wood-stairs     135
+              :jungle-wood-stairs    136
+              }
              ze)
            (throw (RuntimeException. (str "Block ID unknown for " ze)))))))
 
@@ -432,4 +486,3 @@
                          (lazy-seq (cons f
                                          (split-sign (drop flen ts)))))))]
        (split-sign text-lines))))
-
