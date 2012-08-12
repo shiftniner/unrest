@@ -288,14 +288,14 @@ hack, and enjoy.
            orig-out *out*
            main-mapgen-thread (Thread/currentThread)
            finished (atom false)]
-       (in-new-thread
+       (in-async-thread
         (loop []
           (Thread/sleep 1000)
           (when (.isCanceled bar)
             (.stop main-mapgen-thread))
           (when-not @finished
             (recur))))
-       (in-new-thread
+       (in-async-thread
         (loop []
           (let [line (.readLine line-rdr)]
             (when line

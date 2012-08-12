@@ -401,7 +401,7 @@
                            ~*warn-on-reflection*
                            ret#))))
 
-(defmacro in-new-thread
+(defmacro in-async-thread
   "Executes the given potentially-blocking forms in another thread;
   returns nil"
   ([& body]
