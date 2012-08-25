@@ -525,7 +525,7 @@
                    ( {:south 0x2 :north 0x3 :east 0x4 :west 0x5 nil 0}
                      (:face ze))
                  (:wood-stairs :cobble-stairs :stone-brick-stairs
-                  :brick-stairs :nether-brick-stairs)
+                  :brick-stairs :nether-brick-stairs :sandstone-stairs)
                    (bit-or ( {:east 0x0 :west 0x1 :south 0x2 :north 0x3}
                              (:face ze))
                            (if (:upside-down ze)
