@@ -468,10 +468,11 @@
      (apply hash-map
        (apply concat
          (concat
-           (map #(do [% 10])
+           (map #(do [% 7])
                 [:protection :fire-protection :feather-falling
-                 :blast-protection :projectile-protection
-                 :respiration :sharpness :smite :bane-of-arthropods
+                 :blast-protection :projectile-protection])
+           (map #(do [% 10])
+                [:respiration :sharpness :smite :bane-of-arthropods
                  :knockback :fire-aspect :looting :power :punch
                  :efficiency :unbreaking :fortune])
            (map #(do [% 1])
