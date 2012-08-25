@@ -918,8 +918,6 @@
                                                   light-subzone))
                         ;(tag-list "TileTicks" 10 [])
                         ]) ])]
-       (write-file (str "/tmp/anv-chunk-data-" x0 "-" z0)
-                   data)
        {:x chunk-x
         :z chunk-z
         :compressed-data (zlib-compress data)})))
