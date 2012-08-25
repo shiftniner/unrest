@@ -1,7 +1,7 @@
-(ns mcmap.test.core
-  (:use [mcmap core cavern util balance toolkit dungeons blocks srand
-               unrest layout]
-        [mcmap.dungeon build placement]
+(ns unrest.test.core
+  (:use [unrest core cavern util balance toolkit dungeons blocks srand
+                quest-map layout]
+        [unrest.dungeon build placement]
         [clojure.test]))
 
 ;;; I don't want to break anyone's favorite seed.  Unlike some people.
