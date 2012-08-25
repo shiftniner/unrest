@@ -129,7 +129,7 @@
      (generic-hall-fn w y v params seed salt max-y
                       (if flat-floor
                         :cavern-wall
-                        (mem-mc-block :stone-brick-stairs
+                        (mem-mc-block :sandstone-stairs
                                       :face stair-face)))))
 
 (defn box-intersects-octree?
