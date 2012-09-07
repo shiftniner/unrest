@@ -295,15 +295,11 @@
        (msg 0 "Determined OS is " ret " because 'os.name' is " os-name)
        ret)))
 
-(defn run-cmd
-  "Runs the given command synchronously, printing its output, and
-  returning the exit code"
-  ([& strs]
-     (let [cmd (apply str (interpose " " (map shell-quote strs)))
-           rt (Runtime/getRuntime)
-           pr (.exec rt
-                     ^"[Ljava.lang.String;" (into-array ["sh" "-c" cmd]))
-           input (java.io.BufferedReader.
+(defn run-process-synchronously
+  "Takes a java.lang.Process, prints its output, and waits for it to
+  complete, returning its exit code"
+  ([^Process pr]
+     (let [input (java.io.BufferedReader.
                   (java.io.InputStreamReader.
                    (.getInputStream pr)))
            stderr (java.io.BufferedReader.
@@ -320,6 +316,23 @@
              (println line)
              (recur))))
        (.waitFor pr))))
+
+(defn run-cmd
+  "Runs the given command synchronously, printing its output, and
+  returning the exit code"
+  ([& strs]
+     (let [pr (.exec (Runtime/getRuntime)
+                     ^"[Ljava.lang.String;" (into-array strs))]
+       (run-process-synchronously pr))))
+
+(defn sh-run-cmd
+  "Runs the given command synchronously using \"sh -c\", printing its
+  output, and returning the exit code"
+  ([& strs]
+     (let [cmd (apply str (interpose " " (map shell-quote strs)))
+           pr (.exec (Runtime/getRuntime)
+                     ^"[Ljava.lang.String;" (into-array ["sh" "-c" cmd]))]
+       (run-process-synchronously pr))))
 
 (defn exhaustive-interleave
   "Returns a lazy seq of the first item in each coll, then the second
