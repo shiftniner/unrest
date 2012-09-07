@@ -20,23 +20,18 @@
           n)
         (make-seed s))))
 
-(def +host-os+
-     (let [os-name (.toLowerCase (System/getProperty "os.name"))]
-       (cond (.indexOf os-name "mac os")  :mac
-             (.indexOf os-name "linux")   :linux
-             (.indexOf os-name "windows") :windows
-             :else                        :misc)))
-
-(def +root-save-dir+
-     (case +host-os+
+(memo defn root-save-dir
+  ([]
+     (case (host-os)
            :linux   (str (System/getenv "HOME")
                          "/.minecraft/saves")
            :mac     (str (System/getenv "HOME")
                          "/Library/Application Support/minecraft/saves")
            :windows (str (System/getenv "APPDATA")
                          "/.minecraft/saves")
-           :misc    (str (or (System/getenv "HOME") "")
-                         "/unrest-maps")))
+           :misc    (str (or (System/getenv "HOME") ".")
+                         (System/getProperty "file.separator")
+                         "unrest-maps"))))
 
 (defn save-name->dir
   ([sn]
@@ -55,7 +50,7 @@
                            (.replaceAll "\\<"  "[")
                            (.replaceAll "\\>"  "]")
                            (.replaceAll "\\|"  "!"))]
-       (str +root-save-dir+ "/" munged-name))))
+       (str (root-save-dir) "/" munged-name))))
 
 (defn save-game-exists
   ([sn]

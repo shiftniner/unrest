@@ -285,6 +285,16 @@
           (.replaceAll (str s) "'" "'\\\\''")
           \')))
 
+(memo defn host-os
+  ([]
+     (let [os-name (.toLowerCase (System/getProperty "os.name"))
+           ret (cond (<= 0 (.indexOf os-name "mac os"))  :mac
+                     (<= 0 (.indexOf os-name "linux"))   :linux
+                     (<= 0 (.indexOf os-name "windows")) :windows
+                     :else                               :misc)]
+       (msg 0 "Determined OS is " ret " because 'os.name' is " os-name)
+       ret)))
+
 (defn run-cmd
   "Runs the given command synchronously, printing its output, and
   returning the exit code"
