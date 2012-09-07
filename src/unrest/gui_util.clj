@@ -15,9 +15,9 @@
            [javax.swing.event HyperlinkListener HyperlinkEvent
                               HyperlinkEvent$EventType]
            [java.awt FlowLayout Component Dimension GridBagLayout
-                     GridBagConstraints Window]
+                     GridBagConstraints Window Desktop]
            [java.text Format]
-           [java.net URL]))
+           [java.net URL URI]))
 
 ;;; Plan: hit Swing and AWT with a hammer until they start to look
 ;;; sort of halfway functional
@@ -385,32 +385,39 @@
          (.setPreferredSize (Dimension. x y)))
        scrollpane)))
 
-(defn dynamic-get-service-object
-  "Returns either an object implementing the javax.jnlp.BasicService
-  interface (with its showDocument method -- the one we care about),
-  or nil if the platform (i.e., Mac OS X) does not provide one, in
-  which case the \"open\" command must be used to launch a browser
-  instead"
-  ([]
-     (try
-       (let [srv-mgr-class (Class/forName "javax.jnlp.ServiceManager")
-             lookup-method (.getMethod srv-mgr-class "lookup"
-                                       (into-array [String]))]
-         (.invoke lookup-method
-                  nil
-                  (to-array ["javax.jnlp.BasicService"])))
-       (catch Exception e
-         nil))))
-
-(def service-object (dynamic-get-service-object))
-
 (defn open-url
   "Opens the given URL using the system default browser; returns nil"
   ([url]
-     (do
-       (if service-object
-         (no-warn-reflection (.showDocument service-object url))
-         (run-cmd "open" url))
+     (let [url (str url)]
+       (when-not (try
+                   (when-let* [_ (Desktop/isDesktopSupported)
+                              desktop (Desktop/getDesktop)
+                              _ (.isSupported desktop
+                                          java.awt.Desktop$Action/BROWSE)]
+                      (.browse desktop (URI. url))
+                      true)
+                   (catch Exception e
+                     false))
+         (case (host-os)
+               :mac
+                 (run-cmd "open" url)
+               :windows
+                 ;; I doubt this would ever be reached
+                 (cond (file-exists (str "C:/Program Files/Internet"
+                                         " Explorer/iexplore.exe"))
+                         (run-cmd (str "C:/Program Files/Internet"
+                                       " Explorer/iexplore.exe")
+                                  url)
+                       (file-exists (str "C:/Program Files (x86)"
+                                         "/Internet Explorer"
+                                         "/iexplore.exe"))
+                         (run-cmd (str "C:/Program Files (x86)/Internet"
+                                       " Explorer/iexplore.exe")
+                                  url))
+               (:linux :misc)
+                 ;; Sorry guys, best I could do.  This seems to be the
+                 ;; most common browser to find on a Linux system.
+                 (run-cmd "firefox" url)))
        nil)))
 
 (defn hyperlink-listener-fn
@@ -440,8 +447,8 @@
 
 (defn readme
   "Takes two strings and displays a window with the first string as
-  its title and the second string as text, and an OK button that
-  returns from the function"
+  its title and the second string (in HTML format) as text, and an OK
+  button that returns from the function"
   ([title text]
      (let [ok? (promise)
            sl (SpringLayout.)
