@@ -8,6 +8,8 @@
 
 (def +old-seed-min+ (- (bit-shift-left 1 (dec +seed-bits+))))
 
+(def +unrest-version+ (System/getProperty "unrest.version"))
+
 (defn numericize-seed
   "Takes a string and returns it as a long if it is formatted as an
   integer between the lowest (deprecated) negative signed seed and
@@ -138,12 +140,13 @@ hack, and enjoy.
                        :live-text #(str "Numeric value: "
                                         (numericize-seed %))
                        :width 250}]
-       (form "Unrest map generator v1.0.0"
+       (form (str "Unrest map generator v" +unrest-version+)
              "generate map"
              700 450
              nil {:type :readme
                   :label "README"
-                  :title "Unrest map generator 1.0.0 README"
+                  :title (str "Unrest map generator " +unrest-version+
+                              " README")
                   :text +map-form-readme-text+}
              :game-seed (assoc seed-entry
                           :label "Game seed (text or number)"
