@@ -346,6 +346,7 @@ hack, and enjoy.
   ([]
      (if-let [form-data (map-form)]
        (let [gen-fn record-quest-map
+             game-seed (numericize-seed (:game-seed form-data))
              [n-caves n-dungeons map-side map-height recalc-progress]
                ( {:normal [15 64 256 128 recalc-progress-normal]
                   :small  [6  25 192  96 recalc-progress-small]
@@ -357,9 +358,10 @@ hack, and enjoy.
                    :n-caves    n-caves
                    :n-dungeons n-dungeons
                    :map-side   map-side
-                   :map-height map-height}]
+                   :map-height map-height
+                   :minecraft-seed game-seed}]
          (with-mapgen-progress-bar recalc-progress
-           (gen-fn (numericize-seed (:game-seed form-data))
+           (gen-fn game-seed
                    (numericize-seed (:cave-seed form-data))
                    (:level form-data)
                    (save-name->dir (:save-name form-data))
