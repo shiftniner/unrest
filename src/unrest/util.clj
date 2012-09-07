@@ -357,6 +357,11 @@
                   (apply exhaustive-interleave
                          (map rest ss))))))))
 
+(defn file-exists
+  "Returns true if a file with the given pathname exists"
+  ([p]
+     (.exists (File. ^String p))))
+
 (defn dir-exists
   "Returns true if a directory with the given pathname exists"
   ([p]
