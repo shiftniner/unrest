@@ -422,11 +422,11 @@
                            (dup-mcmap buffer-mcmap -128 max-z)
                            (dup-mcmap buffer-mcmap max-x -128)
                            (dup-mcmap buffer-mcmap max-x max-z)
-                           (forcat [n (range -128 (+ 127 max-dim) 128)]
-                                   [ (dup-mcmap buffer-mcmap n -128)
-                                     (dup-mcmap buffer-mcmap -128 n)
-                                     (dup-mcmap buffer-mcmap n max-z)
-                                     (dup-mcmap buffer-mcmap max-x n)]))
+                           (forcat [n (range -128 max-dim 128)]
+                             [ (dup-mcmap buffer-mcmap n -128)
+                               (dup-mcmap buffer-mcmap -128 n)
+                               (dup-mcmap buffer-mcmap n max-z)
+                               (dup-mcmap buffer-mcmap max-x n)]))
             mmcmap (mcmaps-to-mmcmap (cons main-mcmap buffer-mcmaps))]
        (.mkdirs (File. (str save-dir "/region")))
        (write-file (str save-dir "/parameters.txt")
