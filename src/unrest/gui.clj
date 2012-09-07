@@ -8,6 +8,8 @@
 
 (def +old-seed-min+ (- (bit-shift-left 1 (dec +seed-bits+))))
 
+(def +required-memory+ (* 5/2 1024 1024 1024))
+
 (def +unrest-version+ (System/getProperty "unrest.version"))
 
 (defn numericize-seed
@@ -368,9 +370,36 @@ hack, and enjoy.
                    opts))
          (JOptionPane/showMessageDialog nil "Map generated successfully")))))
 
+(defn try-relaunching-jvm
+  "If this JVM was started with insufficient memory to run the Unrest
+  map generator, try to relaunch with adequate memory"
+  ([]
+     (case (host-os)
+           :windows
+             (if (file-exists "C:/Windows/System32/javaw.exe")
+               (run-cmd "C:/Windows/System32/javaw.exe"
+                        "-d64" "-Xmx4g"
+                        "-jar" (System/getProperty "java.class.path"))
+               (JOptionPane/showMessageDialog
+                nil
+                (str "The Unrest map generator requires 64-bit Java, and"
+                     " expects to find C:\\Windows\\System32\\javaw.exe")))
+           :mac
+             (JOptionPane/showMessageDialog
+              nil (str "The Unrest map generator requires 64-bit Java,"
+                       " which requires a 64-bit version of OS X"))
+           (:linux :misc)
+             (JOptionPane/showMessageDialog
+              nil (str "The Unrest map generator requires 64-bit Java"
+                       " and 4 GB of heap space (-Xmx4g)")))))
+
 (defn -main
   ([& args]
-     (let [t (Thread. ^Runnable unrest-map-generator)]
-       (.start t)
-       (.join t))
-     (System/exit 0)))
+     (msg 0 (System/getProperty "java.class.path"))
+     (if (< (.. Runtime getRuntime maxMemory)
+            +required-memory+)
+       (try-relaunching-jvm)
+       (let [t (Thread. ^Runnable unrest-map-generator)]
+         (.start t)
+         (.join t)
+         (System/exit 0)))))
