@@ -107,7 +107,10 @@ dungeon down so that no mobs can spawn.
 
 <p>The rules: don't leave the map boundaries and enter vanilla
 Minecraft terrain, and remember: creeper records are piracy.  (You
-wouldn't download a minecart.)
+wouldn't download a minecart.)  Feel free to make up your own rules,
+such as not keeping or using blocks \"mined\" by creeper explosions,
+and your own goals, such as escaping the map (with or without the
+record), or killing the dragon with the record in hand.
 
 <p>Choose your parameters and click the \"generate map\" button, and
 then run Minecraft, where you should find the newly generated map at
