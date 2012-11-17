@@ -152,7 +152,7 @@
   ([s]
      (dup-seq s 2))
   ([s n]
-     (mapcat #(repeat n %)
+     (mapcat (partial repeat n)
              s)))
 
 (defn uniq
@@ -164,7 +164,7 @@
       (when (seq s)
         (let [f (first s)]
           (cons f
-                (uniq (drop-while #(= f %)
+                (uniq (drop-while (partial = f)
                                   s))))))))
 
 (defn die
