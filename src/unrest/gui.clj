@@ -347,31 +347,35 @@ hack, and enjoy.
        (fn []
          (do ~@forms)))))
 
+(defn generate-map
+  ([form-data]
+     (let [gen-fn record-quest-map
+           game-seed (numericize-seed (:game-seed form-data))
+           [n-caves n-dungeons map-side map-height recalc-progress]
+           ( {:normal [15 64 256 128 recalc-progress-normal]
+              :small  [6  25 192  96 recalc-progress-small]
+              :tiny   [3  13 160  70 recalc-progress-tiny]}
+             (:size form-data))
+           opts {:level-name (:save-name form-data)
+                 :creative   (:creative  form-data)
+                 :hardcore   (:hardcore  form-data)
+                 :n-caves    n-caves
+                 :n-dungeons n-dungeons
+                 :map-side   map-side
+                 :map-height map-height
+                 :minecraft-seed game-seed}]
+       (with-mapgen-progress-bar recalc-progress
+         (gen-fn game-seed
+                 (numericize-seed (:cave-seed form-data))
+                 (:level form-data)
+                 (save-name->dir (:save-name form-data))
+                 opts))
+       (JOptionPane/showMessageDialog nil "Map generated successfully"))))
+
 (defn unrest-map-generator
   ([]
      (if-let [form-data (map-form)]
-       (let [gen-fn record-quest-map
-             game-seed (numericize-seed (:game-seed form-data))
-             [n-caves n-dungeons map-side map-height recalc-progress]
-               ( {:normal [15 64 256 128 recalc-progress-normal]
-                  :small  [6  25 192  96 recalc-progress-small]
-                  :tiny   [3  13 160  70 recalc-progress-tiny]}
-                 (:size form-data))
-             opts {:level-name (:save-name form-data)
-                   :creative   (:creative  form-data)
-                   :hardcore   (:hardcore  form-data)
-                   :n-caves    n-caves
-                   :n-dungeons n-dungeons
-                   :map-side   map-side
-                   :map-height map-height
-                   :minecraft-seed game-seed}]
-         (with-mapgen-progress-bar recalc-progress
-           (gen-fn game-seed
-                   (numericize-seed (:cave-seed form-data))
-                   (:level form-data)
-                   (save-name->dir (:save-name form-data))
-                   opts))
-         (JOptionPane/showMessageDialog nil "Map generated successfully")))))
+       (generate-map form-data))))
 
 (defn try-relaunching-jvm
   "If this JVM was started with insufficient memory to run the Unrest
