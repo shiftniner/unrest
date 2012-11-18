@@ -128,8 +128,9 @@ This is normal.
 
 <p>The Unrest map generator is distributed under the Eclipse Public
 License, version 1.0: " (a-href "www.eclipse.org/legal/epl-v10.html")
-". Source code is on github: " (a-href "https://github.com/") " Share,
-hack, and enjoy.
+". Source code is on github: "
+(a-href "https://github.com/shiftniner/unrest") " Share, hack, and
+enjoy.
 
 <p><center>Dedicated to sweetjuices.</center>
 <br><br>
