@@ -77,7 +77,8 @@
   ([url]
      (a-href url url))
   ([url txt]
-     (let [clean-url (if (.startsWith ^String url "http://")
+     (let [clean-url (if (or (.startsWith ^String url "http://")
+                             (.startsWith ^String url "https://"))
                        url
                        (str "http://" url))]
        ;; TODO: add quoting/escaping
