@@ -955,7 +955,7 @@
        (let [chunk (first chunks)
              chunk-compressed-size (byte-buffer-size
                                     (:compressed-data chunk))
-             chunk-size-in-sectors (quot (+ chunk-compressed-size 4101)
+             chunk-size-in-sectors (quot (+ chunk-compressed-size 4100)
                                          4096)
              room-to-leave (+ chunk-size-in-sectors 6)]
          (when (> chunk-size-in-sectors 255)
