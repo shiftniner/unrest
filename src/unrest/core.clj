@@ -1037,7 +1037,7 @@
 
 (defn place-chunks
   "Given seqs of chunks and locations, returns a byte buffer
-  containing the chunks for an mcr file"
+  containing the chunks for an mcr/mca file"
   ([chunks locs]
      (msg 1 "Placing chunks ...")
      (let [shifted-locs (cons {:offset 0, :count 2} locs)
