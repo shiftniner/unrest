@@ -350,7 +350,7 @@ enjoy.
          (do ~@forms)))))
 
 (defn generate-map
-  ([form-data]
+  ([form-data show-progress-windows?]
      (let [gen-fn record-quest-map
            game-seed (numericize-seed (:game-seed form-data))
            [n-caves n-dungeons map-side map-height recalc-progress]
@@ -365,19 +365,25 @@ enjoy.
                  :n-dungeons n-dungeons
                  :map-side   map-side
                  :map-height map-height
-                 :minecraft-seed game-seed}]
-       (with-mapgen-progress-bar recalc-progress
-         (gen-fn game-seed
-                 (numericize-seed (:cave-seed form-data))
-                 (:level form-data)
-                 (save-name->dir (:save-name form-data))
-                 opts))
-       (JOptionPane/showMessageDialog nil "Map generated successfully"))))
+                 :minecraft-seed game-seed}
+           gen-fn #(record-quest-map game-seed
+                                     (numericize-seed (:cave-seed
+                                                       form-data))
+                                     (:level form-data)
+                                     (save-name->dir (:save-name
+                                                      form-data))
+                                     opts)]
+       (if show-progress-windows?
+         (do
+           (with-mapgen-progress-bar recalc-progress
+             (gen-fn))
+           (JOptionPane/showMessageDialog nil "Map generated successfully"))
+         (gen-fn)))))
 
 (defn unrest-map-generator
   ([]
      (if-let [form-data (map-form)]
-       (generate-map form-data))))
+       (generate-map form-data true))))
 
 (defn try-relaunching-jvm
   "If this JVM was started with insufficient memory to run the Unrest
