@@ -274,6 +274,15 @@
               :spruce-wood-stairs    134
               :birch-wood-stairs     135
               :jungle-wood-stairs    136
+              :command-block         137
+              :beacon                138
+              :cobblestone-wall      139
+              :flower-pot            140
+              :carrots               141
+              :potatoes              142
+              :wood-button           143
+              :head                  144
+              :anvil                 145
               }
              ze)
            (throw (RuntimeException. (str "Block ID unknown for " ze)))))))
@@ -421,6 +430,21 @@
                  :spawn-egg             383
                  :bottle-o-enchanting   384
                  :fire-charge           385
+                 :book-and-quill        386
+                 :written-book          387
+                 :emerald               388
+                 :item-frame            389
+                 :flower-pot            390
+                 :carrot                391
+                 :potato                392
+                 :baked-potato          393
+                 :poisonous-potato      394
+                 :empty-map             395
+                 :golden-carrot         396
+                 :head                  397
+                 :carrot-on-a-stick     398
+                 :nether-star           399
+                 :pumpkin-pie           400
                  :13-disc               2256
                  :cat-disc              2257
                  :blocks-disc           2258
@@ -432,6 +456,7 @@
                  :strad-disc            2264
                  :ward-disc             2265
                  :11-disc               2266
+                 :wait-disc             2267
                  nil)
            (if-let [potion-damage (potions type)]
              [(mc-item :potion) potion-damage])
