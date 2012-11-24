@@ -10,7 +10,16 @@
 
 (def +required-memory+ (* 5/2 1024 1024 1024))
 
-(def +unrest-version+ (System/getProperty "unrest.version"))
+(def +unrest-version+ "1.0.2")
+
+;;; We can't get the unrest.version property at runtime and use that,
+;;; because it only appears to be set during compilation (by
+;;; leiningen?), but at least we can check the var at compile-time to
+;;; guarantee it doesn't get out-of-sync.
+(if-let [prop-version (System/getProperty "unrest.version")]
+  (when (not= +unrest-version+ prop-version)
+    (die "Build error: +unrest-version+ does not match unrest.version"
+         " system property; update to \"" prop-version "\"")))
 
 (defn numericize-seed
   "Takes a string and returns it as a long if it is formatted as an
