@@ -18,7 +18,7 @@
 ;;; instead of for in gen-mcmap-zone.  XXX 400 is a wild guess;
 ;;; experiment.
 (def ^:dynamic *size-at-which-pmap-faster* 400)
-(def Infinity (- (Math/log 0)))
+(def Infinity Double/POSITIVE_INFINITY)
 (def +default-biome+ 2)
 
 (def ^:dynamic *map-gen-version* 1)
