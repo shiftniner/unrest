@@ -283,7 +283,6 @@
   "Given a seq of bytes (or ints between -128 and 255; values over 127
   will be folded), returns a byte buffer"
   ([bs]
-     ;; XXX try adding a lazy-seq here; see if it's faster
      (lazy-seq
       (let [ba (into-array Byte/TYPE
                            (map #(if (> % 127)
